@@ -64,7 +64,7 @@ module fm_uart_control (
     output reg         fm_pitch_envelope_write_valid,
     output reg  [1:0]  fm_pitch_envelope_stage,
     output reg  [15:0] fm_pitch_envelope_coefficient,
-    output reg  [20:0] fm_pitch_envelope_ratio,
+    output reg  [22:0] fm_pitch_envelope_ratio,
     output reg         fm_algorithm_flags_write_valid,
     output reg  [47:0] fm_algorithm_flags,
     output reg         fm_note_gain_write_valid,
@@ -185,7 +185,7 @@ module fm_uart_control (
             fm_pitch_envelope_write_valid <= 1'b0;
             fm_pitch_envelope_stage <= 2'd0;
             fm_pitch_envelope_coefficient <= 16'd1;
-            fm_pitch_envelope_ratio <= 21'h10000;
+            fm_pitch_envelope_ratio <= 23'd0;
             fm_algorithm_flags_write_valid <= 1'b0;
             fm_algorithm_flags <= 48'h1401140114c1;
             fm_note_gain_write_valid <= 1'b0;
@@ -319,7 +319,7 @@ module fm_uart_control (
                                     if (payload[7:0] < 4) begin
                                         fm_pitch_envelope_stage <= payload[1:0];
                                         fm_pitch_envelope_coefficient <= payload[23:8];
-                                    fm_pitch_envelope_ratio <= payload[44:24];
+                                    fm_pitch_envelope_ratio <= payload[46:24];
                                         fm_pitch_envelope_write_valid <= 1'b1;
                                     end else packet_error <= 1'b1;
                                 end
@@ -427,7 +427,7 @@ module fm_uart_control (
                         preset_read_wait <= 1'b0;
                         fm_pitch_envelope_stage <= preset_pitch_index[1:0];
                         fm_pitch_envelope_coefficient <= preset_pitch_word[15:0];
-                        fm_pitch_envelope_ratio <= preset_pitch_word[36:16];
+                        fm_pitch_envelope_ratio <= preset_pitch_word[38:16];
                         fm_pitch_envelope_write_valid <= 1'b1;
                         if (preset_pitch_index == 3) begin
                             preset_pitch_index <= 0;

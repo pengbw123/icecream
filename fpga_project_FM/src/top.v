@@ -166,7 +166,7 @@ module top (
     wire fm_pitch_envelope_write_valid;
     wire [1:0] fm_pitch_envelope_stage;
     wire [15:0] fm_pitch_envelope_coefficient;
-    wire [20:0] fm_pitch_envelope_ratio;
+    wire [22:0] fm_pitch_envelope_ratio;
     wire fm_algorithm_flags_write_valid;
     wire [47:0] fm_algorithm_flags;
     wire fm_note_gain_write_valid;
@@ -247,6 +247,7 @@ module top (
 
     wire signed [15:0] synth_sample;
     wire [4:0] active_voice_count;
+    wire [47:0] operator_envelope_levels;
     fm_poly_synth #(.VOICE_COUNT(16)) u_fm_poly_synth (
         .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
         .midi_event_data(synth_midi_event_data),
@@ -293,7 +294,8 @@ module top (
         .fm_patch_commit(fm_patch_commit), .pitch_bend(pitch_bend),
         .vibrato_depth(vibrato_depth), .vibrato_rate(vibrato_rate),
         .portamento_time(portamento_time), .sample_out(synth_sample),
-        .active_voice_count(active_voice_count)
+        .active_voice_count(active_voice_count),
+        .operator_envelope_levels(operator_envelope_levels)
     );
 
     wire signed [15:0] effected_sample;
@@ -302,18 +304,29 @@ module top (
         .dry_sample(synth_sample), .chorus_mix(chorus_mix),
         .reverb_mix(reverb_mix), .sample_out(effected_sample)
     );
+    wire signed [15:0] output_sample;
+    wire [7:0] peak_level;
+    wire clip_active;
+    audio_output_stage u_audio_output_stage (
+        .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
+        .sample_in(effected_sample), .sample_out(output_sample),
+        .peak_level(peak_level), .clip_active(clip_active)
+    );
     i2s_tx #(.BCLK_HALF_DIV(8)) u_i2s_tx (
         .clk(clk), .reset_n(audio_reset_n),
-        .sample_left(effected_sample), .sample_right(effected_sample),
+        .sample_left(output_sample), .sample_right(output_sample),
         .sample_tick(sample_tick), .i2s_bclk(i2s_bclk),
         .i2s_lrclk(i2s_lrclk), .i2s_din(i2s_din)
     );
 
     fm_status_lcd u_fm_status_lcd (
         .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
-        .audio_sample(effected_sample),
+        .audio_sample(output_sample),
         .active_voice_count(active_voice_count),
         .preset_index(current_preset), .algorithm(fm_algorithm),
+        .algorithm_flags(fm_algorithm_flags),
+        .operator_envelope_levels(operator_envelope_levels),
+        .peak_level(peak_level), .clip_active(clip_active),
         .lcd_resetn(lcd_resetn), .lcd_clk(lcd_clk), .lcd_cs(lcd_cs),
         .lcd_dc(lcd_dc), .lcd_data(lcd_data)
     );

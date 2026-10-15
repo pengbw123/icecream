@@ -12,6 +12,7 @@ from core.fm_patch import (
     dx7_keyboard_level_offset,
     dx7_scale_level,
     pitch_envelope_coefficient,
+    pitch_envelope_target_q15,
     pitch_ratio_q16,
     load_syx,
     normalise_patch,
@@ -86,6 +87,9 @@ class FmPatchTests(unittest.TestCase):
         self.assertGreater(pitch_ratio_q16(99), 900000)
         self.assertLess(pitch_envelope_coefficient(0),
                         pitch_envelope_coefficient(99))
+        self.assertEqual(pitch_envelope_target_q15(50), 0)
+        self.assertLess(pitch_envelope_target_q15(0), 0)
+        self.assertGreater(pitch_envelope_target_q15(99), 0)
 
     def test_compact_bank_has_all_32_power_on_presets(self):
         voice = bytearray(128)
@@ -104,6 +108,7 @@ class FmPatchTests(unittest.TestCase):
             self.assertEqual(len((output / "fm_rom1a_global.mem").read_text().splitlines()), 32)
             self.assertEqual(len((output / "fm_rom1a_operator.mem").read_text().splitlines()), 192)
             self.assertEqual(len((output / "fm_rom1a_envelope.mem").read_text().splitlines()), 768)
+            self.assertEqual(len((output / "fm_rom1a_names.mem").read_text().splitlines()), 320)
 
 
 if __name__ == "__main__":

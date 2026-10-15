@@ -23,7 +23,7 @@ from core.fm_patch import (  # noqa: E402
     normalise_patch,
     operator_frequency_word,
     pitch_envelope_coefficient,
-    pitch_ratio_q16,
+    pitch_envelope_target_q15,
 )
 
 
@@ -90,7 +90,7 @@ def compile_bank(source: Path, output: Path) -> list[dict]:
                                patch["pitch_eg_levels"]):
             pitch_mem.append(
                 (pitch_envelope_coefficient(rate) & 0xFFFF)
-                | ((pitch_ratio_q16(level) & 0x1FFFFF) << 16)
+                | ((pitch_envelope_target_q15(level) & 0x7FFFFF) << 16)
             )
 
     output.mkdir(parents=True, exist_ok=True)
@@ -100,6 +100,11 @@ def compile_bank(source: Path, output: Path) -> list[dict]:
     write_hex(output / "fm_rom1a_envelope.mem", eg_mem, 6)
     write_hex(output / "fm_rom1a_pitch.mem", pitch_mem, 10)
     write_hex(output / "fm_rom1a_algorithm.mem", algorithm_mem, 12)
+    name_bytes = []
+    for patch in patches:
+        encoded = patch["name"].upper().encode("ascii", errors="replace")[:10]
+        name_bytes.extend(encoded.ljust(10, b" "))
+    write_hex(output / "fm_rom1a_names.mem", name_bytes, 2)
     manifest = [{"index": i, "name": patch["name"]}
                 for i, patch in enumerate(patches)]
     (output / "fm_rom1a_names.json").write_text(

@@ -429,13 +429,20 @@ def pitch_ratio_q16(level: int) -> int:
 
 
 def pitch_envelope_coefficient(rate: int) -> int:
-    """Map the Yamaha Pitch-EG rate table into the FPGA Q0.16 mover.
+    """Return the measured DX7 pitch-EG linear step.
 
-    This retains the stable monotonic one-pole hardware while using the
-    measured Yamaha rate law instead of reusing the operator-EG time formula.
+    Hardware stores pitch in signed Q8.15 Yamaha pitch units.  At the
+    48.828125 kHz audio rate one entry of the measured ``ratetab`` is almost
+    exactly one Q15 LSB per sample (the residual error is below 0.4%).  This
+    replaces the former one-pole mover whose trajectory depended on distance
+    from the target and therefore did not match DX7/Dexed pitch envelopes.
     """
-    value = DX7_PITCH_RATE[int(_clamp(rate, 0, 99))]
-    return int(_clamp(round((value / 255.0) ** 2.35 * 65535.0), 1, 0xFFFF))
+    return DX7_PITCH_RATE[int(_clamp(rate, 0, 99))]
+
+
+def pitch_envelope_target_q15(level: int) -> int:
+    """Return the signed 23-bit Q8.15 DX7 pitch-EG target."""
+    return DX7_PITCH_LEVEL[int(_clamp(level, 0, 99))] << 15
 
 
 def keyboard_gain_q14(op: dict, note: int) -> int:
@@ -497,8 +504,8 @@ def patch_packets(raw_patch: dict) -> list[bytes]:
         payload[0] = stage
         struct.pack_into("<H", payload, 1,
                          pitch_envelope_coefficient(patch["pitch_eg_rates"][stage]))
-        ratio = pitch_ratio_q16(patch["pitch_eg_levels"][stage])
-        payload[3:6] = ratio.to_bytes(3, "little")
+        target = pitch_envelope_target_q15(patch["pitch_eg_levels"][stage])
+        payload[3:6] = (target & 0x7FFFFF).to_bytes(3, "little")
         packets.append(make_packet(CMD_FM_PITCH_ENVELOPE, bytes(payload)))
     packets.append(make_packet(CMD_FM_COMMIT))
     return packets

@@ -1,13 +1,16 @@
 """Generate MIDI-note DDS, pitch-ratio and loudness-compensation tables."""
 
 import math
+import sys
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT / "tools"))
 
 from core.additive_uart_protocol import DEFAULT_NOTE_LOUDNESS, note_gain_table_q14
 
 
 SAMPLE_RATE_HZ = 48_828.125
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = PROJECT_ROOT / "src" / "generated" / "midi_phase_inc.mem"
 PITCH_RATIO_OUTPUT = (
     PROJECT_ROOT
@@ -26,6 +29,12 @@ DX7_LEVEL_GAIN_OUTPUT = (
     / "src"
     / "generated"
     / "dx7_level_gain_q16.mem"
+)
+PITCH_EG_FRACTION_OUTPUT = (
+    PROJECT_ROOT
+    / "src"
+    / "generated"
+    / "dx7_pitch_eg_fraction_q16.mem"
 )
 DX7_VELOCITY_OUTPUT = (
     PROJECT_ROOT
@@ -101,20 +110,31 @@ def main():
     NOTE_GAIN_OUTPUT.write_text("\n".join(note_gains) + "\n", encoding="ascii")
     print(f"generated {NOTE_GAIN_OUTPUT} ({len(note_gains)} note gains)")
 
-    # The FM envelope runs in the DX7 logarithmic level domain.  Ten address
-    # bits cover 0..4095 internal level steps (four steps per entry).  Level
+    # The FM envelope runs in the DX7 logarithmic level domain.  Twelve address
+    # bits cover all 0..4095 internal level steps.  Level
     # 3840 is the nominal DX7 output-level-99 peak.  A 17-bit Q1.16 table is
     # intentional: velocity can lift that peak by almost 6 dB.  Saturating it
     # at 16 bits removed the strongest modulation sidebands and made hard
     # attacks sound darker than Dexed.
     dx7_gains = []
-    for address in range(1024):
-        level = address * 4
+    for level in range(4096):
         gain = round((2.0 ** ((level - 3840) / 256.0)) * 65536.0)
         dx7_gains.append(f"{max(0, min(0x1FFFF, gain)):017b}")
     DX7_LEVEL_GAIN_OUTPUT.write_text(
         "\n".join(dx7_gains) + "\n", encoding="ascii")
     print(f"generated {DX7_LEVEL_GAIN_OUTPUT} ({len(dx7_gains)} levels)")
+
+    # Pitch EG is stored as signed Q8.15 Yamaha units (1 unit = 1/32 octave).
+    # The lower eight table bits span one octave in 1/8-unit increments; the
+    # signed upper bits are implemented as a cheap octave barrel shift in RTL.
+    pitch_eg_fraction = []
+    for eighth_unit in range(256):
+        ratio_q16 = round((2.0 ** (eighth_unit / 256.0)) * 65536.0)
+        pitch_eg_fraction.append(f"{min(0x1FFFF, ratio_q16):018b}")
+    PITCH_EG_FRACTION_OUTPUT.write_text(
+        "\n".join(pitch_eg_fraction) + "\n", encoding="ascii")
+    print(f"generated {PITCH_EG_FRACTION_OUTPUT} "
+          f"({len(pitch_eg_fraction)} ratios)")
 
     velocity_curve = (
         0, 70, 86, 97, 106, 114, 121, 126, 132, 138, 142, 148, 152,
