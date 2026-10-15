@@ -172,6 +172,20 @@ module fm_poly_synth #(
     reg operator_state_write_valid;
     reg [6:0] operator_state_write_address;
     reg [107:0] operator_state_write_data;
+    // Centralise the RAM layout so a future envelope-width change cannot
+    // silently shift the neighbouring phase and frequency fields again.
+    function [107:0] pack_operator_state;
+        input [31:0] phase;
+        input [31:0] increment;
+        input [25:0] envelope;
+        input signed [15:0] level_offset;
+        input [1:0] stage;
+        begin
+            pack_operator_state = {
+                phase, increment, envelope, level_offset, stage
+            };
+        end
+    endfunction
     always @(posedge clk) begin
         operator_state_read_data <= operator_state_memory[operator_state_read_address];
         if (operator_state_write_valid)
@@ -1000,13 +1014,13 @@ module fm_poly_synth #(
                 p0_enabled <= e0_enabled;
                 operator_state_write_valid <= 1'b1;
                 operator_state_write_address <= e0_voice * 6 + e0_operator;
-                operator_state_write_data <= {
+                operator_state_write_data <= pack_operator_state(
                     e0_phase + e0_frequency,
                     e0_increment,
                     e0_env_next,
                     e0_level_offset,
                     e0_env_stage_next
-                };
+                );
                 if (e0_voice == display_voice)
                     operator_envelope_levels[e0_operator * 8 +: 8]
                         <= e0_env_next[25:18];
@@ -1154,13 +1168,15 @@ module fm_poly_synth #(
                     operator_state_write_valid <= 1'b1;
                     operator_state_write_address <=
                         event_target_voice * 6 + event_init_operator;
-                    operator_state_write_data <= {
+                    operator_state_write_data <= pack_operator_state(
                         (fm_osc_sync ? 32'd0 : lfo_phase),
                         event_operator_increment,
-                        24'd0,
+                        // Q14 envelope state is 26 bits. The former 24-bit
+                        // field made the old concatenation only 106 bits wide.
+                        26'd0,
                         event_level_offset_latched,
                         2'd0
-                    };
+                    );
                     if (event_init_operator == 5) begin
                         allocation_cursor <= (event_target_voice == VOICE_COUNT-1)
                             ? 0 : event_target_voice + 1'b1;
