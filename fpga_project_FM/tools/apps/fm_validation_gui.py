@@ -1,8 +1,4 @@
-"""Small desktop front end for the DX7 differential-validation CLI.
-
-The generated audio is the *original Dexed/msfa FM core at constant operator
-gain*. It is a useful kernel test, not a full DX7 ROM-voice render or RTL sim.
-"""
+"""Desktop front end for Dexed/msfa voice references and FPGA A/B comparison."""
 
 from __future__ import annotations
 
@@ -22,8 +18,10 @@ sys.path.insert(0, str(TOOLS_DIR))
 
 from cli.fm_dx7_diff import (  # noqa: E402
     _find_dexed_root, _read_wav, _write_wav16, compare_raw_i32,
-    compare_wavs, render_msfa_core,
+    compare_wavs, render_msfa_core, render_msfa_voice,
+    _write_dexed_plugin_wav,
 )
+from core.fm_patch import load_syx, normalise_patch  # noqa: E402
 
 try:
     import winsound
@@ -75,15 +73,21 @@ class FmValidationApp:
         self.reference_offset = tk.IntVar(value=0)
         self.fpga_offset = tk.IntVar(value=0)
         self.hold_ms = tk.IntVar(value=1000)
-        self.status = tk.StringVar(value="准备就绪。先生成一个 Dexed 核心参考音频并试听。")
+        self.bank_path = tk.StringVar(value=r"D:\a_files\Cartridges\rom1a.syx")
+        self.bank_index = tk.IntVar(value=10)
+        self.voice_note = tk.IntVar(value=60)
+        self.voice_velocity = tk.IntVar(value=100)
+        self.voice_hold_ms = tk.IntVar(value=1000)
+        self.voice_tail_ms = tk.IntVar(value=2000)
+        self.status = tk.StringVar(value="准备就绪。可生成完整 Dexed 音色参考，或做静态 FM 核心测试。")
 
         outer = ttk.Frame(root, padding=10)
         outer.pack(fill="both", expand=True)
         ttk.Label(outer, text="DX7 差分实验台", font=("Microsoft YaHei UI", 16, "bold")
                   ).pack(anchor="w")
         ttk.Label(outer, text=(
-            "当前参考音频仅覆盖原版 Dexed/msfa 的 FM 核心（算子增益固定）；"
-            "不是完整音色、不是 FPGA RTL 仿真，也尚未证明逐位一致。"),
+            "可以生成 Dexed 的完整单音参考（含算子/音高包络、LFO、反馈）；"
+            "FPGA 数字输出仍需单独采集，不能把参考音频当作 RTL 仿真结果。"),
             foreground="#a54b00", wraplength=970).pack(anchor="w", pady=(2, 8))
         tabs = ttk.Notebook(outer)
         tabs.pack(fill="both", expand=True)
@@ -159,6 +163,28 @@ class FmValidationApp:
         ttk.Button(actions, text="■ 停止", command=self._stop_audio).pack(side="left")
         ttk.Label(actions, text="试听倍率仅改变播放文件，不改原始 .i32le 数据",
                   foreground="#666").pack(side="right")
+
+        voice = ttk.LabelFrame(tab, text="完整音色参考（推荐用于音色 A/B）", padding=7)
+        voice.pack(fill="x", pady=(0, 5))
+        self._path_row(voice, 0, "DX7 音色库 / SYX", self.bank_path,
+                       lambda: self._choose_file(self.bank_path, "DX7 音色库", "*.syx"))
+        voice_controls = ttk.Frame(voice)
+        voice_controls.grid(row=1, column=0, columnspan=3, sticky="w", pady=(3, 0))
+        for label, var, width in (("音色序号 0 起", self.bank_index, 6),
+                                  ("MIDI 音符", self.voice_note, 6),
+                                  ("力度", self.voice_velocity, 6),
+                                  ("按住 ms", self.voice_hold_ms, 7),
+                                  ("尾音 ms", self.voice_tail_ms, 7)):
+            cell = ttk.Frame(voice_controls)
+            cell.pack(side="left", padx=(0, 10))
+            ttk.Label(cell, text=label).pack(anchor="w")
+            ttk.Entry(cell, textvariable=var, width=width).pack(anchor="w")
+        voice_actions = ttk.Frame(voice)
+        voice_actions.grid(row=2, column=0, columnspan=3, sticky="w", pady=(5, 0))
+        ttk.Button(voice_actions, text="生成完整 Dexed 音色参考",
+                   command=self._render_voice_reference).pack(side="left")
+        ttk.Label(voice_actions, text="生成 WAV + 原始 i32le + 参数/源码哈希 JSON",
+                  foreground="#666").pack(side="left", padx=10)
 
         self.reference_detail = tk.StringVar(value="尚未生成。")
         ttk.Label(tab, textvariable=self.reference_detail, wraplength=960).pack(
@@ -315,6 +341,59 @@ class FmValidationApp:
             "（32位数字样点），以及参数 JSON。")
         self.status.set(f"参考音频已保存到 {output.parent}；可以点“▶ 试听”。")
         self._draw_reference()
+
+    def _render_voice_reference(self) -> None:
+        try:
+            root = _find_dexed_root(Path(self.dexed_root.get()))
+            bank = Path(self.bank_path.get())
+            index = self.bank_index.get()
+            note = self.voice_note.get()
+            velocity = self.voice_velocity.get()
+            hold_ms = self.voice_hold_ms.get()
+            tail_ms = self.voice_tail_ms.get()
+            rate = self.sample_rate.get()
+            if not bank.is_file():
+                raise FileNotFoundError(f"找不到音色库：{bank}")
+            if not (0 <= note <= 127 and 1 <= velocity <= 127 and
+                    hold_ms > 0 and tail_ms >= 0 and 8000 <= rate <= 192000):
+                raise ValueError("请检查音符 0–127、力度 1–127、时长和采样率")
+            patches = load_syx(bank)
+            if not 0 <= index < len(patches):
+                raise ValueError(f"当前音色库共 {len(patches)} 个音色，序号从 0 到 {len(patches)-1}")
+            patch = normalise_patch(patches[index])
+            effective_note = note + int(patch["transpose"]) - 24
+            if not 0 <= effective_note <= 127:
+                raise ValueError(
+                    f"该音色的移调会将 MIDI {note} 映射到 {effective_note}，超出 0–127")
+            folder = Path(self.output_path.get())
+        except (ValueError, FileNotFoundError, tk.TclError) as exc:
+            messagebox.showerror("参数错误", str(exc))
+            return
+
+        def work():
+            internal = render_msfa_voice(root, patch, note, velocity,
+                                         hold_ms, tail_ms, rate)
+            folder.mkdir(parents=True, exist_ok=True)
+            output = folder / f"dexed_{index:02d}_{patch['name'].strip().replace(' ', '_')}_n{note}.wav"
+            raw = output.with_suffix(".i32le")
+            raw.write_bytes(internal.astype("<i4").tobytes())
+            # Keep the GUI and CLI reference quantization identical to Dexed.
+            _write_dexed_plugin_wav(output, internal, rate)
+            metadata = {
+                "scope": "full Dexed/msfa single note; not FPGA RTL output",
+                "preset_index": index, "preset_name": patch["name"],
+                "algorithm": patch["algorithm"], "note": note,
+                "effective_note_after_patch_transpose": effective_note,
+                "velocity": velocity, "hold_ms": hold_ms,
+                "tail_ms": tail_ms, "sample_rate_exact": rate,
+                "samples": len(internal), "bank": str(bank),
+            }
+            output.with_suffix(".json").write_text(
+                json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+            return output
+
+        self._run_task("正在生成完整 Dexed 单音色参考…", work,
+                       self._render_done)
 
     def _play_path(self, path: Path) -> None:
         if winsound is None:

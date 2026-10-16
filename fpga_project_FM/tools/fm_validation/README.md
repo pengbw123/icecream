@@ -8,9 +8,10 @@
 请保留原项目的版权和许可说明。
 
 也可以双击`tools/launchers/run_fm_validation.bat`打开图形界面，或从
-`tools/run_tools_menu.bat`选择“DX7-FPGA音色差分验证”。界面可以编辑
-六个算子的静态频率/增益、生成并播放Dexed核心参考WAV、查看波形，导入
-两份WAV比较音量/包络/频谱，并对原始32位整数PCM做严格逐样点比较。
+`tools/run_tools_menu.bat`选择“DX7-FPGA音色差分验证”。界面既可以做
+静态算子核心测试，也可以选 SYX 音色库、音色序号、音符、力度、按住时长
+和尾音时长，生成完整 Dexed 单音参考；随后可试听、查看波形、导入 FPGA
+WAV 比较音量/包络/频谱，或对原始32位整数PCM做严格逐样点比较。
 试听音量倍率只作用于播放WAV，不修改随附的`.i32le`整数原始数据。
 
 ## A. 先检查静态算法路由
@@ -82,12 +83,28 @@ python tools/cli/fm_dx7_diff.py core-reference --algorithm 32 --feedback 0 --fre
 EG、力度、LFO和按键释放；因此不能把它当作完整`E.PIANO 1`参考。
 它适合先分离检验正弦、算子连接和反馈，再扩展到包络。
 
+## D. 生成完整 Dexed 单音参考
+
+```powershell
+python tools/cli/fm_dx7_diff.py voice-reference --bank D:\a_files\Cartridges\rom1a.syx --index 10 --note 60 --velocity 100 --hold-ms 1000 --tail-ms 2000 --out D:\fm_test\dexed_epiano1_c4.wav
+```
+
+此命令调用本机 Dexed/msfa 的 `Dx7Note`，覆盖算子EG、Pitch EG、力度、键位
+缩放、LFO、算法路由、反馈和 Note Off。MIDI 音符按 Dexed 音色中的 Transpose
+参数处理；默认控制器为中性值，MPE、踏板、Pitch Bend、效果器关闭。旁边生成
+`.i32le`内部核心样点和`.json`，后者记录音色名、Bank 哈希和 Dexed 源码哈希。
+WAV 使用 Dexed `PluginProcessor` 中核心 int32 到 int16 的同一量化方式，便于
+与关闭效果器的 Dexed 插件数字导出做听感/包络比较。参考音不是 FPGA 输出，
+也还不表示已完成 FPGA 逐位一致。
+
 ## 当前覆盖边界
 
 - 已完成：统一MIDI测试事件、Bank身份记录、32路由源代码审计、直接编译
   Dexed FM核心、PCM WAV自动对齐和分段误差报告。
 - 已加入：不做自动对齐/重采样/增益拟合的32位原始整数样点比较器。
-- 未完成：板端内部样点自动导出、RTL仿真自动运行、Dexed完整音色离线渲染。
+- 已完成：Dexed 完整单音色离线渲染（仍是参考，不是 FPGA 输出）。
+- 未完成：板端内部样点自动导出、RTL仿真自动运行、FPGA 内部 EG/算子中间值
+  的自动导出，以及逐样点硬件差分。
   因此工具不会把目前的“32/32路由一致”误报为“DX7音色完全一致”。
 
 ## 以后要对照原版DX7，而不仅是Dexed

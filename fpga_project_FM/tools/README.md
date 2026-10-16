@@ -24,14 +24,14 @@ tools/
 | FPGA音色编辑 | `launchers/run_harmonic_editor.bat` | 编辑四基准谐波、动态滤波、幅度ADSR、Pitch包络及键位响度曲线，试听并通过UART发送 |
 | MIDI演奏器 | `launchers/run_uart_midi_player.bat` | 通过串口播放标准MIDI曲目、全音域可视琴键与鼠标试音 |
 | 6算子FM编辑器 | `launchers/run_fm_editor.bat` | 导入DX7单音色/32音色`.syx`，手动编辑6算子并实时下载到FPGA |
-| FM差分验证 | `launchers/run_fm_validation.bat` | 生成Dexed核心参考音频、试听，并比较FPGA录音或原始数字样点 |
+| FM差分验证 | `launchers/run_fm_validation.bat` | 生成完整Dexed单音或静态FM核心参考、试听，并比较FPGA录音或原始数字样点 |
 | 阶段一 | `launchers/run_instrument_analyzer.bat` | 分析一个真实乐器单音，观察热力图、32谐波绝对幅度和绝对衰减 |
 | 阶段二 | `launchers/run_timbre_builder.bat` | 同时分析C2/C3/C4/C6，分离总包络和相对谐波衰减，A/B试听并导出FPGA参数 |
 
 首次运行任一图形程序前执行一次`launchers/install_python_requirements.bat`。
 
 FM音色对照可使用`cli/fm_dx7_diff.py`生成固定MIDI测试、直接调用本机Dexed
-FM运算核心，并比较两路PCM WAV或严格比较两路原始数字样点；也可双击
+完整单音路径（含包络/LFO/反馈）或静态FM运算核心，并比较两路PCM WAV或严格比较两路原始数字样点；也可双击
 `launchers/run_fm_validation.bat`打开带试听和波形显示的图形界面。详见
 `fm_validation/README.md`。
 

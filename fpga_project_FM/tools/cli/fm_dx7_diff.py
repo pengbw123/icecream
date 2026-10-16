@@ -249,6 +249,16 @@ def _find_dexed_root(requested: Path | None) -> Path:
     raise FileNotFoundError("Dexed source not found; provide --dexed-root")
 
 
+def _compiler_runtime_flags(compiler: str) -> list[str]:
+    """Select working MinGW binutils and self-contained runtime on Windows."""
+    if sys.platform != "win32":
+        return []
+    compiler_tools = Path(compiler).resolve().parent
+    binutils = (["-B", str(compiler_tools) + "/"]
+                if (compiler_tools / "as.exe").is_file() else [])
+    return [*binutils, "-static"]
+
+
 def render_msfa_core(dexed_root: Path, samples: int, sample_rate: float,
                      algorithm: int, feedback: int,
                      frequencies: list[float], gains: list[float]) -> np.ndarray:
@@ -259,14 +269,24 @@ def render_msfa_core(dexed_root: Path, samples: int, sample_rate: float,
     compiler = shutil.which("g++")
     if not compiler:
         raise FileNotFoundError("g++ not found; install MinGW-w64 or provide it in PATH")
+    # Some MinGW installs have a broken target-specific assembler and dynamic
+    # runtime dependencies; prefer the working colocated tools.
+    runtime_flags = _compiler_runtime_flags(compiler)
     with tempfile.TemporaryDirectory(prefix="fm_dx7_ref_") as folder:
         executable = Path(folder) / ("reference.exe" if sys.platform == "win32" else "reference")
         # fm_core.h includes controllers.h but the isolated FmCore uses none
         # of it. Its include guard avoids unrelated JUCE/UI dependencies.
-        command = [compiler, "-std=c++17", "-O2", "-D__CONTROLLERS_H",
+        command = [compiler, *runtime_flags,
+                   "-std=c++17", "-O2", "-D__CONTROLLERS_H",
                    "-I", str(msfa), str(adapter), *map(str, sources),
                    "-o", str(executable)]
-        subprocess.run(command, check=True, capture_output=True, text=True)
+        built = subprocess.run(command, capture_output=True, text=True)
+        if built.returncode:
+            detail = built.stderr.strip() or built.stdout.strip() or "(compiler produced no diagnostics)"
+            raise RuntimeError(
+                "could not build Dexed core adapter "
+                f"(exit {built.returncode}):\n{detail}"
+            )
         result = subprocess.run(
             [str(executable), str(samples), str(sample_rate), str(algorithm),
              str(feedback), ",".join(map(str, frequencies)),
@@ -274,6 +294,97 @@ def render_msfa_core(dexed_root: Path, samples: int, sample_rate: float,
     if len(result.stdout) != samples * 4:
         raise ValueError("Dexed adapter returned an unexpected sample count")
     return np.frombuffer(result.stdout, dtype="<i4").copy()
+
+
+def _dexed_unpacked_patch(patch: dict) -> bytes:
+    """Encode the shared patch model to Dexed's 156-byte voice layout."""
+    data = bytearray(156)
+    for index, op in enumerate(patch["operators"]):
+        offset = index * 21
+        data[offset:offset + 4] = bytes(op["eg_rates"])
+        data[offset + 4:offset + 8] = bytes(op["eg_levels"])
+        data[offset + 8:offset + 13] = bytes((
+            op["breakpoint"], op["left_depth"], op["right_depth"],
+            op["left_curve"], op["right_curve"]))
+        data[offset + 13:offset + 17] = bytes((
+            op["rate_scaling"], op["amp_mod_sensitivity"],
+            op["velocity_sensitivity"], op["output_level"]))
+        data[offset + 17:offset + 21] = bytes((
+            int(op["mode"] == "fixed"), op["coarse"], op["fine"], op["detune"]))
+        if op["enabled"]:
+            data[155] |= 1 << index
+    data[126:130] = bytes(patch["pitch_eg_rates"])
+    data[130:134] = bytes(patch["pitch_eg_levels"])
+    data[134] = patch["algorithm"] - 1
+    data[135] = patch["feedback"]
+    data[136] = int(patch["osc_sync"])
+    lfo = patch["lfo"]
+    data[137:145] = bytes((lfo["speed"], lfo["delay"], lfo["pitch_depth"],
+                           lfo["amp_depth"], int(lfo["sync"]), lfo["waveform"],
+                           lfo["pitch_sensitivity"], patch["transpose"]))
+    data[145:155] = patch["name"].encode("ascii", errors="replace")[:10].ljust(10, b" ")
+    return bytes(data)
+
+
+def render_msfa_voice(dexed_root: Path, patch: dict, note: int, velocity: int,
+                      hold_ms: int, tail_ms: int,
+                      sample_rate: float) -> np.ndarray:
+    """Render one complete Dexed/msfa voice including EG, LFO and feedback."""
+    msfa = dexed_root / "source" / "msfa"
+    source_names = ("dx7note.cc", "env.cc", "exp2.cc", "fm_core.cc",
+                    "fm_op_kernel.cc", "freqlut.cc", "lfo.cc", "pitchenv.cc",
+                    "sin.cc", "porta.cpp")
+    sources = [msfa / name for name in source_names]
+    adapter = TOOLS_DIR / "fm_validation" / "dexed_voice_reference.cpp"
+    stubs = TOOLS_DIR / "fm_validation" / "stubs"
+    compiler = shutil.which("g++")
+    if not compiler:
+        raise FileNotFoundError("g++ not found; install MinGW-w64 or provide it in PATH")
+    hold_samples = max(64, round(hold_ms * sample_rate / 1000))
+    total_samples = hold_samples + max(0, round(tail_ms * sample_rate / 1000))
+    effective_note = note + int(patch["transpose"]) - 24
+    if not 0 <= effective_note <= 127:
+        raise ValueError(
+            f"patch transpose maps MIDI note {note} to {effective_note}, outside 0..127")
+    with tempfile.TemporaryDirectory(prefix="fm_dx7_voice_") as folder:
+        temp = Path(folder)
+        patch_path = temp / "patch156.bin"
+        patch_path.write_bytes(_dexed_unpacked_patch(patch))
+        executable = temp / ("voice_reference.exe" if sys.platform == "win32"
+                            else "voice_reference")
+        command = [compiler, *_compiler_runtime_flags(compiler),
+                   "-std=c++17", "-O2", "-I", str(stubs),
+                   "-I", str(msfa), "-I", str(dexed_root / "source"),
+                   str(adapter), *map(str, sources), "-o", str(executable)]
+        built = subprocess.run(command, capture_output=True, text=True)
+        if built.returncode:
+            raise RuntimeError("could not build complete Dexed adapter:\n" +
+                               f"compiler exit code: {built.returncode}\n" +
+                               built.stderr + built.stdout)
+        result = subprocess.run(
+            [str(executable), str(patch_path), str(effective_note), str(velocity),
+             str(sample_rate), str(hold_samples), str(total_samples)],
+            capture_output=True)
+        if result.returncode:
+            raise RuntimeError("Dexed voice rendering failed:\n" +
+                               result.stderr.decode(errors="replace"))
+    if len(result.stdout) != total_samples * 4:
+        raise ValueError("Dexed voice adapter returned an unexpected sample count")
+    return np.frombuffer(result.stdout, dtype="<i4").copy()
+
+
+def _write_dexed_plugin_wav(path: Path, internal: np.ndarray,
+                            sample_rate: float) -> None:
+    """Apply Dexed PluginProcessor's int32-core to int16 conversion."""
+    value = internal.astype(np.int64) >> 4
+    pcm = np.where(value < -(1 << 24), -32768,
+                   np.where(value >= (1 << 24), 32767, value >> 9))
+    pcm = np.clip(pcm, -32768, 32767).astype("<i2")
+    with wave.open(str(path), "wb") as output:
+        output.setnchannels(1)
+        output.setsampwidth(2)
+        output.setframerate(round(sample_rate))
+        output.writeframes(pcm.tobytes())
 
 
 def audit_algorithm_routes(dexed_root: Path) -> dict:
@@ -319,6 +430,21 @@ def main(argv: list[str] | None = None) -> int:
                       help="six Hz values in DX7 operator order 6,5,4,3,2,1")
     core.add_argument("--gains", default="0.25,0,0,0,0,0",
                       help="six linear gains in DX7 operator order 6,5,4,3,2,1")
+    voice = command.add_parser(
+        "voice-reference", help="render one complete Dexed patch, including EG/LFO")
+    voice.add_argument("--bank", type=Path, required=True,
+                       help="DX7 .syx voice or bank, or packed 128/4096-byte bank")
+    voice.add_argument("--index", type=int, default=0,
+                       help="zero-based voice index when the input contains a bank")
+    voice.add_argument("--note", type=int, default=60)
+    voice.add_argument("--velocity", type=int, default=100)
+    voice.add_argument("--hold-ms", type=int, default=1000)
+    voice.add_argument("--tail-ms", type=int, default=2000)
+    voice.add_argument("--sample-rate", type=float, default=48828.125,
+                       help="default matches the FPGA's nominal I2S sample rate")
+    voice.add_argument("--out", type=Path, required=True,
+                       help="output WAV path; .i32le and .json are written beside it")
+    voice.add_argument("--dexed-root", type=Path)
     audit = command.add_parser("audit", help="compare routing table to Dexed source")
     audit.add_argument("--dexed-root", type=Path)
     compare = command.add_parser("compare", help="compare two captured PCM WAV files")
@@ -383,6 +509,47 @@ def main(argv: list[str] | None = None) -> int:
         args.out.with_suffix(".json").write_text(
             json.dumps(manifest, indent=2), encoding="utf-8")
         print(f"Rendered {args.out} ({samples} samples); raw={raw_path}")
+        return 0
+    if args.command == "voice-reference":
+        from core.fm_patch import load_syx, normalise_patch
+        if not 0 <= args.note <= 127 or not 1 <= args.velocity <= 127:
+            raise ValueError("note must be 0..127 and velocity 1..127")
+        if args.hold_ms < 1 or args.tail_ms < 0 or args.sample_rate <= 0:
+            raise ValueError("hold must be positive, tail nonnegative, and sample rate positive")
+        patches = load_syx(args.bank)
+        if not 0 <= args.index < len(patches):
+            raise ValueError(f"voice index must be in 0..{len(patches) - 1}")
+        patch = normalise_patch(patches[args.index])
+        dexed_root = _find_dexed_root(args.dexed_root)
+        internal = render_msfa_voice(dexed_root, patch, args.note,
+                                     args.velocity, args.hold_ms,
+                                     args.tail_ms, args.sample_rate)
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        raw_path = args.out.with_suffix(".i32le")
+        raw_path.write_bytes(internal.astype("<i4").tobytes())
+        _write_dexed_plugin_wav(args.out, internal, args.sample_rate)
+        msfa = dexed_root / "source" / "msfa"
+        manifest = {
+            "scope": "single-note Dexed/msfa voice: operator EG, pitch EG, LFO, algorithm and feedback",
+            "note": args.note,
+            "effective_note_after_patch_transpose":
+                args.note + int(patch["transpose"]) - 24,
+            "velocity": args.velocity,
+            "hold_ms": args.hold_ms, "tail_ms": args.tail_ms,
+            "preset_index": args.index, "preset_name": patch["name"],
+            "algorithm": patch["algorithm"], "sample_rate_exact": args.sample_rate,
+            "samples": int(internal.size), "bank": str(args.bank),
+            "bank_sha256": hashlib.sha256(args.bank.read_bytes()).hexdigest(),
+            "dexed_root": str(dexed_root),
+            "msfa_source_sha256": {
+                name: hashlib.sha256((msfa / name).read_bytes()).hexdigest()
+                for name in ("dx7note.cc", "env.cc", "fm_core.cc",
+                             "fm_op_kernel.cc", "lfo.cc", "sin.cc")},
+            "pcm_conversion": "Dexed PluginProcessor int32 core to int16 conversion",
+        }
+        args.out.with_suffix(".json").write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"Rendered full Dexed voice '{patch['name']}' to {args.out}; raw={raw_path}")
         return 0
     if args.command == "audit":
         report = audit_algorithm_routes(_find_dexed_root(args.dexed_root))

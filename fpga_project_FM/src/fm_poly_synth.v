@@ -103,6 +103,7 @@ module fm_poly_synth #(
     reg [15:0] sine_quarter [0:511];
     reg [16:0] pitch_ratio_table [0:511];
     reg [16:0] dx7_level_gain [0:4095];
+    reg [23:0] dx7_eg_block_step [0:63];
     reg [16:0] dx7_note_detune [0:1919];
     reg [17:0] dx7_pitch_eg_fraction [0:255];
     reg [7:0]  dx7_velocity_curve [0:63];
@@ -115,6 +116,7 @@ module fm_poly_synth #(
         $readmemh("src/generated/additive_sine_quarter_512.mem", sine_quarter);
         $readmemb("src/generated/pitch_ratio_q16.mem", pitch_ratio_table);
         $readmemb("src/generated/dx7_level_gain_q16.mem", dx7_level_gain);
+        $readmemh("src/generated/dx7_eg_block_step_q14.mem", dx7_eg_block_step);
         $readmemb("src/generated/dx7_note_detune_q16.mem", dx7_note_detune);
         $readmemb("src/generated/dx7_pitch_eg_fraction_q16.mem",
                   dx7_pitch_eg_fraction);
@@ -155,17 +157,18 @@ module fm_poly_synth #(
     reg [6:0]  voice_note [0:VOICE_COUNT-1];
     reg [6:0]  voice_velocity [0:VOICE_COUNT-1];
     reg [23:0] voice_age [0:VOICE_COUNT-1];
+    reg [5:0] voice_eg_block_position [0:VOICE_COUNT-1];
     reg [VOICE_COUNT-1:0] voice_carrier_alive;
     reg signed [22:0] voice_pitch_level [0:VOICE_COUNT-1];
     reg [20:0] voice_combined_pitch_ratio [0:VOICE_COUNT-1];
     reg [1:0]  voice_pitch_stage [0:VOICE_COUNT-1];
     // DX7 feedback averages the two preceding operator samples.  Keeping only
     // one sample changed the feedback spectrum most strongly at settings 5..7.
-    // Feedback history is kept in the operator's native signed Q15 domain.
-    // Eighteen bits cover the documented DX7 gain headroom without carrying
-    // redundant phase zeros through 32 flip-flops per history sample.
-    reg signed [17:0] voice_feedback_old [0:VOICE_COUNT-1];
-    reg signed [17:0] voice_feedback_new [0:VOICE_COUNT-1];
+    // Retain the operator product at the scale of Dexed's Q24 feedback
+    // samples. The former >>>16 history discarded ten more fractional bits
+    // before the two-sample average and introduced avoidable feedback error.
+    reg signed [27:0] voice_feedback_old [0:VOICE_COUNT-1];
+    reg signed [27:0] voice_feedback_new [0:VOICE_COUNT-1];
     reg signed [31:0] voice_bus_one [0:VOICE_COUNT-1];
     reg signed [31:0] voice_bus_two [0:VOICE_COUNT-1];
     reg signed [31:0] voice_output [0:VOICE_COUNT-1];
@@ -175,6 +178,12 @@ module fm_poly_synth #(
     // from the 16-voice build. One voice is revisited only after 16 clocks,
     // leaving ample distance between a slot read and its writeback.
     reg [107:0] operator_state_memory [0:SLOT_COUNT-1];
+    // Dexed's FM kernel retains the previous gain endpoint and adds a signed
+    // rounded increment on each of 64 samples. Each slot keeps that exact
+    // interpolation state separately from its phase/EG RAM word.
+    // {target[16:0], signed step[12:0], signed current[17:0]}.
+    reg [47:0] operator_gain_state_memory [0:SLOT_COUNT-1];
+    reg [47:0] operator_gain_read_data;
     wire [6:0] operator_state_read_address;
     reg [107:0] operator_state_read_data;
     reg operator_state_write_valid;
@@ -196,6 +205,7 @@ module fm_poly_synth #(
     endfunction
     always @(posedge clk) begin
         operator_state_read_data <= operator_state_memory[operator_state_read_address];
+        operator_gain_read_data <= operator_gain_state_memory[operator_state_read_address];
         if (operator_state_write_valid)
             operator_state_memory[operator_state_write_address]
                 <= operator_state_write_data;
@@ -208,15 +218,9 @@ module fm_poly_synth #(
     reg signed [32:0] operator_read_modulation;
 
     reg [31:0] lfo_phase;
-    // The I2S frame rate is 50 MHz / (16 * 64) = 48,828.125 Hz. DX7/MSFA
-    // operator-EG rates are calibrated at 44.1 kHz; MSFA multiplies every
-    // increment by 44100/sample_rate. The Q14 state cannot represent the
-    // fractional low-rate increment, so distribute the same number of EG
-    // updates over successive audio frames with a fractional-rate clock.
-    reg [15:0] envelope_rate_accumulator;
-    reg envelope_rate_tick;
-    wire [16:0] envelope_rate_sum =
-        {1'b0, envelope_rate_accumulator} + 17'd44100;
+    // EG increments are generated with Dexed's Q24 sample-rate multiplier
+    // for one 64-sample block at 48,828.125 Hz. Voice-local block positions
+    // make Note On start its first gain ramp immediately.
     reg [31:0] lfo_delay_state;
     reg [5:0] lfo_delay_block_sample;
     reg signed [7:0] lfo_sample_hold;
@@ -470,14 +474,16 @@ module fm_poly_synth #(
     wire signed [31:0] issue_bus_value =
         (issue_input_bus == 2'd1) ? voice_bus_one[scheduler_voice] :
         (issue_input_bus == 2'd2) ? voice_bus_two[scheduler_voice] : 32'sd0;
-    wire signed [18:0] issue_feedback_sum =
-        $signed(voice_feedback_old[scheduler_voice]) +
-        $signed(voice_feedback_new[scheduler_voice]);
-    wire signed [18:0] issue_feedback_shifted =
+    wire signed [28:0] issue_feedback_sum =
+        $signed({voice_feedback_old[scheduler_voice][27],
+                 voice_feedback_old[scheduler_voice]}) +
+        $signed({voice_feedback_new[scheduler_voice][27],
+                 voice_feedback_new[scheduler_voice]});
+    wire signed [28:0] issue_feedback_shifted =
         issue_feedback_sum >>> (4'd9 - fm_feedback);
     wire signed [31:0] issue_feedback_value = (fm_feedback == 0)
         ? 32'sd0
-        : $signed({{13{issue_feedback_shifted[18]}}, issue_feedback_shifted}) <<< 18;
+        : $signed({{3{issue_feedback_shifted[28]}}, issue_feedback_shifted}) <<< 8;
     wire signed [32:0] issue_modulation_sum =
         $signed({issue_bus_value[31], issue_bus_value}) +
         ((issue_flags[7:6] == 2'b11)
@@ -538,13 +544,7 @@ module fm_poly_synth #(
         issue_rate_scale_delta;
     wire [5:0] issue_qrate = issue_qrate_sum > 7'd63
         ? 6'd63 : issue_qrate_sum[5:0];
-    // Q14 state preserves the qrate low-bit clock ratios 4:5:6:7 exactly.
-    // At qrate zero four Q14 LSBs per sample equal one internal DX7 level
-    // step every 4096 samples; each group of four qrate counts doubles it.
-    wire [17:0] issue_env_step =
-        envelope_rate_tick
-        ? ({15'd0, 3'd4 + {1'b0, issue_qrate[1:0]}} << issue_qrate[5:2])
-        : 18'd0;
+    wire [23:0] issue_env_step = dx7_eg_block_step[issue_qrate];
     wire [23:0] issue_amp_lfo_fade_product = lfo_amp_base * lfo_fade;
     wire [7:0] issue_amp_lfo_depth = issue_amp_lfo_fade_product[23:16];
     reg [9:0] issue_amp_lfo_reduction;
@@ -557,13 +557,8 @@ module fm_poly_synth #(
                 {issue_amp_lfo_depth, 2'd0};
         endcase
     end
-    wire [11:0] issue_level_index =
-        (issue_amp_lfo_reduction >= render_env_current[25:14])
-        ? 12'd0 : render_env_current[25:14] - issue_amp_lfo_reduction;
-    // AMS belongs in the logarithmic DX7 envelope domain.  Subtracting it
-    // from linear gain (the previous implementation) changed the waveform
-    // and made AMS settings disagree sharply with Dexed.
-    wire [16:0] issue_env_for_audio = dx7_level_gain[issue_level_index];
+    // The LFO/AMS depth is sampled when the next 64-sample gain endpoint is
+    // calculated. Dexed interpolates that endpoint through the whole block.
 
     // Envelope/frequency pre-pipeline.  The first implementation performed
     // coefficient selection, multiplication, add, saturation and state-RAM
@@ -575,7 +570,9 @@ module fm_poly_synth #(
     reg [7:0] e0_flags;
     reg [8:0] e0_sine_address;
     reg       e0_sine_negative;
-    reg [16:0] e0_envelope_for_audio;
+    reg       e0_block_start;
+    reg [9:0] e0_amp_lfo_reduction;
+    reg [47:0] e0_gain_state;
     reg       e0_enabled;
     reg [31:0] e0_phase;
     reg [31:0] e0_increment;
@@ -583,31 +580,41 @@ module fm_poly_synth #(
     reg [25:0] e0_env_current;
     reg [25:0] e0_env_target;
     reg [1:0] e0_env_stage;
-    reg [17:0] e0_env_step;
+    reg [23:0] e0_env_step;
     reg signed [15:0] e0_level_offset;
 
     wire e0_env_rising = e0_env_target > e0_env_current;
     wire [25:0] e0_attack_origin = (e0_env_current < (26'd1716 << 14))
         ? (26'd1716 << 14) : e0_env_current;
-    wire [4:0] e0_attack_factor_raw = 5'd17 - e0_attack_origin[25:22];
+    // Dexed computes ((17 << 24) - level_q16) >> 24, i.e. floor of
+    // 17 - level/256. For a fractional level this is 16-floor(level/256),
+    // not 17-floor(level/256). The old expression made every attack block
+    // about one rate unit too fast except at exact multiples of 256.
+    wire [4:0] e0_attack_factor_raw =
+        5'd16 - e0_attack_origin[25:22] +
+        (e0_attack_origin[21:0] == 22'd0);
     wire [4:0] e0_attack_factor = (e0_attack_factor_raw == 0)
         ? 5'd1 : e0_attack_factor_raw;
-    wire [22:0] e0_attack_step = e0_env_step * e0_attack_factor;
-    wire [26:0] e0_env_rise_wide = {1'b0, e0_attack_origin} +
-        {2'b00, e0_attack_step};
+    wire [28:0] e0_attack_step = e0_env_step * e0_attack_factor;
+    wire [29:0] e0_env_rise_wide = {4'b0, e0_attack_origin} +
+        {1'b0, e0_attack_step};
     wire [26:0] e0_env_fall_wide = {1'b0, e0_env_current} - e0_env_step;
-    wire [25:0] e0_env_next = !envelope_rate_tick
+    wire [25:0] e0_env_next = !e0_block_start
         ? e0_env_current
         : e0_env_rising
-        ? ((e0_env_rise_wide >= {1'b0, e0_env_target})
+        ? ((e0_env_rise_wide >= {4'b0, e0_env_target})
            ? e0_env_target : e0_env_rise_wide[25:0])
-        : ((e0_env_current <= e0_env_target + e0_env_step)
+        : (({1'b0, e0_env_current} <= {1'b0, e0_env_target} +
+                                      {3'b0, e0_env_step})
            ? e0_env_target : e0_env_fall_wide[25:0]);
     wire e0_env_reached = (e0_env_next == e0_env_target);
-    wire [1:0] e0_env_stage_next = e0_env_reached
+    wire [1:0] e0_env_stage_next = (e0_block_start && e0_env_reached)
         ? ((e0_env_stage < 2) ? e0_env_stage + 1'b1 :
            (!voice_gate[e0_voice] ? 2'd3 : e0_env_stage))
         : e0_env_stage;
+    wire [11:0] e0_gain_level_index =
+        (e0_amp_lfo_reduction >= e0_env_next[25:14])
+        ? 12'd0 : e0_env_next[25:14] - e0_amp_lfo_reduction;
 
     // Four-stage operator pipeline.
     reg        p0_valid;
@@ -616,7 +623,9 @@ module fm_poly_synth #(
     reg [7:0] p0_flags;
     reg [8:0] p0_sine_address;
     reg       p0_sine_negative;
-    reg [16:0] p0_envelope;
+    reg [11:0] p0_gain_index;
+    reg [47:0] p0_gain_state;
+    reg        p0_block_start;
     reg        p0_enabled;
 
     reg        p1_valid;
@@ -625,14 +634,44 @@ module fm_poly_synth #(
     reg [7:0] p1_flags;
     reg signed [16:0] p1_sine;
     reg [16:0] p1_envelope;
+    reg [47:0] p1_gain_state;
+    reg        p1_block_start;
     reg        p1_enabled;
+
+    wire [16:0] p1_old_gain_target = p1_gain_state[47:31];
+    wire signed [12:0] p1_old_gain_step = $signed(p1_gain_state[30:18]);
+    wire signed [17:0] p1_old_gain_current = $signed(p1_gain_state[17:0]);
+    wire signed [18:0] p1_gain_difference =
+        $signed({2'b00, p1_envelope}) -
+        $signed({2'b00, p1_old_gain_target});
+    wire signed [18:0] p1_rounded_gain_step =
+        (p1_gain_difference + 19'sd32) >>> 6;
+    wire signed [12:0] p1_gain_step = p1_block_start
+        ? p1_rounded_gain_step[12:0] : p1_old_gain_step;
+    wire signed [17:0] p1_gain_start = p1_block_start
+        ? $signed({1'b0, p1_old_gain_target}) : p1_old_gain_current;
+    wire signed [18:0] p1_gain_sum =
+        $signed({p1_gain_start[17], p1_gain_start}) +
+        $signed({{6{p1_gain_step[12]}}, p1_gain_step});
+    wire signed [17:0] p1_gain_next = p1_gain_sum[17:0];
+    wire [16:0] p1_gain_target_next = p1_block_start
+        ? p1_envelope : p1_old_gain_target;
+    always @(posedge clk) begin
+        if (engine_state == ENGINE_EVENT_GAIN_CAPTURE)
+            operator_gain_state_memory[event_target_voice * 6 +
+                                       event_init_operator] <= 48'd0;
+        else if (p1_valid)
+            operator_gain_state_memory[p1_voice * 6 + p1_operator] <= {
+                p1_gain_target_next, p1_gain_step, p1_gain_next
+            };
+    end
 
     reg        p2_valid;
     reg [VOICE_BITS-1:0] p2_voice;
     reg [2:0] p2_operator;
     reg [7:0] p2_flags;
     reg signed [16:0] p2_sine;
-    reg [16:0] p2_gain;
+    reg signed [17:0] p2_gain;
     reg        p2_enabled;
 
     reg        p3_valid;
@@ -640,7 +679,7 @@ module fm_poly_synth #(
     reg [2:0] p3_operator;
     reg [7:0] p3_flags;
     reg signed [34:0] p3_sample_product;
-    reg [16:0] p3_envelope;
+    reg signed [17:0] p3_envelope;
     reg        p3_enabled;
 
     wire signed [34:0] p3_operator_sample_wide = p3_sample_product >>> 16;
@@ -804,8 +843,6 @@ module fm_poly_synth #(
             prep_fraction_ratio_latched <= 18'h10000;
             sample_out <= 16'sd0;
             lfo_phase <= 32'd0;
-            envelope_rate_accumulator <= 16'd4728;
-            envelope_rate_tick <= 1'b1;
             lfo_delay_state <= 32'hffffffff;
             lfo_delay_block_sample <= 6'd0;
             lfo_fade <= 8'hff;
@@ -827,9 +864,11 @@ module fm_poly_synth #(
             p3_valid <= 1'b0;
             p0_voice <= 0; p0_operator <= 0; p0_flags <= 0;
             p0_sine_address <= 0; p0_sine_negative <= 0;
-            p0_envelope <= 0; p0_enabled <= 0;
+            p0_gain_index <= 0; p0_gain_state <= 0;
+            p0_block_start <= 1'b0; p0_enabled <= 0;
             p1_voice <= 0; p1_operator <= 0; p1_flags <= 0; p1_sine <= 0;
-            p1_envelope <= 0; p1_enabled <= 0;
+            p1_envelope <= 0; p1_gain_state <= 0;
+            p1_block_start <= 1'b0; p1_enabled <= 0;
             p2_voice <= 0; p2_operator <= 0; p2_flags <= 0; p2_sine <= 0;
             p2_gain <= 0; p2_enabled <= 0;
             p3_voice <= 0; p3_operator <= 0; p3_flags <= 0;
@@ -837,7 +876,8 @@ module fm_poly_synth #(
             e0_valid <= 1'b0;
             e0_voice <= 0; e0_operator <= 0; e0_flags <= 0;
             e0_sine_address <= 0; e0_sine_negative <= 0;
-            e0_envelope_for_audio <= 0; e0_enabled <= 0;
+            e0_block_start <= 1'b0; e0_amp_lfo_reduction <= 0;
+            e0_gain_state <= 0; e0_enabled <= 0;
             e0_phase <= 0; e0_increment <= 0; e0_frequency <= 0;
             e0_env_current <= 0; e0_env_target <= 0; e0_env_stage <= 0;
             e0_env_step <= 0; e0_level_offset <= 0;
@@ -897,11 +937,12 @@ module fm_poly_synth #(
                 voice_note[init_index] <= 7'd0;
                 voice_velocity[init_index] <= 7'd0;
                 voice_age[init_index] <= 24'd0;
+                voice_eg_block_position[init_index] <= 6'd0;
                 voice_pitch_level[init_index] <= 23'sd0;
                 voice_combined_pitch_ratio[init_index] <= 21'h10000;
                 voice_pitch_stage[init_index] <= 2'd0;
-                voice_feedback_old[init_index] <= 18'sd0;
-                voice_feedback_new[init_index] <= 18'sd0;
+                voice_feedback_old[init_index] <= 28'sd0;
+                voice_feedback_new[init_index] <= 28'sd0;
                 voice_bus_one[init_index] <= 32'sd0;
                 voice_bus_two[init_index] <= 32'sd0;
                 voice_output[init_index] <= 32'sd0;
@@ -962,13 +1003,6 @@ module fm_poly_synth #(
 
             if (sample_tick) begin
                 sample_pending <= 1'b1;
-                if (envelope_rate_sum >= 17'd48828) begin
-                    envelope_rate_accumulator <= envelope_rate_sum - 17'd48828;
-                    envelope_rate_tick <= 1'b1;
-                end else begin
-                    envelope_rate_accumulator <= envelope_rate_sum[15:0];
-                    envelope_rate_tick <= 1'b0;
-                end
                 lfo_phase <= lfo_phase + lfo_phase_increment;
                 lfo_value_delayed <= lfo_value_delayed_product >>> 8;
                 if (lfo_delay_block_sample == 6'd63) begin
@@ -1003,20 +1037,22 @@ module fm_poly_synth #(
             p1_sine <= p0_sine_negative
                 ? -$signed({1'b0, sine_quarter[p0_sine_address]})
                 :  $signed({1'b0, sine_quarter[p0_sine_address]});
-            p1_envelope <= p0_envelope;
+            p1_envelope <= dx7_level_gain[p0_gain_index];
+            p1_gain_state <= p0_gain_state;
+            p1_block_start <= p0_block_start;
             p1_enabled <= p0_enabled;
             p2_valid <= p1_valid;
             p2_voice <= p1_voice;
             p2_operator <= p1_operator;
             p2_flags <= p1_flags;
             p2_sine <= p1_sine;
-            p2_gain <= p1_envelope;
+            p2_gain <= p1_gain_next;
             p2_enabled <= p1_enabled;
             p3_valid <= p2_valid;
             p3_voice <= p2_voice;
             p3_operator <= p2_operator;
             p3_flags <= p2_flags;
-            p3_sample_product <= p2_sine * $signed({1'b0, p2_gain});
+            p3_sample_product <= p2_sine * p2_gain;
             p3_envelope <= p2_gain;
             p3_enabled <= p2_enabled;
             if (p3_valid) begin
@@ -1038,13 +1074,11 @@ module fm_poly_synth #(
                 endcase
                 if (p3_flags[7:6] == 2'b11) begin
                     voice_feedback_old[p3_voice] <= voice_feedback_new[p3_voice];
-                    // Anti-hunting feedback uses the previous two native
-                    // operator samples.  Quantize before the average exactly
-                    // once instead of recursively feeding 32-bit phase data.
+                    // Dexed stores two signed post-gain samples before
+                    // shifting their sum by 9-feedback. The shared product
+                    // is already at the matching Q24 scale after >>>6.
                     voice_feedback_new[p3_voice] <=
-                        (p3_operator_sample > 32'sd131071) ? 18'sd131071 :
-                        (p3_operator_sample < -32'sd131072) ? -18'sd131072 :
-                        p3_operator_sample[17:0];
+                        p3_sample_product >>> 6;
                 end
             end
             p0_valid <= e0_valid;
@@ -1054,7 +1088,9 @@ module fm_poly_synth #(
                 p0_flags <= e0_flags;
                 p0_sine_address <= e0_sine_address;
                 p0_sine_negative <= e0_sine_negative;
-                p0_envelope <= e0_envelope_for_audio;
+                p0_gain_index <= e0_gain_level_index;
+                p0_gain_state <= e0_gain_state;
+                p0_block_start <= e0_block_start;
                 p0_enabled <= e0_enabled;
                 operator_state_write_valid <= 1'b1;
                 operator_state_write_address <= e0_voice * 6 + e0_operator;
@@ -1082,7 +1118,10 @@ module fm_poly_synth #(
                 e0_flags <= operator_read_flags;
                 e0_sine_address <= issue_sine_address;
                 e0_sine_negative <= issue_quadrant[1];
-                e0_envelope_for_audio <= issue_env_for_audio;
+                e0_block_start <=
+                    (voice_eg_block_position[operator_read_voice] == 6'd1);
+                e0_amp_lfo_reduction <= issue_amp_lfo_reduction;
+                e0_gain_state <= operator_gain_read_data;
                 e0_enabled <= patch_op_enable[operator_read_operator];
                 e0_phase <= render_phase;
                 e0_increment <= render_increment;
@@ -1193,11 +1232,12 @@ module fm_poly_synth #(
                         voice_note[event_target_voice] <= event_note;
                         voice_velocity[event_target_voice] <= event_velocity;
                         voice_age[event_target_voice] <= 24'd0;
+                        voice_eg_block_position[event_target_voice] <= 6'd0;
                         voice_pitch_level[event_target_voice] <= patch_pitch_target[3];
                         voice_combined_pitch_ratio[event_target_voice] <= 21'h10000;
                         voice_pitch_stage[event_target_voice] <= 2'd0;
-                        voice_feedback_old[event_target_voice] <= 18'sd0;
-                        voice_feedback_new[event_target_voice] <= 18'sd0;
+                        voice_feedback_old[event_target_voice] <= 28'sd0;
+                        voice_feedback_new[event_target_voice] <= 28'sd0;
                         display_voice <= event_target_voice;
                     end
                     event_scale_group <= event_scale_group_wire;
@@ -1280,6 +1320,8 @@ module fm_poly_synth #(
                     if (voice_active[scheduler_voice]) begin
                         if (voice_age[scheduler_voice] != 24'hffffff)
                             voice_age[scheduler_voice] <= voice_age[scheduler_voice] + 1'b1;
+                        voice_eg_block_position[scheduler_voice] <=
+                            voice_eg_block_position[scheduler_voice] + 1'b1;
                     end
                     engine_state <= ENGINE_PREP_RESOLVE;
                 end
