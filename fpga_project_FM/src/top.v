@@ -5,11 +5,10 @@ module top #(
     // 1: keep the DX7 core, MIDI and I2S; bypass the non-DX7 effects/LCD.
     // 0: restore the original chorus/reverb, output meter and SPI display.
     parameter integer FM_AUDIO_ONLY = 1,
-    // USB keyboard's measured Note On velocity endpoints. These are compile-
-    // time calibration knobs; change them here and rebuild if measurement
-    // finds a different range. Pads (channel 10) and UART are not rescaled.
-    parameter [6:0] USB_KEY_VELOCITY_MIN = 7'h20,
-    parameter [6:0] USB_KEY_VELOCITY_MAX = 7'h5E,
+    // USB key velocity calibration endpoints: 0x00 -> 0, 0x5A -> 127.
+    // Compile-time knobs; pads (channel 10) and UART are not rescaled.
+    parameter [6:0] USB_KEY_VELOCITY_MIN = 7'h00,
+    parameter [6:0] USB_KEY_VELOCITY_MAX = 7'h5A,
     parameter       USB_KEY_VELOCITY_CALIBRATE = 1'b1
 ) (
     input  wire clk,
@@ -107,28 +106,25 @@ module top #(
     reg [31:0] midi_event_latched;
     reg midi_event_valid;
     wire raw_midi_event_ready;
-    // This keyboard reports key velocities only in 0x20..0x5E. Expand that
-    // measured range to MIDI 1..127 so DX7 velocity-sensitive voices can use
-    // their complete response curve. Channel 10 pads and UART MIDI are left
-    // in their original MIDI scale.
+    // Scale the configured USB key range to MIDI 0..127. Note On with raw
+    // velocity 0 remains a Note Off; channel 10 pads and UART stay unscaled.
     localparam [7:0] USB_KEY_VELOCITY_SPAN =
         (USB_KEY_VELOCITY_MAX > USB_KEY_VELOCITY_MIN)
         ? USB_KEY_VELOCITY_MAX - USB_KEY_VELOCITY_MIN : 8'd1;
-    // Q8 slope approximates 126/(max-min). Multiplication by this constant
+    // Q8 slope approximates 127/(max-min). Multiplication by this constant
     // becomes shifts/adds in synthesis, while either endpoint may be edited.
     localparam [15:0] USB_KEY_VELOCITY_SLOPE_Q8 =
-        (16'd32256 + (USB_KEY_VELOCITY_SPAN >> 1)) /
+        (16'd32512 + (USB_KEY_VELOCITY_SPAN >> 1)) /
         USB_KEY_VELOCITY_SPAN;
     wire [6:0] usb_key_velocity = usb_midi_event_data[6:0];
     wire [7:0] usb_velocity_delta =
         {1'b0, usb_key_velocity} - {1'b0, USB_KEY_VELOCITY_MIN};
     wire [23:0] usb_velocity_scaled_q8 =
         usb_velocity_delta * USB_KEY_VELOCITY_SLOPE_Q8 + 24'd128;
-    wire [7:0] usb_velocity_expanded =
-        8'd1 + usb_velocity_scaled_q8[15:8];
+    wire [7:0] usb_velocity_expanded = usb_velocity_scaled_q8[15:8];
     wire [6:0] usb_velocity_calibrated =
         (usb_key_velocity <= USB_KEY_VELOCITY_MIN)
-        ? 7'd1 : (usb_key_velocity >= USB_KEY_VELOCITY_MAX)
+        ? 7'd0 : (usb_key_velocity >= USB_KEY_VELOCITY_MAX)
         ? 7'd127 : usb_velocity_expanded[6:0];
     wire usb_key_note_on = (usb_midi_event_data[23:16] == 8'h90) &&
         (usb_key_velocity != 0);

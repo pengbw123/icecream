@@ -104,6 +104,7 @@ module fm_poly_synth #(
     reg [16:0] pitch_ratio_table [0:511];
     reg [16:0] dx7_level_gain [0:4095];
     reg [23:0] dx7_eg_block_step [0:63];
+    reg [15:0] dx7_ams_attenuation_q15 [0:511];
     reg [16:0] dx7_note_detune [0:1919];
     reg [17:0] dx7_pitch_eg_fraction [0:255];
     reg [7:0]  dx7_velocity_curve [0:63];
@@ -117,6 +118,8 @@ module fm_poly_synth #(
         $readmemb("src/generated/pitch_ratio_q16.mem", pitch_ratio_table);
         $readmemb("src/generated/dx7_level_gain_q16.mem", dx7_level_gain);
         $readmemh("src/generated/dx7_eg_block_step_q14.mem", dx7_eg_block_step);
+        $readmemh("src/generated/dx7_ams_attenuation_q15.mem",
+                  dx7_ams_attenuation_q15);
         $readmemb("src/generated/dx7_note_detune_q16.mem", dx7_note_detune);
         $readmemb("src/generated/dx7_pitch_eg_fraction_q16.mem",
                   dx7_pitch_eg_fraction);
@@ -261,6 +264,9 @@ module fm_poly_synth #(
     reg signed [15:0] event_level_offset_latched;
     reg [10:0] event_detune_address;
     reg [16:0] event_detune_read_data;
+    reg [31:0] event_note_increment_latched;
+    reg [31:0] event_patch_frequency_latched;
+    reg event_patch_fixed_latched;
     reg [31:0] event_base_increment;
     reg [31:0] event_corrected_increment;
     wire [48:0] event_detuned_product =
@@ -547,16 +553,13 @@ module fm_poly_synth #(
     wire [23:0] issue_env_step = dx7_eg_block_step[issue_qrate];
     wire [23:0] issue_amp_lfo_fade_product = lfo_amp_base * lfo_fade;
     wire [7:0] issue_amp_lfo_depth = issue_amp_lfo_fade_product[23:16];
-    reg [9:0] issue_amp_lfo_reduction;
-    always @* begin
-        case (patch_amp_mod_sensitivity[operator_read_operator])
-            2'd0: issue_amp_lfo_reduction = 10'd0;
-            2'd1: issue_amp_lfo_reduction = {2'd0, issue_amp_lfo_depth};
-            2'd2: issue_amp_lfo_reduction = {1'd0, issue_amp_lfo_depth, 1'd0};
-            default: issue_amp_lfo_reduction =
-                {issue_amp_lfo_depth, 2'd0};
-        endcase
-    end
+    wire [6:0] issue_amp_lfo_depth_clamped =
+        (issue_amp_lfo_depth > 8'd99) ? 7'd99 : issue_amp_lfo_depth[6:0];
+    wire [8:0] issue_ams_address =
+        {patch_amp_mod_sensitivity[operator_read_operator],
+         issue_amp_lfo_depth_clamped};
+    wire [15:0] issue_ams_attenuation =
+        dx7_ams_attenuation_q15[issue_ams_address];
     // The LFO/AMS depth is sampled when the next 64-sample gain endpoint is
     // calculated. Dexed interpolates that endpoint through the whole block.
 
@@ -571,7 +574,7 @@ module fm_poly_synth #(
     reg [8:0] e0_sine_address;
     reg       e0_sine_negative;
     reg       e0_block_start;
-    reg [9:0] e0_amp_lfo_reduction;
+    reg [15:0] e0_ams_attenuation;
     reg [47:0] e0_gain_state;
     reg       e0_enabled;
     reg [31:0] e0_phase;
@@ -599,24 +602,64 @@ module fm_poly_synth #(
     wire [29:0] e0_env_rise_wide = {4'b0, e0_attack_origin} +
         {1'b0, e0_attack_step};
     wire [26:0] e0_env_fall_wide = {1'b0, e0_env_current} - e0_env_step;
+    wire e0_rise_reached =
+        (e0_env_rise_wide >= {4'b0, e0_env_target});
+    wire e0_fall_reached =
+        ({1'b0, e0_env_current} <= {1'b0, e0_env_target} +
+                                     {3'b0, e0_env_step});
     wire [25:0] e0_env_next = !e0_block_start
         ? e0_env_current
         : e0_env_rising
-        ? ((e0_env_rise_wide >= {4'b0, e0_env_target})
+        ? (e0_rise_reached
            ? e0_env_target : e0_env_rise_wide[25:0])
-        : (({1'b0, e0_env_current} <= {1'b0, e0_env_target} +
-                                      {3'b0, e0_env_step})
+        : (e0_fall_reached
            ? e0_env_target : e0_env_fall_wide[25:0]);
-    wire e0_env_reached = (e0_env_next == e0_env_target);
+    // Decide stage completion from the same pre-saturation comparisons. A
+    // second compare after the envelope mux was the 50 MHz critical path.
+    wire e0_env_reached = e0_env_rising
+        ? e0_rise_reached : e0_fall_reached;
     wire [1:0] e0_env_stage_next = (e0_block_start && e0_env_reached)
         ? ((e0_env_stage < 2) ? e0_env_stage + 1'b1 :
            (!voice_gate[e0_voice] ? 2'd3 : e0_env_stage))
         : e0_env_stage;
-    wire [11:0] e0_gain_level_index =
-        (e0_amp_lfo_reduction >= e0_env_next[25:14])
-        ? 12'd0 : e0_env_next[25:14] - e0_amp_lfo_reduction;
+    // Register the advanced EG level before multiplying by the nonlinear AMS
+    // attenuation. This extra pipeline stage keeps the 25K's 50 MHz path from
+    // spanning both EG arithmetic and the multiplier in the same clock.
+    reg        a0_valid;
+    reg [VOICE_BITS-1:0] a0_voice;
+    reg [2:0] a0_operator;
+    reg [7:0] a0_flags;
+    reg [8:0] a0_sine_address;
+    reg       a0_sine_negative;
+    reg [31:0] a0_phase_next;
+    reg [31:0] a0_increment;
+    reg [25:0] a0_env_next;
+    reg signed [15:0] a0_level_offset;
+    reg [1:0] a0_env_stage_next;
+    reg [15:0] a0_ams_attenuation;
+    reg [47:0] a0_gain_state;
+    reg       a0_block_start;
+    reg       a0_enabled;
+    // Keep this second register boundary even if the fitter uses the next
+    // stage's DSP input registers: a0_env_next also feeds state writeback.
+    reg        b0_valid;
+    reg [VOICE_BITS-1:0] b0_voice;
+    reg [2:0] b0_operator;
+    reg [7:0] b0_flags;
+    reg [8:0] b0_sine_address;
+    reg       b0_sine_negative;
+    reg [11:0] b0_env_integer;
+    reg [15:0] b0_ams_attenuation;
+    reg [47:0] b0_gain_state;
+    reg       b0_block_start;
+    reg       b0_enabled;
+    wire [15:0] b0_ams_retained_q15 = 16'd32768 - b0_ams_attenuation;
+    wire [27:0] b0_ams_level_product =
+        b0_env_integer * b0_ams_retained_q15;
+    wire [11:0] b0_gain_level_index = b0_ams_level_product[26:15];
 
-    // Four-stage operator pipeline.
+    // Six-stage operator pipeline. The shared AMS multiplier is not copied
+    // per voice; a voice's next operator is issued after this pipeline drains.
     reg        p0_valid;
     reg [VOICE_BITS-1:0] p0_voice;
     reg [2:0] p0_operator;
@@ -691,7 +734,9 @@ module fm_poly_synth #(
     // removed upper sidebands (the characteristic "dark FPGA" error).
     wire signed [31:0] p3_modulation_value = p3_operator_sample <<< 18;
 
-    wire pipeline_busy = e0_valid | p0_valid | p1_valid | p2_valid | p3_valid |
+    wire pipeline_busy = e0_valid | a0_valid | b0_valid |
+                         p0_valid | p1_valid |
+                         p2_valid | p3_valid |
                          operator_read_pending | operator_state_write_valid;
 
     // Pitch envelope is linear in Yamaha's logarithmic pitch domain, matching
@@ -745,10 +790,9 @@ module fm_poly_synth #(
 
     wire [6:0] event_transposed_note = transpose_note(event_note, fm_transpose);
     wire [63:0] event_frequency_product =
-        midi_phase_increment[event_transposed_note] *
-        patch_op_frequency[event_init_operator];
-    wire [31:0] event_operator_increment = patch_op_fixed[event_init_operator]
-        ? patch_op_frequency[event_init_operator] : event_frequency_product[47:16];
+        event_note_increment_latched * event_patch_frequency_latched;
+    wire [31:0] event_operator_increment = event_patch_fixed_latched
+        ? event_patch_frequency_latched : event_frequency_product[47:16];
     wire signed [8:0] event_velocity_curve_signed =
         $signed({1'b0, dx7_velocity_curve[event_velocity[6:1]]}) - 9'sd239;
     wire signed [12:0] event_velocity_product = event_velocity_curve_signed *
@@ -829,6 +873,9 @@ module fm_poly_synth #(
             event_scale_magnitude <= 0;
             event_level_offset_latched <= -16'sd192;
             event_detune_address <= 11'd0;
+            event_note_increment_latched <= 32'd0;
+            event_patch_frequency_latched <= 32'd0;
+            event_patch_fixed_latched <= 1'b0;
             event_base_increment <= 32'd0;
             event_corrected_increment <= 32'd0;
             prep_voice_latched <= 0;
@@ -858,10 +905,25 @@ module fm_poly_synth #(
             display_voice <= {VOICE_BITS{1'b0}};
             operator_envelope_levels <= 48'd0;
             voice_carrier_alive <= {VOICE_COUNT{1'b0}};
+            a0_valid <= 1'b0;
+            b0_valid <= 1'b0;
             p0_valid <= 1'b0;
             p1_valid <= 1'b0;
             p2_valid <= 1'b0;
             p3_valid <= 1'b0;
+            a0_voice <= 0; a0_operator <= 0; a0_flags <= 0;
+            a0_sine_address <= 0; a0_sine_negative <= 0;
+            a0_ams_attenuation <= 0;
+            a0_phase_next <= 0; a0_increment <= 0;
+            a0_env_next <= 0; a0_level_offset <= 0;
+            a0_env_stage_next <= 0;
+            a0_gain_state <= 0; a0_block_start <= 1'b0;
+            a0_enabled <= 0;
+            b0_voice <= 0; b0_operator <= 0; b0_flags <= 0;
+            b0_sine_address <= 0; b0_sine_negative <= 0;
+            b0_env_integer <= 0; b0_ams_attenuation <= 0;
+            b0_gain_state <= 0; b0_block_start <= 1'b0;
+            b0_enabled <= 0;
             p0_voice <= 0; p0_operator <= 0; p0_flags <= 0;
             p0_sine_address <= 0; p0_sine_negative <= 0;
             p0_gain_index <= 0; p0_gain_state <= 0;
@@ -876,7 +938,7 @@ module fm_poly_synth #(
             e0_valid <= 1'b0;
             e0_voice <= 0; e0_operator <= 0; e0_flags <= 0;
             e0_sine_address <= 0; e0_sine_negative <= 0;
-            e0_block_start <= 1'b0; e0_amp_lfo_reduction <= 0;
+            e0_block_start <= 1'b0; e0_ams_attenuation <= 0;
             e0_gain_state <= 0; e0_enabled <= 0;
             e0_phase <= 0; e0_increment <= 0; e0_frequency <= 0;
             e0_env_current <= 0; e0_env_target <= 0; e0_env_stage <= 0;
@@ -1081,26 +1143,56 @@ module fm_poly_synth #(
                         p3_sample_product >>> 6;
                 end
             end
-            p0_valid <= e0_valid;
-            if (e0_valid) begin
-                p0_voice <= e0_voice;
-                p0_operator <= e0_operator;
-                p0_flags <= e0_flags;
-                p0_sine_address <= e0_sine_address;
-                p0_sine_negative <= e0_sine_negative;
-                p0_gain_index <= e0_gain_level_index;
-                p0_gain_state <= e0_gain_state;
-                p0_block_start <= e0_block_start;
-                p0_enabled <= e0_enabled;
+            p0_valid <= b0_valid;
+            if (b0_valid) begin
+                p0_voice <= b0_voice;
+                p0_operator <= b0_operator;
+                p0_flags <= b0_flags;
+                p0_sine_address <= b0_sine_address;
+                p0_sine_negative <= b0_sine_negative;
+                p0_gain_index <= b0_gain_level_index;
+                p0_gain_state <= b0_gain_state;
+                p0_block_start <= b0_block_start;
+                p0_enabled <= b0_enabled;
+            end
+            b0_valid <= a0_valid;
+            if (a0_valid) begin
+                b0_voice <= a0_voice;
+                b0_operator <= a0_operator;
+                b0_flags <= a0_flags;
+                b0_sine_address <= a0_sine_address;
+                b0_sine_negative <= a0_sine_negative;
+                b0_env_integer <= a0_env_next[25:14];
+                b0_ams_attenuation <= a0_ams_attenuation;
+                b0_gain_state <= a0_gain_state;
+                b0_block_start <= a0_block_start;
+                b0_enabled <= a0_enabled;
                 operator_state_write_valid <= 1'b1;
-                operator_state_write_address <= e0_voice * 6 + e0_operator;
+                operator_state_write_address <= a0_voice * 6 + a0_operator;
                 operator_state_write_data <= pack_operator_state(
-                    e0_phase + e0_frequency,
-                    e0_increment,
-                    e0_env_next,
-                    e0_level_offset,
-                    e0_env_stage_next
+                    a0_phase_next,
+                    a0_increment,
+                    a0_env_next,
+                    a0_level_offset,
+                    a0_env_stage_next
                 );
+            end
+            a0_valid <= e0_valid;
+            if (e0_valid) begin
+                a0_voice <= e0_voice;
+                a0_operator <= e0_operator;
+                a0_flags <= e0_flags;
+                a0_sine_address <= e0_sine_address;
+                a0_sine_negative <= e0_sine_negative;
+                a0_ams_attenuation <= e0_ams_attenuation;
+                a0_gain_state <= e0_gain_state;
+                a0_block_start <= e0_block_start;
+                a0_enabled <= e0_enabled;
+                a0_phase_next <= e0_phase + e0_frequency;
+                a0_increment <= e0_increment;
+                a0_env_next <= e0_env_next;
+                a0_level_offset <= e0_level_offset;
+                a0_env_stage_next <= e0_env_stage_next;
                 if (e0_voice == display_voice)
                     operator_envelope_levels[e0_operator * 8 +: 8]
                         <= e0_env_next[25:18];
@@ -1120,7 +1212,7 @@ module fm_poly_synth #(
                 e0_sine_negative <= issue_quadrant[1];
                 e0_block_start <=
                     (voice_eg_block_position[operator_read_voice] == 6'd1);
-                e0_amp_lfo_reduction <= issue_amp_lfo_reduction;
+                e0_ams_attenuation <= issue_ams_attenuation;
                 e0_gain_state <= operator_gain_read_data;
                 e0_enabled <= patch_op_enable[operator_read_operator];
                 e0_phase <= render_phase;
@@ -1206,7 +1298,16 @@ module fm_poly_synth #(
                 end
 
                 ENGINE_EVENT_INIT: begin
-                    event_base_increment <= event_operator_increment;
+                    // The preset ROM output previously drove a 32x32 multiply
+                    // and the base-frequency register in one clock. Capture
+                    // its operands first, then use the existing WAIT cycle
+                    // for the multiply; event initialization gains no cycles.
+                    event_note_increment_latched <=
+                        midi_phase_increment[event_transposed_note];
+                    event_patch_frequency_latched <=
+                        patch_op_frequency[event_init_operator];
+                    event_patch_fixed_latched <=
+                        patch_op_fixed[event_init_operator];
                     event_detune_address <=
                         (event_transposed_note * 11'd15) +
                         patch_op_detune[event_init_operator];
@@ -1249,6 +1350,7 @@ module fm_poly_synth #(
                 end
 
                 ENGINE_EVENT_GAIN_WAIT: begin
+                    event_base_increment <= event_operator_increment;
                     event_scale_product <= event_scale_source * event_scale_depth;
                     engine_state <= ENGINE_EVENT_SCALE_MUL;
                 end
@@ -1256,7 +1358,7 @@ module fm_poly_synth #(
                 ENGINE_EVENT_SCALE_MUL: begin
                     // The two preceding FSM cycles give the synchronous ROM
                     // time to return the selected note/detune correction.
-                    event_corrected_increment <= patch_op_fixed[event_init_operator]
+                    event_corrected_increment <= event_patch_fixed_latched
                         ? event_base_increment
                         : (event_detuned_product[48]
                            ? 32'hffffffff : event_detuned_product[47:16]);
@@ -1410,15 +1512,17 @@ module fm_poly_synth #(
                     if (master_volume_current == 0)
                         sample_out <= 16'sd0;
                     else begin
+                        // MODE/CC20: keep its 0..127 range, but reduce every
+                        // nonzero output level by 6 dB to leave headroom.
                         case (master_volume_current[6:4])
-                            3'd0: sample_out <= soft_limit16(mix_accumulator >>> 7);
-                            3'd1: sample_out <= soft_limit16(mix_accumulator >>> 6);
-                            3'd2: sample_out <= soft_limit16(mix_accumulator >>> 5);
-                            3'd3: sample_out <= soft_limit16(mix_accumulator >>> 4);
-                            3'd4: sample_out <= soft_limit16(mix_accumulator >>> 3);
-                            3'd5: sample_out <= soft_limit16(mix_accumulator >>> 2);
-                            3'd6: sample_out <= soft_limit16(mix_accumulator >>> 1);
-                            default: sample_out <= soft_limit16(mix_accumulator);
+                            3'd0: sample_out <= soft_limit16(mix_accumulator >>> 8);
+                            3'd1: sample_out <= soft_limit16(mix_accumulator >>> 7);
+                            3'd2: sample_out <= soft_limit16(mix_accumulator >>> 6);
+                            3'd3: sample_out <= soft_limit16(mix_accumulator >>> 5);
+                            3'd4: sample_out <= soft_limit16(mix_accumulator >>> 4);
+                            3'd5: sample_out <= soft_limit16(mix_accumulator >>> 3);
+                            3'd6: sample_out <= soft_limit16(mix_accumulator >>> 2);
+                            default: sample_out <= soft_limit16(mix_accumulator >>> 1);
                         endcase
                     end
                     engine_state <= ENGINE_IDLE;
