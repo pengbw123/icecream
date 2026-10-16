@@ -12,6 +12,7 @@ echo [3] Phase 2 - C2/C3/C4/C6 timbre builder
 echo [4] Install or repair Python dependencies
 echo [5] UART full-range MIDI song player
 echo [6] 6-operator FM editor and DX7 SysEx importer
+echo [7] DX7-FPGA audio validation and playback
 echo [0] Exit
 echo.
 set /p tool_choice=Select: 
@@ -21,5 +22,6 @@ if "%tool_choice%"=="3" call launchers\run_timbre_builder.bat
 if "%tool_choice%"=="4" call launchers\install_python_requirements.bat
 if "%tool_choice%"=="5" call launchers\run_uart_midi_player.bat
 if "%tool_choice%"=="6" call launchers\run_fm_editor.bat
+if "%tool_choice%"=="7" call launchers\run_fm_validation.bat
 if "%tool_choice%"=="0" exit /b 0
 goto menu

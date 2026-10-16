@@ -7,6 +7,12 @@
 `sin.cc`、`exp2.cc`、`fm_core.cc`和`fm_op_kernel.cc`，编译产物放在临时目录。
 请保留原项目的版权和许可说明。
 
+也可以双击`tools/launchers/run_fm_validation.bat`打开图形界面，或从
+`tools/run_tools_menu.bat`选择“DX7-FPGA音色差分验证”。界面可以编辑
+六个算子的静态频率/增益、生成并播放Dexed核心参考WAV、查看波形，导入
+两份WAV比较音量/包络/频谱，并对原始32位整数PCM做严格逐样点比较。
+试听音量倍率只作用于播放WAV，不修改随附的`.i32le`整数原始数据。
+
 ## A. 先检查静态算法路由
 
 在`fpga_project_FM`根目录执行：
@@ -50,6 +56,17 @@ python tools/cli/fm_dx7_diff.py compare D:\fm_test\dexed.wav D:\fm_test\fpga.wav
 采集时钟差、相位和线路延迟都使逐样本结论无效。要作逐样本结论，
 应在两端固定相同实际采样率、同一起始状态、同一事件时刻并采集数字样点。
 
+严格比较Dexed与FPGA输出的32位有符号小端整数流：
+
+```powershell
+python tools/cli/fm_dx7_diff.py compare-raw D:\fm_test\dexed.i32le D:\fm_test\fpga.i32le
+```
+
+此命令不作增益拟合、重采样或自动对齐。可以用`--reference-offset`和
+`--fpga-offset`指定两份文件各自要跳过的样点数；报告会列出首个差异、
+不同样点数、最大误差和RMS误差。只有数据格式、数值标度、采样率和演奏
+事件都一致时，“所有样点都相等”才说明这一段逐位相同。
+
 **不要把MAX98357A的桥接功放输出直接接电脑声卡线路输入。** 它不是线路级
 信号。没有数字捕获设备时，先用声学录音看时间包络和频谱趋势即可。
 
@@ -69,6 +86,7 @@ EG、力度、LFO和按键释放；因此不能把它当作完整`E.PIANO 1`参�
 
 - 已完成：统一MIDI测试事件、Bank身份记录、32路由源代码审计、直接编译
   Dexed FM核心、PCM WAV自动对齐和分段误差报告。
+- 已加入：不做自动对齐/重采样/增益拟合的32位原始整数样点比较器。
 - 未完成：板端内部样点自动导出、RTL仿真自动运行、Dexed完整音色离线渲染。
   因此工具不会把目前的“32/32路由一致”误报为“DX7音色完全一致”。
 

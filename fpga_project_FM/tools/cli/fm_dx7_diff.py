@@ -195,6 +195,49 @@ def compare_wavs(reference_path: Path, fpga_path: Path,
     }
 
 
+def compare_raw_i32(reference_path: Path, fpga_path: Path,
+                    reference_offset: int = 0, fpga_offset: int = 0) -> dict:
+    """Compare signed little-endian 32-bit digital samples without gain fitting.
+
+    The caller must supply the *same* sample clock, scale, and stimulus.  No
+    automatic onset detection, resampling, phase shift, or normalization is
+    allowed here: those operations would hide bit-level differences.
+    """
+    if reference_offset < 0 or fpga_offset < 0:
+        raise ValueError("sample offsets must be nonnegative")
+    for path in (reference_path, fpga_path):
+        if path.stat().st_size % 4:
+            raise ValueError(f"{path}: length is not a multiple of four bytes")
+    reference = np.fromfile(reference_path, dtype="<i4")
+    fpga = np.fromfile(fpga_path, dtype="<i4")
+    if reference_offset >= len(reference) or fpga_offset >= len(fpga):
+        raise ValueError("sample offset reaches or exceeds a file's length")
+    reference = reference[reference_offset:]
+    fpga = fpga[fpga_offset:]
+    count = min(len(reference), len(fpga))
+    if not count:
+        raise ValueError("raw PCM files must contain at least one sample")
+    difference = reference[:count].astype(np.int64) - fpga[:count].astype(np.int64)
+    unequal = np.flatnonzero(difference)
+    return {
+        "reference": str(reference_path), "fpga": str(fpga_path),
+        "reference_offset_samples": reference_offset,
+        "fpga_offset_samples": fpga_offset,
+        "reference_remaining_samples": len(reference),
+        "fpga_remaining_samples": len(fpga),
+        "compared_samples": count,
+        "lengths_match": len(reference) == len(fpga),
+        "exact_match": len(reference) == len(fpga) and len(unequal) == 0,
+        "unequal_samples": len(unequal),
+        "first_mismatch_index": int(unequal[0]) if len(unequal) else None,
+        "first_mismatch_reference": int(reference[unequal[0]]) if len(unequal) else None,
+        "first_mismatch_fpga": int(fpga[unequal[0]]) if len(unequal) else None,
+        "max_abs_error_lsb": int(np.max(np.abs(difference))),
+        "rms_error_lsb": float(np.sqrt(np.mean(difference.astype(np.float64) ** 2))),
+        "warning": "Exact equality requires matched clock, fixed-point scale, stimulus and integer alignment.",
+    }
+
+
 def _find_dexed_root(requested: Path | None) -> Path:
     candidates = ([requested] if requested else []) + [
         Path(r"D:\a_files\dexed-master\dexed-master"),
@@ -283,6 +326,12 @@ def main(argv: list[str] | None = None) -> int:
     compare.add_argument("fpga", type=Path)
     compare.add_argument("--hold-ms", type=int)
     compare.add_argument("--json", type=Path)
+    raw = command.add_parser("compare-raw", help="strict digital i32le sample comparison")
+    raw.add_argument("reference", type=Path)
+    raw.add_argument("fpga", type=Path)
+    raw.add_argument("--reference-offset", type=int, default=0)
+    raw.add_argument("--fpga-offset", type=int, default=0)
+    raw.add_argument("--json", type=Path)
     args = parser.parse_args(argv)
 
     if args.command == "case":
@@ -339,7 +388,11 @@ def main(argv: list[str] | None = None) -> int:
         report = audit_algorithm_routes(_find_dexed_root(args.dexed_root))
         print(json.dumps(report, indent=2, ensure_ascii=False))
         return 0 if not report["mismatched_algorithms"] else 1
-    report = compare_wavs(args.reference, args.fpga, args.hold_ms)
+    if args.command == "compare-raw":
+        report = compare_raw_i32(args.reference, args.fpga,
+                                 args.reference_offset, args.fpga_offset)
+    else:
+        report = compare_wavs(args.reference, args.fpga, args.hold_ms)
     encoded = json.dumps(report, indent=2, ensure_ascii=False)
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)

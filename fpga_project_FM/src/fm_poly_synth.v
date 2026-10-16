@@ -107,6 +107,8 @@ module fm_poly_synth #(
     reg [17:0] dx7_pitch_eg_fraction [0:255];
     reg [7:0]  dx7_velocity_curve [0:63];
     reg [31:0] dx7_lfo_phase_increment [0:127];
+    reg [31:0] dx7_lfo_delay_inc [0:99];
+    reg [31:0] dx7_lfo_delay_inc2 [0:99];
     reg signed [8:0] dx7_lfo_sine [0:255];
     initial begin
         $readmemh("src/generated/midi_phase_inc.mem", midi_phase_increment);
@@ -118,6 +120,8 @@ module fm_poly_synth #(
                   dx7_pitch_eg_fraction);
         $readmemh("src/generated/dx7_velocity_curve.mem", dx7_velocity_curve);
         $readmemh("src/generated/dx7_lfo_phase_inc.mem", dx7_lfo_phase_increment);
+        $readmemh("src/generated/dx7_lfo_delay_inc.mem", dx7_lfo_delay_inc);
+        $readmemh("src/generated/dx7_lfo_delay_inc2.mem", dx7_lfo_delay_inc2);
         $readmemb("src/generated/dx7_lfo_sine_q8.mem", dx7_lfo_sine);
     end
 
@@ -213,7 +217,8 @@ module fm_poly_synth #(
     reg envelope_rate_tick;
     wire [16:0] envelope_rate_sum =
         {1'b0, envelope_rate_accumulator} + 17'd44100;
-    reg [16:0] lfo_delay_age;
+    reg [31:0] lfo_delay_state;
+    reg [5:0] lfo_delay_block_sample;
     reg signed [7:0] lfo_sample_hold;
     reg [15:0] lfsr;
     reg [15:0] lfo_amp_base;
@@ -423,29 +428,16 @@ module fm_poly_synth #(
             endcase
         end
     endfunction
-    function [7:0] lfo_delay_scale;
-        input [16:0] age;
-        input [6:0] delay_value;
-        integer hold_samples;
-        integer fade_shift;
-        integer progress;
-        begin
-            if (delay_value == 0) begin
-                lfo_delay_scale = 8'hff;
-            end else begin
-                hold_samples = delay_value * delay_value * 4;
-                if (hold_samples > 65535) hold_samples = 65535;
-                fade_shift = 4 + (delay_value >> 5);
-                if (age <= hold_samples)
-                    lfo_delay_scale = 8'd0;
-                else begin
-                    progress = (age - hold_samples) >> fade_shift;
-                    lfo_delay_scale = (progress > 255) ? 8'hff : progress[7:0];
-                end
-            end
-        end
-    endfunction
-    wire [7:0] lfo_fade_next = lfo_delay_scale(lfo_delay_age, fm_lfo_delay);
+    wire [6:0] lfo_delay_table_address = (fm_lfo_delay > 7'd99)
+        ? 7'd99 : fm_lfo_delay;
+    wire [31:0] lfo_delay_increment = lfo_delay_state[31]
+        ? dx7_lfo_delay_inc2[lfo_delay_table_address]
+        : dx7_lfo_delay_inc[lfo_delay_table_address];
+    wire [32:0] lfo_delay_advance = {1'b0, lfo_delay_state} +
+        {1'b0, lfo_delay_increment};
+    wire [7:0] lfo_delay_advance_fade = lfo_delay_advance[32]
+        ? 8'hff
+        : lfo_delay_advance[31] ? lfo_delay_advance[30:23] : 8'd0;
     reg [7:0] lfo_fade;
     wire signed [17:0] lfo_value_delayed_product = lfo_value *
         $signed({1'b0, lfo_fade});
@@ -814,7 +806,8 @@ module fm_poly_synth #(
             lfo_phase <= 32'd0;
             envelope_rate_accumulator <= 16'd4728;
             envelope_rate_tick <= 1'b1;
-            lfo_delay_age <= 17'h1ffff;
+            lfo_delay_state <= 32'hffffffff;
+            lfo_delay_block_sample <= 6'd0;
             lfo_fade <= 8'hff;
             lfo_value_delayed <= 9'sd0;
             lfo_sample_hold <= 8'sd0;
@@ -977,10 +970,15 @@ module fm_poly_synth #(
                     envelope_rate_tick <= 1'b0;
                 end
                 lfo_phase <= lfo_phase + lfo_phase_increment;
-                lfo_fade <= lfo_fade_next;
                 lfo_value_delayed <= lfo_value_delayed_product >>> 8;
-                if (lfo_delay_age != 17'h1ffff)
-                    lfo_delay_age <= lfo_delay_age + 1'b1;
+                if (lfo_delay_block_sample == 6'd63) begin
+                    lfo_delay_block_sample <= 6'd0;
+                    lfo_delay_state <= lfo_delay_advance[32]
+                        ? 32'hffffffff : lfo_delay_advance[31:0];
+                    lfo_fade <= lfo_delay_advance_fade;
+                end else begin
+                    lfo_delay_block_sample <= lfo_delay_block_sample + 1'b1;
+                end
                 lfsr <= {lfsr[14:0], lfsr[15] ^ lfsr[13] ^ lfsr[12] ^ lfsr[10]};
                 if (&lfo_phase[31:24]) lfo_sample_hold <= lfsr[7:0];
                 lfo_amp_base <= lfo_amp_unipolar * fm_lfo_amp_depth;
@@ -1180,7 +1178,15 @@ module fm_poly_synth #(
                         // strong pitch or amplitude modulation attack.
                         if (fm_lfo_sync)
                             lfo_phase <= 32'h7fffffff;
-                        lfo_delay_age <= 17'd0;
+                        // Dexed's Lfo::keydown() clears the delay phase, then
+                        // getdelay() advances it once for the first 64-sample
+                        // block. Apply that first increment here and continue
+                        // at the original block cadence below.
+                        lfo_delay_state <= dx7_lfo_delay_inc[lfo_delay_table_address];
+                        lfo_fade <= dx7_lfo_delay_inc[lfo_delay_table_address][31]
+                            ? dx7_lfo_delay_inc[lfo_delay_table_address][30:23]
+                            : 8'd0;
+                        lfo_delay_block_sample <= 6'd0;
                         voice_active[event_target_voice] <= 1'b1;
                         voice_gate[event_target_voice] <= 1'b1;
                         voice_key_down[event_target_voice] <= 1'b1;
