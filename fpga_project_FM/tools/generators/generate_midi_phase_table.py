@@ -8,6 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "tools"))
 
 from core.additive_uart_protocol import DEFAULT_NOTE_LOUDNESS, note_gain_table_q14
+from core.fm_patch import note_detune_correction_q16
 
 
 SAMPLE_RATE_HZ = 48_828.125
@@ -54,6 +55,9 @@ DX7_LFO_SINE_OUTPUT = (
     / "generated"
     / "dx7_lfo_sine_q8.mem"
 )
+DX7_NOTE_DETUNE_OUTPUT = (
+    PROJECT_ROOT / "src" / "generated" / "dx7_note_detune_q16.mem"
+)
 
 # Measured DX7 LFO frequencies used by the msfa/Dexed engine.  The old FPGA
 # approximation started near 2 Hz and topped out near 13 Hz; the instrument
@@ -84,6 +88,13 @@ DX7_LFO_FREQUENCIES = (
 
 
 def main():
+    detune_corrections = [
+        f"{note_detune_correction_q16(note, detune):017b}"
+        for note in range(128) for detune in range(15)
+    ]
+    DX7_NOTE_DETUNE_OUTPUT.write_text(
+        "\n".join(detune_corrections) + "\n", encoding="ascii"
+    )
     values = []
     for note in range(128):
         frequency = 440.0 * (2.0 ** ((note - 69) / 12.0))

@@ -43,6 +43,7 @@ Thumbs.db
 *.sf2
 *.sfz
 *.syx
+!fpga_project_FM/tools/fm_validation/examples/rom1a_epiano1_c4/test_note.mid
 
 # Local diagnostic and obsolete copied files are not part of the release
 **/diagnostics/

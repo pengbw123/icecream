@@ -10,6 +10,7 @@ tools/
 ├─ generators/             FPGA初始化表生成器
 ├─ cli/                    命令行调试工具
 ├─ tests/                  自动测试
+├─ fm_validation/          Dexed源码对照和FM差分验证说明
 ├─ presets/                音色JSON预设
 ├─ launchers/              各程序的独立启动脚本
 ├─ midi_library/           用户本地MIDI曲库（歌曲不提交Git）
@@ -27,6 +28,9 @@ tools/
 | 阶段二 | `launchers/run_timbre_builder.bat` | 同时分析C2/C3/C4/C6，分离总包络和相对谐波衰减，A/B试听并导出FPGA参数 |
 
 首次运行任一图形程序前执行一次`launchers/install_python_requirements.bat`。
+
+FM音色对照可使用`cli/fm_dx7_diff.py`生成固定MIDI测试、直接调用本机Dexed
+FM运算核心，并比较两路PCM WAV；详见`fm_validation/README.md`。
 
 ## 6算子FM版本
 

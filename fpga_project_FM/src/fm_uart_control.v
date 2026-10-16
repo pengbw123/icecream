@@ -41,6 +41,7 @@ module fm_uart_control (
     output reg  [2:0]  fm_operator_index,
     output reg         fm_operator_enable,
     output reg         fm_operator_fixed,
+    output reg  [3:0]  fm_operator_detune,
     output reg  [31:0] fm_operator_frequency,
     output reg  [15:0] fm_operator_output_gain,
 
@@ -166,6 +167,7 @@ module fm_uart_control (
             fm_operator_enable <= 1'b1;
             fm_operator_fixed <= 1'b0;
             fm_operator_frequency <= 32'h00010000;
+            fm_operator_detune <= 4'd7;
             fm_operator_output_gain <= 16'h4000;
             fm_envelope_write_valid <= 1'b0;
             fm_envelope_operator <= 3'd0;
@@ -284,6 +286,10 @@ module fm_uart_control (
                                         fm_operator_index <= payload[2:0];
                                         fm_operator_enable <= payload[8];
                                         fm_operator_fixed <= payload[9];
+                                        // Old packets have no detune metadata;
+                                        // preserve their precompiled frequency.
+                                        fm_operator_detune <= payload[14]
+                                            ? payload[13:10] : 4'd7;
                                         fm_operator_frequency <= payload[47:16];
                                         fm_operator_output_gain <= payload[63:48];
                                         fm_operator_write_valid <= 1'b1;
@@ -385,6 +391,8 @@ module fm_uart_control (
                         fm_operator_index <= preset_op_index;
                         fm_operator_enable <= preset_operator_word[0];
                         fm_operator_fixed <= preset_operator_word[1];
+                        fm_operator_detune <= preset_operator_word[45]
+                            ? preset_operator_word[44:41] : 4'd7;
                         fm_operator_frequency <= preset_operator_word[33:2];
                         fm_operator_output_gain <= {9'd0, preset_operator_word[40:34]};
                         fm_operator_write_valid <= 1'b1;

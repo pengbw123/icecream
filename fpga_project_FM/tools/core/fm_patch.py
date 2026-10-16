@@ -63,9 +63,9 @@ ALGORITHM_FLAGS = (
     (0xC1, 0x11, 0x11, 0x14, 0x01, 0x14),
     (0x01, 0x11, 0x11, 0x14, 0xC1, 0x14),
     (0xC1, 0x11, 0x14, 0x01, 0x11, 0x14),
-    (0x41, 0x11, 0x94, 0x01, 0x11, 0x14),
+    (0xC1, 0x11, 0x94, 0x01, 0x11, 0x14),
     (0xC1, 0x14, 0x01, 0x14, 0x01, 0x14),
-    (0x41, 0x94, 0x01, 0x14, 0x01, 0x14),
+    (0xC1, 0x94, 0x01, 0x14, 0x01, 0x14),
     (0xC1, 0x11, 0x05, 0x14, 0x01, 0x14),
     (0x01, 0x11, 0xC5, 0x14, 0x01, 0x14),
     (0x01, 0x11, 0x05, 0x14, 0xC1, 0x14),
@@ -323,7 +323,8 @@ def operator_frequency_word(op: dict) -> int:
         # DX7 fixed-mode coarse selects a power-of-ten decade; fine moves
         # continuously inside it.  Direct phase increment is Q0.32.
         frequency = 10.0 ** ((coarse & 3) + fine / 100.0)
-        frequency *= _detune_ratio(op["detune"])
+        # Dexed's fixed mode only shifts upward for detune 8..14.
+        frequency *= _fixed_detune_ratio(op["detune"])
         return int(_clamp(round(frequency / SAMPLE_RATE * 2**32), 0, 0xFFFFFFFF))
     ratio = (0.5 if coarse == 0 else float(coarse)) * (1.0 + fine / 100.0)
     ratio *= _detune_ratio(op["detune"])
@@ -335,13 +336,31 @@ def _detune_ratio(detune: int) -> float:
 
     The old implementation assumed two cents per step and made stacked
     operators audibly too wide.  The calibrated table keeps the centre exact
-    and reaches about seven cents at either end.  Real DX7 detune also has a
-    small note dependency; that is documented as a remaining compatibility
-    item because implementing it belongs in the Note-On datapath.
+    and reaches about seven cents at either end. The Note-On datapath uses a
+    per-key correction table to recover the Dexed/MSFA note dependency.
     """
     cents = (-7.0, -5.6, -4.4, -3.4, -2.5, -1.7, -0.8,
              0.0, 0.8, 1.7, 2.5, 3.4, 4.4, 5.6, 7.0)
     return 2.0 ** (cents[int(_clamp(detune, 0, 14))] / 1200.0)
+
+
+def _fixed_detune_ratio(detune: int) -> float:
+    return 2.0 ** (13457.0 * max(0, int(detune) - 7) / (2**24))
+
+
+def note_detune_correction_q16(note: int, detune: int) -> int:
+    """Correct legacy constant ratio detune to Dexed's key-dependent law.
+
+    Keeping the correction separate lets existing UART frequency words remain
+    compatible while the FPGA applies the note-specific factor at Note On.
+    """
+    note = int(_clamp(note, 0, 127))
+    detune = int(_clamp(detune, 0, 14))
+    logfreq = math.log2(440.0) + (note - 69) / 12.0
+    delta_octaves = (0.0209 * math.exp(-0.396 * logfreq)
+                     * logfreq * (detune - 7) / 7.0)
+    return int(_clamp(round(65536.0 * 2.0 ** delta_octaves /
+                            _detune_ratio(detune)), 1, 0x1FFFF))
 
 
 def output_level_gain_q14(level: int) -> int:
@@ -477,7 +496,9 @@ def patch_packets(raw_patch: dict) -> list[bytes]:
     for op_index, op in enumerate(patch["operators"]):
         payload = bytearray(8)
         payload[0] = op_index
-        payload[1] = int(op["enabled"]) | (int(op["mode"] == "fixed") << 1)
+        payload[1] = (int(op["enabled"]) |
+                      (int(op["mode"] == "fixed") << 1) |
+                      ((op["detune"] & 15) << 2) | 0x40)
         struct.pack_into("<I", payload, 2, operator_frequency_word(op))
         # The FPGA now evaluates keyboard scaling at Note On.  Send the raw
         # output level so one compact preset replaces the old 768-word table.

@@ -6,10 +6,13 @@ from core.fm_patch import (
     ALGORITHM_FLAGS,
     CMD_FM_COMMIT,
     CMD_FM_NOTE_GAIN,
+    CMD_FM_OPERATOR,
     default_patch,
     dx7_base_qrate,
     dx7_envelope_target,
     dx7_keyboard_level_offset,
+    note_detune_correction_q16,
+    operator_frequency_word,
     dx7_scale_level,
     pitch_envelope_coefficient,
     pitch_envelope_target_q15,
@@ -26,10 +29,39 @@ class FmPatchTests(unittest.TestCase):
         self.assertEqual(len(ALGORITHM_FLAGS), 32)
         self.assertTrue(all(len(row) == 6 for row in ALGORITHM_FLAGS))
 
+    def test_dx7_algorithms_four_and_six_feedback_origin(self):
+        # Dexed/msfa marks OP6 as the feedback source in both algorithms.
+        # OP4/OP5 have the separate FB_OUT flag (0x80) without FB_IN (0x40),
+        # which must not replace the two-sample feedback history.
+        for algorithm in (4, 6):
+            row = ALGORITHM_FLAGS[algorithm - 1]
+            self.assertEqual(row[0], 0xC1)
+            self.assertEqual(row.index(0x94), 2 if algorithm == 4 else 1)
+
+    def test_note_dependent_ratio_detune_and_fixed_mode_asymmetry(self):
+        self.assertEqual(note_detune_correction_q16(60, 7), 65536)
+        self.assertGreater(note_detune_correction_q16(36, 14),
+                           note_detune_correction_q16(84, 14))
+        self.assertLess(note_detune_correction_q16(36, 0),
+                        note_detune_correction_q16(84, 0))
+        op = default_patch()["operators"][0].copy()
+        op.update(mode="fixed", coarse=2, fine=0, detune=0)
+        low_word = operator_frequency_word(op)
+        op["detune"] = 7
+        self.assertEqual(low_word, operator_frequency_word(op))
+        op["detune"] = 14
+        self.assertGreater(operator_frequency_word(op), low_word)
+
     def test_packets_have_valid_frame_and_checksum(self):
         packets = patch_packets(default_patch())
         self.assertEqual(packets[-1][2], CMD_FM_COMMIT)
         self.assertEqual(sum(packet[2] == CMD_FM_NOTE_GAIN for packet in packets), 0)
+        operator_packets = [packet for packet in packets
+                            if packet[2] == CMD_FM_OPERATOR]
+        self.assertEqual(len(operator_packets), 6)
+        for packet in operator_packets:
+            self.assertEqual((packet[4] >> 2) & 0xF, 7)
+            self.assertEqual(packet[4] & 0x40, 0x40)
         for packet in packets:
             self.assertEqual(len(packet), 12)
             self.assertEqual(packet[:2], b"\xA5\x5A")
@@ -99,6 +131,7 @@ class FmPatchTests(unittest.TestCase):
             voice[base + 4:base + 8] = bytes((99, 80, 60, 0))
             voice[base + 14] = 90
             voice[base + 15] = 2
+            voice[base + 12] = (14 - op) << 3
         voice[118:128] = b"BANK TEST "
         with tempfile.TemporaryDirectory() as folder:
             source = Path(folder) / "bank.syx"
@@ -109,6 +142,10 @@ class FmPatchTests(unittest.TestCase):
             self.assertEqual(len((output / "fm_rom1a_operator.mem").read_text().splitlines()), 192)
             self.assertEqual(len((output / "fm_rom1a_envelope.mem").read_text().splitlines()), 768)
             self.assertEqual(len((output / "fm_rom1a_names.mem").read_text().splitlines()), 320)
+            first_op_word = int((output / "fm_rom1a_operator.mem")
+                                .read_text().splitlines()[0], 16)
+            self.assertEqual((first_op_word >> 41) & 0xF, 14)
+            self.assertEqual((first_op_word >> 45) & 1, 1)
 
 
 if __name__ == "__main__":

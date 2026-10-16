@@ -38,6 +38,7 @@ module fm_poly_synth #(
     input  wire [2:0]         fm_operator_index,
     input  wire               fm_operator_enable,
     input  wire               fm_operator_fixed,
+    input  wire [3:0]         fm_operator_detune,
     input  wire [31:0]        fm_operator_frequency,
     input  wire [15:0]        fm_operator_output_gain,
     input  wire               fm_envelope_write_valid,
@@ -102,6 +103,7 @@ module fm_poly_synth #(
     reg [15:0] sine_quarter [0:511];
     reg [16:0] pitch_ratio_table [0:511];
     reg [16:0] dx7_level_gain [0:4095];
+    reg [16:0] dx7_note_detune [0:1919];
     reg [17:0] dx7_pitch_eg_fraction [0:255];
     reg [7:0]  dx7_velocity_curve [0:63];
     reg [31:0] dx7_lfo_phase_increment [0:127];
@@ -111,6 +113,7 @@ module fm_poly_synth #(
         $readmemh("src/generated/additive_sine_quarter_512.mem", sine_quarter);
         $readmemb("src/generated/pitch_ratio_q16.mem", pitch_ratio_table);
         $readmemb("src/generated/dx7_level_gain_q16.mem", dx7_level_gain);
+        $readmemb("src/generated/dx7_note_detune_q16.mem", dx7_note_detune);
         $readmemb("src/generated/dx7_pitch_eg_fraction_q16.mem",
                   dx7_pitch_eg_fraction);
         $readmemh("src/generated/dx7_velocity_curve.mem", dx7_velocity_curve);
@@ -123,6 +126,7 @@ module fm_poly_synth #(
     reg        patch_op_enable [0:5];
     reg        patch_op_fixed [0:5];
     reg [31:0] patch_op_frequency [0:5];
+    reg [3:0]  patch_op_detune [0:5];
     reg [15:0] patch_op_gain [0:5];
     // Compiled DX7 rate-clock value.  This replaces the old one-pole
     // coefficient whose asymptotic tail caused ten-second notes.
@@ -200,7 +204,16 @@ module fm_poly_synth #(
     reg signed [32:0] operator_read_modulation;
 
     reg [31:0] lfo_phase;
-    reg [15:0] lfo_delay_age;
+    // The I2S frame rate is 50 MHz / (16 * 64) = 48,828.125 Hz. DX7/MSFA
+    // operator-EG rates are calibrated at 44.1 kHz; MSFA multiplies every
+    // increment by 44100/sample_rate. The Q14 state cannot represent the
+    // fractional low-rate increment, so distribute the same number of EG
+    // updates over successive audio frames with a fractional-rate clock.
+    reg [15:0] envelope_rate_accumulator;
+    reg envelope_rate_tick;
+    wire [16:0] envelope_rate_sum =
+        {1'b0, envelope_rate_accumulator} + 17'd44100;
+    reg [16:0] lfo_delay_age;
     reg signed [7:0] lfo_sample_hold;
     reg [15:0] lfsr;
     reg [15:0] lfo_amp_base;
@@ -237,6 +250,14 @@ module fm_poly_synth #(
     reg [14:0] event_scale_product;
     reg [7:0] event_scale_magnitude;
     reg signed [15:0] event_level_offset_latched;
+    reg [10:0] event_detune_address;
+    reg [16:0] event_detune_read_data;
+    reg [31:0] event_base_increment;
+    reg [31:0] event_corrected_increment;
+    wire [48:0] event_detuned_product =
+        event_base_increment * event_detune_read_data;
+    always @(posedge clk)
+        event_detune_read_data <= dx7_note_detune[event_detune_address];
 
     integer i;
     integer init_index;
@@ -377,6 +398,12 @@ module fm_poly_synth #(
             default: lfo_value = $signed(lfo_sample_hold) <<< 1;
         endcase
     end
+    // DX7 amplitude modulation is one-sided: a maximum LFO sample gives no
+    // attenuation and a minimum sample gives the deepest attenuation.  The
+    // former absolute value made two AM pulses per LFO cycle and removed the
+    // intended slow brightness/level sweep from AMS-heavy patches.
+    wire [8:0] lfo_amp_unipolar =
+        (10'sd255 - $signed({lfo_value[8], lfo_value})) >>> 1;
     wire [6:0] selected_lfo_speed = (vibrato_rate != 7'd64)
         ? vibrato_rate : fm_lfo_speed;
     wire [31:0] lfo_phase_increment =
@@ -397,7 +424,7 @@ module fm_poly_synth #(
         end
     endfunction
     function [7:0] lfo_delay_scale;
-        input [15:0] age;
+        input [16:0] age;
         input [6:0] delay_value;
         integer hold_samples;
         integer fade_shift;
@@ -461,7 +488,8 @@ module fm_poly_synth #(
         : $signed({{13{issue_feedback_shifted[18]}}, issue_feedback_shifted}) <<< 18;
     wire signed [32:0] issue_modulation_sum =
         $signed({issue_bus_value[31], issue_bus_value}) +
-        (issue_flags[6] ? $signed({issue_feedback_value[31], issue_feedback_value}) : 33'sd0);
+        ((issue_flags[7:6] == 2'b11)
+         ? $signed({issue_feedback_value[31], issue_feedback_value}) : 33'sd0);
 
     wire [31:0] render_phase = operator_state_read_data[107:76];
     wire [31:0] render_increment = operator_state_read_data[75:44];
@@ -522,7 +550,9 @@ module fm_poly_synth #(
     // At qrate zero four Q14 LSBs per sample equal one internal DX7 level
     // step every 4096 samples; each group of four qrate counts doubles it.
     wire [17:0] issue_env_step =
-        ({15'd0, 3'd4 + {1'b0, issue_qrate[1:0]}} << issue_qrate[5:2]);
+        envelope_rate_tick
+        ? ({15'd0, 3'd4 + {1'b0, issue_qrate[1:0]}} << issue_qrate[5:2])
+        : 18'd0;
     wire [23:0] issue_amp_lfo_fade_product = lfo_amp_base * lfo_fade;
     wire [7:0] issue_amp_lfo_depth = issue_amp_lfo_fade_product[23:16];
     reg [9:0] issue_amp_lfo_reduction;
@@ -574,7 +604,9 @@ module fm_poly_synth #(
     wire [26:0] e0_env_rise_wide = {1'b0, e0_attack_origin} +
         {2'b00, e0_attack_step};
     wire [26:0] e0_env_fall_wide = {1'b0, e0_env_current} - e0_env_step;
-    wire [25:0] e0_env_next = e0_env_rising
+    wire [25:0] e0_env_next = !envelope_rate_tick
+        ? e0_env_current
+        : e0_env_rising
         ? ((e0_env_rise_wide >= {1'b0, e0_env_target})
            ? e0_env_target : e0_env_rise_wide[25:0])
         : ((e0_env_current <= e0_env_target + e0_env_step)
@@ -765,6 +797,9 @@ module fm_poly_synth #(
             event_scale_product <= 0;
             event_scale_magnitude <= 0;
             event_level_offset_latched <= -16'sd192;
+            event_detune_address <= 11'd0;
+            event_base_increment <= 32'd0;
+            event_corrected_increment <= 32'd0;
             prep_voice_latched <= 0;
             prep_active_latched <= 1'b0;
             prep_gate_latched <= 1'b0;
@@ -777,7 +812,9 @@ module fm_poly_synth #(
             prep_fraction_ratio_latched <= 18'h10000;
             sample_out <= 16'sd0;
             lfo_phase <= 32'd0;
-            lfo_delay_age <= 16'hffff;
+            envelope_rate_accumulator <= 16'd4728;
+            envelope_rate_tick <= 1'b1;
+            lfo_delay_age <= 17'h1ffff;
             lfo_fade <= 8'hff;
             lfo_value_delayed <= 9'sd0;
             lfo_sample_hold <= 8'sd0;
@@ -825,6 +862,7 @@ module fm_poly_synth #(
                 patch_op_enable[init_index] <= 1'b1;
                 patch_op_fixed[init_index] <= 1'b0;
                 patch_op_frequency[init_index] <= 32'h00010000;
+                patch_op_detune[init_index] <= 4'd7;
                 patch_op_gain[init_index] <= (init_index[0]) ? 16'd72 : 16'd95;
                 patch_rate_scaling[init_index] <= 3'd2;
                 patch_velocity_sensitivity[init_index] <= 3'd3;
@@ -883,6 +921,8 @@ module fm_poly_synth #(
                 patch_op_enable[fm_operator_index] <= fm_operator_enable;
                 patch_op_fixed[fm_operator_index] <= fm_operator_fixed;
                 patch_op_frequency[fm_operator_index] <= fm_operator_frequency;
+                patch_op_detune[fm_operator_index] <=
+                    (fm_operator_detune > 4'd14) ? 4'd14 : fm_operator_detune;
                 patch_op_gain[fm_operator_index] <= fm_operator_output_gain;
             end
             if (fm_envelope_write_valid && fm_envelope_operator < 6) begin
@@ -929,15 +969,21 @@ module fm_poly_synth #(
 
             if (sample_tick) begin
                 sample_pending <= 1'b1;
+                if (envelope_rate_sum >= 17'd48828) begin
+                    envelope_rate_accumulator <= envelope_rate_sum - 17'd48828;
+                    envelope_rate_tick <= 1'b1;
+                end else begin
+                    envelope_rate_accumulator <= envelope_rate_sum[15:0];
+                    envelope_rate_tick <= 1'b0;
+                end
                 lfo_phase <= lfo_phase + lfo_phase_increment;
                 lfo_fade <= lfo_fade_next;
                 lfo_value_delayed <= lfo_value_delayed_product >>> 8;
-                if (lfo_delay_age != 16'hffff)
+                if (lfo_delay_age != 17'h1ffff)
                     lfo_delay_age <= lfo_delay_age + 1'b1;
                 lfsr <= {lfsr[14:0], lfsr[15] ^ lfsr[13] ^ lfsr[12] ^ lfsr[10]};
                 if (&lfo_phase[31:24]) lfo_sample_hold <= lfsr[7:0];
-                lfo_amp_base <= (lfo_value[8] ? -lfo_value : lfo_value) *
-                                fm_lfo_amp_depth;
+                lfo_amp_base <= lfo_amp_unipolar * fm_lfo_amp_depth;
                 global_pitch_ratio <= pitch_ratio_table[pitch_table_address];
                 if (master_volume_current < master_volume_target)
                     master_volume_current <= master_volume_current + 1'b1;
@@ -992,7 +1038,7 @@ module fm_poly_synth #(
                     default: voice_output[p3_voice] <= voice_output[p3_voice] +
                                                               p3_operator_sample;
                 endcase
-                if (p3_flags[7]) begin
+                if (p3_flags[7:6] == 2'b11) begin
                     voice_feedback_old[p3_voice] <= voice_feedback_new[p3_voice];
                     // Anti-hunting feedback uses the previous two native
                     // operator samples.  Quantize before the average exactly
@@ -1025,7 +1071,10 @@ module fm_poly_synth #(
                     operator_envelope_levels[e0_operator * 8 +: 8]
                         <= e0_env_next[25:18];
                 if ((e0_flags[1:0] == 2'd0) && e0_enabled &&
-                    (e0_env_next > (26'd32 << 14)))
+                    // Retirement only needs the prior sample's carrier
+                    // level.  Avoid the 26-bit EG update/comparator on this
+                    // clock-enable path; one audio-frame tail is inaudible.
+                    (e0_env_current > (26'd32 << 14)))
                     voice_carrier_alive[e0_voice] <= 1'b1;
             end
             e0_valid <= operator_read_pending;
@@ -1120,10 +1169,18 @@ module fm_poly_synth #(
                 end
 
                 ENGINE_EVENT_INIT: begin
+                    event_base_increment <= event_operator_increment;
+                    event_detune_address <=
+                        (event_transposed_note * 11'd15) +
+                        patch_op_detune[event_init_operator];
                     if (event_init_operator == 0) begin
+                        // Dexed/msfa keydown() starts the synced LFO half a
+                        // cycle before our former zero-phase reset.  The
+                        // starting polarity is audible on voices with a
+                        // strong pitch or amplitude modulation attack.
                         if (fm_lfo_sync)
-                            lfo_phase <= 32'd0;
-                        lfo_delay_age <= 16'd0;
+                            lfo_phase <= 32'h7fffffff;
+                        lfo_delay_age <= 17'd0;
                         voice_active[event_target_voice] <= 1'b1;
                         voice_gate[event_target_voice] <= 1'b1;
                         voice_key_down[event_target_voice] <= 1'b1;
@@ -1151,6 +1208,12 @@ module fm_poly_synth #(
                 end
 
                 ENGINE_EVENT_SCALE_MUL: begin
+                    // The two preceding FSM cycles give the synchronous ROM
+                    // time to return the selected note/detune correction.
+                    event_corrected_increment <= patch_op_fixed[event_init_operator]
+                        ? event_base_increment
+                        : (event_detuned_product[48]
+                           ? 32'hffffffff : event_detuned_product[47:16]);
                     event_scale_magnitude <= (|event_scaled_amount[8])
                         ? 8'hff : event_scaled_amount[7:0];
                     engine_state <= ENGINE_EVENT_SCALE_FINISH;
@@ -1170,7 +1233,7 @@ module fm_poly_synth #(
                         event_target_voice * 6 + event_init_operator;
                     operator_state_write_data <= pack_operator_state(
                         (fm_osc_sync ? 32'd0 : lfo_phase),
-                        event_operator_increment,
+                        event_corrected_increment,
                         // Q14 envelope state is 26 bits. The former 24-bit
                         // field made the old concatenation only 106 bits wide.
                         26'd0,

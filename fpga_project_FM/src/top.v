@@ -1,7 +1,11 @@
 // Tang Primer 25K USB-MIDI six-operator FM synthesizer.
 // USB-A on the Dock is the host port (D+=L6, D-=K6). USB-C remains the
 // BL616 JTAG/UART connection and carries 115200-baud diagnostics/configuration.
-module top (
+module top #(
+    // 1: keep the DX7 core, MIDI and I2S; bypass the non-DX7 effects/LCD.
+    // 0: restore the original chorus/reverb, output meter and SPI display.
+    parameter integer FM_AUDIO_ONLY = 1
+) (
     input  wire clk,
     input  wire key_s2,
     input  wire uart_rx_pin,
@@ -151,6 +155,7 @@ module top (
     wire fm_operator_write_valid;
     wire [2:0] fm_operator_index;
     wire fm_operator_enable, fm_operator_fixed;
+    wire [3:0] fm_operator_detune;
     wire [31:0] fm_operator_frequency;
     wire [15:0] fm_operator_output_gain;
     wire fm_envelope_write_valid;
@@ -200,6 +205,7 @@ module top (
         .fm_operator_index(fm_operator_index),
         .fm_operator_enable(fm_operator_enable),
         .fm_operator_fixed(fm_operator_fixed),
+        .fm_operator_detune(fm_operator_detune),
         .fm_operator_frequency(fm_operator_frequency),
         .fm_operator_output_gain(fm_operator_output_gain),
         .fm_envelope_write_valid(fm_envelope_write_valid),
@@ -265,6 +271,7 @@ module top (
         .fm_operator_index(fm_operator_index),
         .fm_operator_enable(fm_operator_enable),
         .fm_operator_fixed(fm_operator_fixed),
+        .fm_operator_detune(fm_operator_detune),
         .fm_operator_frequency(fm_operator_frequency),
         .fm_operator_output_gain(fm_operator_output_gain),
         .fm_envelope_write_valid(fm_envelope_write_valid),
@@ -298,37 +305,48 @@ module top (
         .operator_envelope_levels(operator_envelope_levels)
     );
 
-    wire signed [15:0] effected_sample;
-    audio_effects u_audio_effects (
-        .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
-        .dry_sample(synth_sample), .chorus_mix(chorus_mix),
-        .reverb_mix(reverb_mix), .sample_out(effected_sample)
-    );
     wire signed [15:0] output_sample;
-    wire [7:0] peak_level;
-    wire clip_active;
-    audio_output_stage u_audio_output_stage (
-        .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
-        .sample_in(effected_sample), .sample_out(output_sample),
-        .peak_level(peak_level), .clip_active(clip_active)
-    );
+    generate if (FM_AUDIO_ONLY) begin : gen_audio_only
+        // Direct digital path for tone-matching against Dexed.  The FM mixer
+        // already has a soft knee; bypassing the second limiter avoids
+        // changing attack timbre before I2S.
+        assign output_sample = synth_sample;
+        assign lcd_resetn = 1'b0;
+        assign lcd_clk = 1'b0;
+        assign lcd_cs = 1'b1;
+        assign lcd_dc = 1'b0;
+        assign lcd_data = 1'b0;
+    end else begin : gen_full_features
+        wire signed [15:0] effected_sample;
+        wire [7:0] peak_level;
+        wire clip_active;
+        audio_effects u_audio_effects (
+            .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
+            .dry_sample(synth_sample), .chorus_mix(chorus_mix),
+            .reverb_mix(reverb_mix), .sample_out(effected_sample)
+        );
+        audio_output_stage u_audio_output_stage (
+            .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
+            .sample_in(effected_sample), .sample_out(output_sample),
+            .peak_level(peak_level), .clip_active(clip_active)
+        );
+        fm_status_lcd u_fm_status_lcd (
+            .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
+            .audio_sample(output_sample),
+            .active_voice_count(active_voice_count),
+            .preset_index(current_preset), .algorithm(fm_algorithm),
+            .algorithm_flags(fm_algorithm_flags),
+            .operator_envelope_levels(operator_envelope_levels),
+            .peak_level(peak_level), .clip_active(clip_active),
+            .lcd_resetn(lcd_resetn), .lcd_clk(lcd_clk), .lcd_cs(lcd_cs),
+            .lcd_dc(lcd_dc), .lcd_data(lcd_data)
+        );
+    end endgenerate
     i2s_tx #(.BCLK_HALF_DIV(8)) u_i2s_tx (
         .clk(clk), .reset_n(audio_reset_n),
         .sample_left(output_sample), .sample_right(output_sample),
         .sample_tick(sample_tick), .i2s_bclk(i2s_bclk),
         .i2s_lrclk(i2s_lrclk), .i2s_din(i2s_din)
-    );
-
-    fm_status_lcd u_fm_status_lcd (
-        .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
-        .audio_sample(output_sample),
-        .active_voice_count(active_voice_count),
-        .preset_index(current_preset), .algorithm(fm_algorithm),
-        .algorithm_flags(fm_algorithm_flags),
-        .operator_envelope_levels(operator_envelope_levels),
-        .peak_level(peak_level), .clip_active(clip_active),
-        .lcd_resetn(lcd_resetn), .lcd_clk(lcd_clk), .lcd_cs(lcd_cs),
-        .lcd_dc(lcd_dc), .lcd_data(lcd_data)
     );
 
     wire unused_fm_global_write_valid = fm_global_write_valid;

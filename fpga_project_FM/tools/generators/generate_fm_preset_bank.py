@@ -71,6 +71,8 @@ def compile_bank(source: Path, output: Path) -> list[dict]:
                 | (int(op["mode"] == "fixed") << 1)
                 | ((operator_frequency_word(op) & 0xFFFFFFFF) << 2)
                 | ((op["output_level"] & 0x7F) << 34)
+                | ((op["detune"] & 0xF) << 41)
+                | (1 << 45)
             )
             op_scale_mem.append(
                 (op["breakpoint"] & 0x7F)

@@ -1,0 +1,12 @@
+{
+  "note": 60,
+  "velocity": 100,
+  "hold_ms": 1000,
+  "tail_ms": 1500,
+  "preroll_ms": 250,
+  "bank": "D:\\a_files\\Cartridges\\rom1a.syx",
+  "preset_index": 10,
+  "preset_name": "E.PIANO 1",
+  "algorithm": 5,
+  "bank_sha256": "91416e81d0fad931f6c7b5dc5bcfd7b7c48f5340b3753b7d3bf99f439fdd104d"
+}
