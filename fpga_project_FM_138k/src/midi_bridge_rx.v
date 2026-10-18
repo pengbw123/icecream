@@ -23,6 +23,10 @@ module midi_bridge_rx #(
                      READ_D4=7, READ_D5=8, READ_D6=9, READ_D7=10,
                      READ_SUM=11;
     reg [3:0] state;
+    // Abort a partial frame after 2 ms without a byte (normal gap is 10 us).
+    // This recovers when the other board resets or the wire is reconnected.
+    localparam integer FRAME_GAP_CYCLES = CLKS_PER_BIT * 2000;
+    reg [$clog2(FRAME_GAP_CYCLES+1)-1:0] gap_count;
     reg [7:0] command, status, data1, data2, brightness, checksum;
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
@@ -32,7 +36,13 @@ module midi_bridge_rx #(
             midi_event_data <= 0;
             midi_event_valid <= 0;
             dropped_events <= 0;
+            gap_count <= 0;
         end else begin
+            if (rx_valid || state == WAIT_A5) gap_count <= 0;
+            else if (gap_count == FRAME_GAP_CYCLES-1) begin
+                state <= WAIT_A5;
+                gap_count <= 0;
+            end else gap_count <= gap_count + 1'b1;
             if (midi_event_valid && midi_event_ready)
                 midi_event_valid <= 1'b0;
             if (rx_valid) begin

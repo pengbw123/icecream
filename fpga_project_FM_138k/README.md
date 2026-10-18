@@ -26,6 +26,7 @@ IDE 工程为 fpga_project.gprj，顶层 top_138k；CPU/SSPI 引脚须启用作�
 UI 固件已包含 firmware.hex；改 C 代码后运行 src/ui_firmware/build_firmware.ps1 再综合。
 
 完整实现报告与限制见 [迁移总结](docs/ACG720_138K_SUMMARY.md)。
+首次接线、下载、菜单/键盘/串口操作及故障排查请看 [138K 使用说明](docs/138K_USER_GUIDE.md)。
 原分支使用说明留在 [25K 参考](docs/25K_FM_REFERENCE.md)，其中 USB 直连和 SPI 屏幕接线不适用于本工程。
 
 ## 接线

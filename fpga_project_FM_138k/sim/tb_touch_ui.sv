@@ -29,10 +29,13 @@ module tb_touch_ui;
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
                 16'h8148:goodix_read=8'hE0;16'h8149:goodix_read=8'h01;
                 16'h8047:goodix_read=8'h81;
-                16'h814E:goodix_read=touch_kind==3?8'h00:touch_kind==0?8'h80:8'h81;
-                16'h814F:goodix_read=0;
+                16'h814E:goodix_read=touch_kind==3?8'h00:touch_kind==0?8'h80:touch_kind==4?8'h82:8'h81;
+                16'h814F:goodix_read=touch_kind==5?1:0;
                 16'h8150:goodix_read=px&255;16'h8151:goodix_read=px>>8;
                 16'h8152:goodix_read=py&255;16'h8153:goodix_read=py>>8;
+                16'h8157:goodix_read=1;
+                16'h8158:goodix_read=px&255;16'h8159:goodix_read=px>>8;
+                16'h815A:goodix_read=py&255;16'h815B:goodix_read=py>>8;
                 default:goodix_read=0;
             endcase
         end
@@ -96,10 +99,14 @@ module tb_touch_ui;
         wait(present);wait(event_count==1);#10000000;
         if(event_count!=1)$fatal(1,"Held preset repeated");
         touch_kind=2;wait(event_count==2);#5000000;
+        touch_kind=4;#5000000;
+        if(event_count!=2)$fatal(1,"Second finger retriggered same key");
+        touch_kind=5;#5000000;
+        if(event_count!=2)$fatal(1,"First finger release stopped shared key");
         touch_kind=3;#5000000;
         if(event_count!=2)$fatal(1,"No-fresh-frame incorrectly released key");
         touch_kind=0;wait(event_count==3);#1000000;
-        $display("PASS real UI firmware, repeated-start I2C, preset/held/release behavior");$finish;
+        $display("PASS real UI firmware, I2C, held control, shared-key fingers and final release");$finish;
     end
     initial begin #150000000;$fatal(1,"Touch UI timeout PC=%h",dut.address);end
 endmodule

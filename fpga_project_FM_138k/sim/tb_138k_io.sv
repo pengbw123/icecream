@@ -10,8 +10,9 @@ module tb_138k_io;
     wire [31:0] rx_event;
     wire rx_valid;
     reg rx_ready=0;
+    reg raw_mode=0,raw_pin=1;
     wire [15:0] drops;
-    midi_bridge_rx rx(.clk(clk),.reset_n(reset_n),.rx_pin(serial),
+    midi_bridge_rx rx(.clk(clk),.reset_n(reset_n),.rx_pin(raw_mode?raw_pin:serial),
         .midi_event_data(rx_event),.midi_event_valid(rx_valid),
         .midi_event_ready(rx_ready),.dropped_events(drops));
     wire led;
@@ -22,6 +23,14 @@ module tb_138k_io;
         begin
             wait(tx_ready);@(negedge clk);tx_event=event_word;tx_valid=1;
             @(negedge clk);tx_valid=0;
+        end
+    endtask
+    task raw_byte(input [7:0] value);
+        integer k;
+        begin
+            @(negedge clk);raw_pin=0;repeat(50)@(negedge clk);
+            for(k=0;k<8;k=k+1)begin raw_pin=value[k];repeat(50)@(negedge clk);end
+            raw_pin=1;repeat(50)@(negedge clk);
         end
     endtask
     task receive_event(input [31:0] expected,input integer hold_cycles);
@@ -86,8 +95,14 @@ module tb_138k_io;
         send_event(32'h00803040);receive_event(32'h00803040,0);
         send_event(32'h00E03050);receive_event(32'h00E03050,0);
         send_event(32'h00B01B1F);receive_event(32'h00B01B1F,0);
+        wait(tx_ready);raw_mode=1;
+        raw_byte(8'hA5);raw_byte(8'h5A);raw_byte(8'h30);
+        #3000000;
+        if(rx_valid)$fatal(1,"Truncated frame generated event");
+        raw_mode=0;
+        send_event(32'h00903C60);receive_event(32'h00903C60,0);
         if(drops!=0)$fatal(1,"Unexpected UART drops");
-        $display("PASS 1-Mbaud UART events, order, pitch bend, CC and backpressure");
+        $display("PASS UART events, bend, CC, backpressure and truncated-frame recovery");
         $finish;
     end
     initial begin #10000000;$fatal(1,"Test timeout");end

@@ -47,8 +47,9 @@ static int gt_write(u16 reg,u8 value){int ok=start()&&write_byte(gt_addr<<1)&&
 static void bus_recover(void){int i;sda(0);for(i=0;i<9;i++){scl(1);delay_us(5);scl(0);delay_us(5);}stop();}
 static void emit(u8 status,u8 d1,u8 d2){u32 t=now();while(!(UI[2]&1u))
     if((u32)(now()-t)>20000)return;UI[3]=((u32)status<<16)|((u32)d1<<8)|d2;}
-static void release_all(void){int i;for(i=0;i<16;i++)if(slot_note[i]>=0){
-    emit(0x80,(u8)slot_note[i],0);slot_note[i]=-1;}control_down=0;}
+static void release_all(void){int i,j,n;for(i=0;i<16;i++)if(slot_note[i]>=0){
+    n=slot_note[i];emit(0x80,(u8)n,0);
+    for(j=i;j<16;j++)if(slot_note[j]==n)slot_note[j]=-1;}control_down=0;}
 static void publish(void){UI[5]=((u32)(u8)octave<<8)|(present?1u:0u);}
 static int detect(void){u8 id[4],res[4],cfg[7];int a,r;
     bus_recover();for(r=0;r<3;r++)for(a=0;a<2;a++){
@@ -73,11 +74,17 @@ static void control(int x,int y){u32 st=UI[4];int value;
         if(octave< -3)octave=-3;if(octave>3)octave=3;publish();}
     else if(y>=248&&y<288){release_all();emit(0xb0,64,0);emit(0xb0,123,0);}
 }
-static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;u16 seen=0;u32 raw_x,raw_y;
+static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
+    int next[16],px[16],py[16];u16 seen=0;u32 raw_x,raw_y,old_mask[4],new_mask[4];
     if(!gt_read(0x814e,&status,1))return -2;
     if(!(status&0x80))return -1; /* No fresh frame means keep current key state. */
-    n=status&15;if(n>5)return -2;
+    n=status&15;if(n>5){gt_write(0x814e,0);return -2;}
     if(n&&!gt_read(0x814f,d,n*8))return -2;
+    /* Commit only a completely read and acknowledged frame. A failed clear
+     * must not repeat menu presses or partly change the current chord. */
+    if(!gt_write(0x814e,0))return -2;
+    for(i=0;i<16;i++){next[i]=-1;px[i]=0;py[i]=0;}
+    for(i=0;i<4;i++){old_mask[i]=0;new_mask[i]=0;}
     for(i=0;i<n;i++){
         b=i*8;id=d[b]&15;seen|=(u16)(1u<<id);
         raw_x=d[b+1]|((u32)d[b+2]<<8);raw_y=d[b+3]|((u32)d[b+4]<<8);
@@ -93,14 +100,27 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;u16 seen=0;u32
             if(y<439)for(k=0;k<10;k++)if(x>=20+edges[k]*40-11&&x<20+edges[k]*40+11)note=blacks[k];
             note+=48+octave*12;
         }
-        if(slot_note[id]!=note){if(slot_note[id]>=0)emit(0x80,(u8)slot_note[id],0);
-            slot_note[id]=note;if(note>=0)emit(0x90,(u8)note,100);}
-        if(note<0&&!(control_down&(1u<<id))){control(x,y);control_down|=(u16)(1u<<id);}
+        next[id]=note;px[id]=x;py[id]=y;
     }
-    /* Read all points before clearing ready; an empty READY frame releases keys. */
-    if(!gt_write(0x814e,0))return -2;
-    for(id=0;id<16;id++)if(!(seen&(1u<<id))){if(slot_note[id]>=0){
-        emit(0x80,(u8)slot_note[id],0);slot_note[id]=-1;}control_down&=(u16)~(1u<<id);}
+    /* Compare note sets, not individual fingers: two fingers on the same
+     * key share one Note On, and only the final finger sends Note Off.
+     * Swapping track IDs or crossing fingers cannot retrigger held notes. */
+    for(id=0;id<16;id++){
+        note=slot_note[id];if(note>=0)old_mask[note>>5]|=1u<<(note&31);
+        note=next[id];if(note>=0)new_mask[note>>5]|=1u<<(note&31);
+        slot_note[id]=note;
+    }
+    for(note=0;note<128;note++){
+        u32 bit=1u<<(note&31);i=note>>5;
+        if((old_mask[i]&bit)&&!(new_mask[i]&bit))emit(0x80,(u8)note,0);
+    }
+    for(note=0;note<128;note++){
+        u32 bit=1u<<(note&31);i=note>>5;
+        if((new_mask[i]&bit)&&!(old_mask[i]&bit))emit(0x90,(u8)note,100);
+    }
+    for(id=0;id<16;id++)if(seen&(1u<<id)){
+        if(next[id]<0&&!(control_down&(1u<<id))){control(px[id],py[id]);control_down|=(u16)(1u<<id);}
+    }else control_down&=(u16)~(1u<<id);
     return n;
 }
 int main(void){int i,result,errors=0;u32 retry=0;
@@ -108,7 +128,7 @@ int main(void){int i,result,errors=0;u32 retry=0;
     lines=0;UI[0]=0;publish();puts("ACG720 138K FM RGB/GT UI ready\r\n");
     while(!(UI[0]&0x100u)){} /* Exact 177 ms reset/synchronization in RTL. */
     delay_us(10000);present=detect();publish();
-    for(;;){if(present){result=poll_touch();if(result>=0)errors=0;
+    for(;;){if(present){result=poll_touch();if(result!=-2)errors=0;
         else if(result==-2&&++errors>=40){puts("GT I2C lost\r\n");release_all();present=0;publish();retry=now();}}
         else if((u32)(now()-retry)>500000u){retry=now();present=detect();publish();}
         delay_us(2000);

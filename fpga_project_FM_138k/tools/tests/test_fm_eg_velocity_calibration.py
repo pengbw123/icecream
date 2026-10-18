@@ -8,8 +8,8 @@ import unittest
 from pathlib import Path
 from random import Random
 
-from tools.generators.generate_dx7_ams_attenuation import attenuation_q15
-from tools.generators.generate_dx7_eg_block_step import (
+from generators.generate_dx7_ams_attenuation import attenuation_q15
+from generators.generate_dx7_eg_block_step import (
     SR_MULTIPLIER_Q24,
     step_q14,
 )
