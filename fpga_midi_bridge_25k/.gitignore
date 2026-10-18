@@ -1,0 +1,5 @@
+impl/
+tmp/
+*.vvp
+*.vcd
+*.log

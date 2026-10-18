@@ -1,0 +1,47 @@
+// ACG720 GW5AT-138K PG484A; GPIO0 bank supply MUST be set to 3.3 V.
+IO_LOC "clk" Y18;
+IO_LOC "reset_button_n" B21; // S4, active low
+IO_LOC "uart_rx_pin" J21;
+IO_LOC "uart_tx_pin" M15;
+// P7 GPIO0: 1=A13, 2=A14, 3=A15, 4=A16, 5=A18, 6=A19.
+IO_LOC "i2s_bclk" A13;
+IO_LOC "i2s_lrclk" A14;
+IO_LOC "i2s_din" A15;
+IO_LOC "bridge_uart_rx_pin" A16;
+IO_LOC "ws2812_data" A19;
+IO_LOC "status_led[0]" M22;
+IO_LOC "status_led[1]" N22;
+IO_LOC "status_led[2]" L21;
+IO_LOC "status_led[3]" K21;
+// HDMI1 connector J6.
+IO_LOC "hdmi_clk_p" K4;
+IO_LOC "hdmi_clk_n" J4;
+IO_LOC "hdmi_data_p[0]" L3;
+IO_LOC "hdmi_data_n[0]" K3;
+IO_LOC "hdmi_data_p[1]" L5;
+IO_LOC "hdmi_data_n[1]" L4;
+IO_LOC "hdmi_data_p[2]" M3;
+IO_LOC "hdmi_data_n[2]" M2;
+IO_LOC "hdmi_oe" H5;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+IO_PORT "reset_button_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_PORT "uart_rx_pin" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_PORT "uart_tx_pin" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "bridge_uart_rx_pin" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_PORT "i2s_bclk" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "i2s_lrclk" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "i2s_din" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "ws2812_data" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "status_led[0]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "status_led[1]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "status_led[2]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "status_led[3]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_clk_p" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_clk_n" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_p[0]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_n[0]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_p[1]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_n[1]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_p[2]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_n[2]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_oe" IO_TYPE=LVCMOS33 DRIVE=8;

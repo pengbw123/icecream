@@ -1,0 +1,15 @@
+IO_LOC "clk" E2;
+IO_LOC "key_s2" H10;
+IO_LOC "uart_rx_pin" B3;
+IO_LOC "uart_tx_pin" C3;
+IO_LOC "usb_host_dp" L6;
+IO_LOC "usb_host_dn" K6;
+// Dock J3 pin15: dedicated MIDI UART TX to ACG720 P7 pin4.
+IO_LOC "midi_bridge_tx" F1;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+IO_PORT "key_s2" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "uart_rx_pin" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_PORT "uart_tx_pin" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "usb_host_dp" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
+IO_PORT "usb_host_dn" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
+IO_PORT "midi_bridge_tx" IO_TYPE=LVCMOS33 DRIVE=8;
