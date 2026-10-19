@@ -1,0 +1,112 @@
+# 25K / 138K 下载、固化与首次看到现象
+
+适用：Primer25K 独立 MIDI 中转 + ACG720-138K RGB/触摸/FM/WS2812 版本。
+本次仅生成文件、验证仿真和编译，没有远程给实板烧录，也没有擦写你的 Flash。
+
+## 一、先分清三个动作
+
+- **综合/布局布线**：在电脑上生成 .fs，不会让板子运行。
+- **SRAM Program**：通过 JTAG 把 .fs 下载到 FPGA，立即运行；断电后丢失这次 SRAM 内容。若 Flash 内有旧程序，下次上电又会载入旧程序。
+- **外部 Flash 烧写（固化）**：将启动配置写入板上外部 NOR Flash，之后每次上电 FPGA 自动装载，不必重新下载。
+
+屏幕软核固件、25K USB主机固件和ROM1A音色初始表都已经合成进对应 .fs。**不必再单独给 RISC-V 烧 firmware.hex，也不要选择 exFlash C Bin 来下载本工程。**
+串口运行中改动的音色参数仍然是RAM数据，不能因此自动永久保存；固化的是当前比特流内的上电初值。
+
+## 二、文件对照：两块板不能烧反
+
+| 目标 | 比特流 | Programmer扫描器件 |
+|---|---|---|
+| Primer25K中转 | D:/a_My_projects/Gowin_publish/fpga_midi_bridge_25k/impl/pnr/midi_bridge_25k.fs | 本工程 GW5A-25B，封装 MG121 |
+| ACG720-138K主机 | D:/a_My_projects/Gowin_publish/fpga_project_FM_138k/impl/pnr/fm_138k_rgb.fs | GW5AT-138B，封装 PG484A |
+
+扫描实际器件必须与工程版本吻合。Sipeed早期资料有25A版本示意，不要为了照抄截图把自己的25B强改成25A。芯片实物若确实不同，应停止并重新核对工程器件。
+目录中旧 fpga_project.fs 不能代替本次 fm_138k_rgb.fs。确认文件修改时间和完整路径。
+
+## 三、138K首次测试：先不接25K也能看屏幕、弹奏
+
+### 1. 断电接线
+
+1. TFT V3.0 接 J1 40pin FPC，先确认1脚、排线同向/异向和触点朝向，锁好座子。禁止带电插拔。
+2. GPIO0 Bank 电压设3.3V。MAX98357 BCLK→P7-1，LRC→P7-2，DIN→P7-3，GND→P7-12或28。功放按模块规格供电，使能脚保持正常，扬声器接SPK+/SPK-。
+3. 暂不接灯条和25K，先验证最短链路。板载ES8388音频插孔本版还没有驱动。
+4. 用合适下载器连接138K板上 **P1 JTAG**，红线方向对准1脚，确认Vref、GND及3.3V接口。下载器接电脑USB。
+5. 按开发板要求给板子供电并开启电源；不能把“下载器USB插上了”当作主板已正确供电。
+6. 可另接板载CH340的USB串口看诊断。**CH340串口USB、FX2 USB2.0通信口不是本工程的JTAG下载口。**
+
+### 2. 下载到SRAM
+
+1. 从IDE打开 fpga_project_FM_138k/fpga_project.gprj。若已有最新 .fs，可直接打开 Gowin Programmer，不必每次重新综合。
+2. IDE的 Process → Program Device，或 Tools → Programmer；也可打开 D:/Gowin/Gowin_V1.9.12.03_x64/Programmer/bin/programmer.exe。
+3. USB Cable Setting 选实际下载器，初次JTAG频率先用较保守的2MHz。电脑同时连两板时务必选对下载器，最稳妥是先只接要下载的那块。
+4. 扫描设备，应出现 GW5AT-138B。No USB Cable / 扫不到芯片时，先排查数据线、驱动、板电源、JTAG方向，不要改音源代码。
+5. 双击 Operation，Access Mode选 **SRAM Mode**，Operation选 **SRAM Program**。如果软件对当前器件提供SRAM Program and Verify，也可使用带校验的选项。
+6. File name选择 fm_138k_rgb.fs，Save，点击工具栏 Program/Configure（开始下载）。等待日志明确成功。
+
+### 3. 应该看到哪些现象
+
+- 屏幕显示 FM SYNTH ACG720、默认 BRASS 1，右侧预设/音量/八度/PANIC以及VIEW和XY DELAY，底部25键。
+- LED0周期变化，LED1视频PLL锁定。触摸识别成功后LED3亮、屏幕TOUCH OK。
+- CH340串口115200/8N1，复位后可看到 ACG720 138K FM RGB/GT UI ready、GT地址/ID/分辨率。串口助手应在按复位前打开，防止错过启动打印。
+- 按右侧PRESET切换预设；找 E.PIANO1 可用P11（CC索引10）。VOLUME加减每次5，默认96。
+- 按底部琴键：琴键高亮、V声部数变化、波形活动，接好MAX后有声。松键按音色释放段收尾，可能仍有尾音。
+- 右侧 VIEW：左WAVE，右XY。XY DELAY ±调整1～96采样点，默认24。XY模式用当前PCM和延迟PCM描点，展示随音色变化的闭合/复杂轨迹；不需电脑生成图片。
+- 无音时XY通常收敛到中心点；很小音量轨迹也很小，这是幅度显示而非故障。不同频率/延迟可能形成斜线、椭圆或复杂轨迹；先长按单音再调延迟观察。
+
+看见图像说明显示链路成功，不代表触摸、声音、USB已经全部验证；按上述顺序逐项确认。
+
+## 四、再接25K中转，直到外部键盘发声
+
+1. 先断开两板供电。将25K Dock **J3-15 F1 TX → 138K P7-4 A16 RX**，再共地。只有TX和GND必需，不连接两板5V。
+2. 给25K和138K分别可靠供电。25K Dock 的USB-C是板载下载/调试连接；USB-A接MIDI键盘。
+3. Gowin Programmer扫描25K，选择匹配的GW5A-25B，SRAM Mode / SRAM Program，下载 midi_bridge_25k.fs。原独立25K合成程序会在本次运行时被中转程序替代。
+4. 中转调试UART C3为TX，115200/8N1。原板载双串口中哪个对应C3沿用之前已验证的通道，不能只按COM号码大小猜测；必要时用3.3V USB-TTL接C3和GND。
+5. 键盘接入后应看到USB枚举成功及 USB-MIDI ready。若只有device connect，说明还没有枚举完成，不能判定USB正常。
+6. 138K上的LED2随事件闪亮；按物理琴键应发声。MODE/CC20调音量，TRANSPOSE/CC27数值0～31选预设，Pitch滑条和MOD沿用现有控制。
+7. 两板事件串口是 **1Mbaud、8N1、专用12字节帧**；不要把它当作115200调试口或直接把三字节MIDI送入。
+8. 最后再接WS2812：P7-6经合适电平转换接DIN，外部5V供电并共地。第1～25灯固定MIDI48～72，超音区可以发声但不点这些灯。
+
+## 五、确认SRAM都正常，再固化两块板
+
+烧写会覆盖目标Flash相应区域原有启动程序，包括原先的工厂演示或旧工程；需要保留的比特流先自行保存到电脑。这里不要求擦除整个Flash，也不启用加密、安全锁或写保护。
+
+两块芯片都属于Arora V。当前 Programmer 手册的模式名是：
+
+- Access Mode：**External Flash Mode Arora V**。
+- Operation：优先 **exFlash Erase,Program,Verify Arora V**，若该版本只提供Erase,Program，则使用对应Arora V项并在烧后核验启动。
+- 老版软件/板厂截图可能写 **External Flash Mode 5A/5AT**、**exFlash Erase,Program 5A/5AT**，是版本命名差异；不要选择GW1N的embFlash模式。
+
+### 25K
+
+1. 扫描并选中25K那一行，双击Operation。
+2. 选上述外部Flash Arora V模式，文件用 **midi_bridge_25k.fs**。
+3. Flash起始地址 **0x000000**。本地核心板原理图U1200标W25Q64，64Mbit=8MiB；以实际板批次/器件识别为准。支持时保留Generic Flash或选择确切兼容型号，不因为型号列表没有完整后缀就随便选容量不同的器件。
+4. Save → Program，等待擦写和校验完成。不要中途断电或移动USB接头。
+5. 完成后给25K真正断电再上电，不执行SRAM下载；USB键盘能重新枚举，中转能发送才算启动验证成功。
+
+### 138K
+
+1. 扫描并选中GW5AT-138B那一行，双击Operation。
+2. 外部Flash Arora V模式，文件用 **fm_138k_rgb.fs**。
+3. 起始地址 **0x000000**。本地ACG720原理图U3标 **MX25L12845G，128Mbit=16MiB**；资料包里的N25Q128手册不能代替实物型号。以实物批次为准，支持时用Generic Flash或匹配型号。
+4. Save → Program，等日志写入/校验成功。Flash操作可能暂时装入编程桥，完成后先断电重启，不要把烧写中的画面消失当作音源故障。
+5. 保持开发板正常出厂的SPI Flash启动配置，不随意改模式脚或启用MSPI 2nd Boot。冷启动后应重新显示界面、恢复默认音色并能触摸发声。
+
+**验证“固化成功”必须真的断电，而不是只按S4：S4是本工程逻辑复位，不会重新证明Flash配置装载。**
+电脑USB、GPIO、灯条或串口模块可能反向供电。冷启动测试时避免外部信号让已断电板仍半供电，确认板上确实掉电后再启动；两板跨接线可在断电后拆下、启动后按安全顺序恢复。
+
+## 六、常见卡点
+
+- 扫不到138K：USB串口有COM口只证明CH340连上，不证明JTAG下载器连上。先检查P1下载器和电源。
+- 下载成功黑屏：核对新文件、器件B版、FPC方向、背光及LED1。编译时必须允许CPU/SSPI复用脚作GPIO。
+- Flash写成功但冷启动是旧版：核对是否只做了SRAM Program、是否选错下载器/Flash地址、是否烧了旧路径。不要把两板.fs混用。
+- Flash模式没有Arora V/5A选项：先确认扫描的器件，使用支持该芯片的Programmer版本，不能以普通exFlash菜单强行替代。
+- 校验失败：先换可靠USB数据线、降低JTAG速率、查电源与下载器方向，再核对FlashID/容量。不要用重复全片擦除掩盖原因。
+- 固化后没有菜单编辑的音色：本版尚未把运行时编辑参数写入Flash，重新上电恢复默认是预期行为。
+- 键盘能在电脑用但138K无响应：查25K的USB-MIDI ready、F1→A16及公共地；138K本身还不能直插USB键盘。
+
+## 核对依据
+
+- 本地板厂教程《第2章 Gowin软件基本开发流程》2.9～2.10：SRAM下载与程序固化。
+- 本机《SUG502-2.5.1 Gowin Programmer用户指南》3.4.1、3.4.5、4.9.3：Arora V外部Flash操作。
+- ACG720-138&60K通用原理图第2页（U3），Tang_Primer_25K_52300_Schematic（U1200）。
+- [Sipeed Primer25K官方说明：外部Flash下载](https://wiki.sipeed.com/hardware/zh/tang/tang-primer-25k/primer-25k.html#burn_flash)。

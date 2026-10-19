@@ -10,6 +10,8 @@ module rgb_visualizer (
     input wire touch_present,
     input wire signed [3:0] keyboard_octave,
     input wire [6:0] master_volume,
+    input wire visual_mode,
+    input wire [6:0] xy_delay_samples,
     output wire lcd_pclk,
     output reg lcd_de,lcd_hsync,lcd_vsync,
     output wire lcd_bl,
@@ -25,11 +27,27 @@ module rgb_visualizer (
         if (!reset_n || !pll_locked) video_reset_sync <= 0;
         else video_reset_sync <= {video_reset_sync[1:0],1'b1};
     wire video_reset_n = video_reset_sync[2];
+    // Loss of video lock invalidates both sides of the ownership handshake.
+    // Reset capture too; otherwise display resets to bank 1 while audio might
+    // still be writing bank 1. Release is synchronized to the audio clock.
+    reg [1:0] capture_reset_sync=0;
+    always @(posedge clk or negedge video_reset_n)
+        if(!video_reset_n)capture_reset_sync<=0;
+        else capture_reset_sync<={capture_reset_sync[0],1'b1};
+    wire capture_reset_n=capture_reset_sync[1];
     assign lcd_bl = video_reset_n;
 
     reg [10:0] hcount, x;
     reg [9:0] vcount, y;
     wire frame_latch = hcount == 0 && vcount == 480;
+    wire xy_pixel;
+    wire [10:0] xy_read_x=hcount-11'd32;
+    wire [9:0] xy_read_y=vcount-10'd64;
+    audio_xy_scope u_xy (
+        .clk(clk),.reset_n(capture_reset_n),.sample_tick(sample_tick),.audio_sample(audio_sample),
+        .delay_samples(xy_delay_samples),.pixel_clk(pclk),.video_reset_n(video_reset_n),
+        .frame_latch(frame_latch),.pixel_address({xy_read_y[7:1],xy_read_x[8:1]}),.pixel_on(xy_pixel)
+    );
     always @(posedge pclk or negedge video_reset_n) begin
         if (!video_reset_n) begin hcount<=0; vcount<=0; x<=0; y<=0; end
         else begin
@@ -53,10 +71,10 @@ module rgb_visualizer (
     reg video_ack;
     reg [1:0] ack_sync;
     always @(posedge clk)
-        if (reset_n && sample_tick && !capture_pending)
+        if (capture_reset_n && sample_tick && !capture_pending)
             wave_memory[{write_bank,write_address}] <= audio_sample[15:8];
-    always @(posedge clk or negedge reset_n) begin
-        if (!reset_n) begin
+    always @(posedge clk or negedge capture_reset_n) begin
+        if (!capture_reset_n) begin
             write_address<=0; write_bank<=0; capture_pending<=0;
             capture_toggle<=0; ack_sync<=0;
         end else begin
@@ -120,6 +138,9 @@ module rgb_visualizer (
     reg signed [3:0] octave_meta,octave_sync,octave_frame;
     reg [1:0] touch_sync;
     reg touch_frame;
+    reg [1:0] visual_sync;
+    reg visual_frame;
+    reg [6:0] delay_meta,delay_sync,delay_frame;
     reg [47:0] eg_meta, eg_sync, eg_frame;
     reg [4:0] preset_meta,preset_sync,preset_frame;
     reg [4:0] voices_meta,voices_sync,voices_frame;
@@ -135,6 +156,7 @@ module rgb_visualizer (
             clip_sync<=0;clip_frame<=0;
             volume_meta<=96;volume_sync<=96;volume_frame<=96;
             octave_meta<=0;octave_sync<=0;octave_frame<=0;touch_sync<=0;touch_frame<=0;
+            visual_sync<=0;visual_frame<=0;delay_meta<=24;delay_sync<=24;delay_frame<=24;
         end else begin
             keys_meta<=keys_down;keys_sync<=keys_meta;
             eg_meta<=operator_envelopes;eg_sync<=eg_meta;
@@ -145,10 +167,13 @@ module rgb_visualizer (
             volume_meta<=master_volume;volume_sync<=volume_meta;
             octave_meta<=keyboard_octave;octave_sync<=octave_meta;
             touch_sync<={touch_sync[0],touch_present};
+            visual_sync<={visual_sync[0],visual_mode};
+            delay_meta<=xy_delay_samples;delay_sync<=delay_meta;
             if (frame_latch) begin
                 keys_frame<=keys_sync;eg_frame<=eg_sync;preset_frame<=preset_sync;
                 voices_frame<=voices_sync;alg_frame<=alg_sync;peak_frame<=peak_sync;clip_frame<=clip_sync[1];
                 volume_frame<=volume_sync;octave_frame<=octave_sync;touch_frame<=touch_sync[1];
+                visual_frame<=visual_sync[1];delay_frame<=delay_sync;
             end
         end
     end
@@ -247,10 +272,11 @@ module rgb_visualizer (
             endcase
             font_enable=1;font_character=character;font_x=tx%6;font_y=ty;
         end
-        if (x>=32 && x<544 && y>=64 && y<316) begin
+        if (x>=32 && x<544 && y>=64 && y<320) begin
             rgb=24'h0A1624;
-            if (x[5:0]==32 || y==64 || y==127 || y==190 || y==253 || y==315) rgb=24'h20354B;
-            if ($signed({1'b0,y})>=wave_y-1 && $signed({1'b0,y})<=wave_y+1) rgb=24'h40EAD0;
+            if (x[5:0]==32 || y==64 || y==128 || y==192 || y==256 || y==319) rgb=24'h20354B;
+            if (!visual_frame && $signed({1'b0,y})>=wave_y-1 && $signed({1'b0,y})<=wave_y+1) rgb=24'h40EAD0;
+            if (visual_frame && xy_pixel) rgb=24'hFFB95A;
         end
         if (x>=576 && x<608 && y>=64 && y<316) begin
             rgb=24'h1B2B3F;
@@ -276,11 +302,12 @@ module rgb_visualizer (
         end
         // Menu buttons have fixed hit boxes shared with ui_firmware/main.c.
         if(x>=640&&x<800&&y>=64)rgb=24'h101E30;
-        for(k=0;k<3;k=k+1)begin
-            menu_row=80+k*56;
+        for(k=0;k<5;k=k+1)begin
+            menu_row=k<3?80+k*56:k==3?344:400;
             if(y>=menu_row&&y<menu_row+40&&((x>=648&&x<714)||(x>=726&&x<792)))begin
                 rgb=24'h284763;tx=(x<720)?(x-672)/3:(x-750)/3;ty=(y-menu_row-11)/3;
-                if(y>=menu_row+11&&y<menu_row+29&&
+                if(k==3 && ((x<720&&!visual_frame)||(x>=720&&visual_frame)))rgb=24'h26786F;
+                if(k!=3&&y>=menu_row+11&&y<menu_row+29&&
                    ((x>=672&&x<684)||(x>=750&&x<762))&&
                    text_pixel(x<720?"-":"+",tx[2:0],ty[2:0]))rgb=24'hFFFFFF;
             end
@@ -311,6 +338,17 @@ module rgb_visualizer (
                     4:character="C";5:character="H";7:character=touch_frame?"O":"E";
                     8:character=touch_frame?"K":"R";9:character=touch_frame?0:"R";
                     default:character=0;endcase
+            end else if(y>=332&&y<338)begin
+                ty=y-332;case(tx)0:character="V";1:character="I";2:character="E";3:character="W";
+                    default:character=0;endcase
+            end else if(y>=360&&y<366)begin
+                ty=y-360;case(tx)2:character="W";3:character="A";4:character="V";5:character="E";
+                    17:character="X";18:character="Y";default:character=0;endcase
+            end else if(y>=388&&y<394)begin
+                ty=y-388;case(tx)0:character="X";1:character="Y";3:character="D";4:character="E";
+                    5:character="L";6:character="A";7:character="Y";
+                    10:character="0"+delay_frame/100;11:character="0"+(delay_frame/10)%10;
+                    12:character="0"+delay_frame%10;default:character=0;endcase
             end
             font_enable=character!=0;font_character=character;font_x=(x-648)%6;font_y=ty[2:0];
             font_color=24'hF0F5FA;

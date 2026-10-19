@@ -32,6 +32,7 @@ module tb_rgb_visualizer;
         .midi_event_data(event_word),.midi_event_valid(event_valid),.active_voice_count(5'd3),
         .preset_index(5'd10),.algorithm(5'd4),.operator_envelopes(48'hB090603080D0),
         .touch_present(1'b1),.keyboard_octave(4'sd0),.master_volume(7'd96),
+        .visual_mode(1'b1),.xy_delay_samples(7'd24),
         .lcd_pclk(pclk),.lcd_de(de),.lcd_hsync(hs),.lcd_vsync(vs),.lcd_bl(bl),
         .lcd_r(r),.lcd_g(g),.lcd_b(b),.pll_locked(lock));
     task note_on(input [6:0] note);
@@ -62,10 +63,16 @@ module tb_rgb_visualizer;
             de_prev=de;
         end
         if(rows!=479||row_pixels!=800)$fatal(1,"Frame row count %0d",rows);
-        $fclose(file_handle);$display("PASS 800x480 RGB raster, stable pixels and screenshot");$finish;
+        $fclose(file_handle);$display("PASS RGB/XY raster, stable pixels and PLL-loss recovery");$finish;
     end
     // Bank ownership is checked at every audio write, not just by image shape.
-    always @(posedge clk)if(reset_n&&tick&&!dut.capture_pending)
+    always @(posedge clk)if(dut.capture_reset_n&&tick&&!dut.capture_pending)
         if(dut.write_bank==dut.display_bank)$fatal(1,"Audio overwrote displayed waveform bank");
+    always @(posedge clk)if(dut.capture_reset_n && (dut.u_xy.state==0 || dut.u_xy.drawing))
+        if(dut.u_xy.write_bank==dut.u_xy.display_bank)$fatal(1,"Audio overwrote displayed XY bank");
+    initial begin
+        #20000000;force dut.u_video_pll.lock=0;
+        #10000;release dut.u_video_pll.lock;dut.u_video_pll.lock=1;
+    end
     initial begin #100000000;$fatal(1,"Raster timeout");end
 endmodule

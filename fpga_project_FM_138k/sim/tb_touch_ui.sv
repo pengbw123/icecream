@@ -8,11 +8,14 @@ module tb_touch_ui;
     wire [31:0] event_word;
     wire signed [3:0] octave;
     wire [6:0] volume;
+    wire visual_mode;
+    wire [6:0] xy_delay;
     touch_ui_controller dut(.clk(clk),.reset_n(reset_n),.tp_scl(scl),.tp_sda(sda),
         .tp_int(int_pin),.tp_rst(rst_pin),.uart_tx(uart),.midi_event_data(event_word),
         .midi_event_valid(valid),.midi_event_ready(1'b1),.monitor_event(32'd0),
         .monitor_event_valid(1'b0),.preset_index(5'd0),.algorithm(5'd4),.active_voices(5'd0),
-        .touch_present(present),.keyboard_octave(octave),.master_volume(volume));
+        .touch_present(present),.keyboard_octave(octave),.master_volume(volume),
+        .visual_mode(visual_mode),.xy_delay_samples(xy_delay));
     integer touch_kind=1;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -24,6 +27,9 @@ module tb_touch_ui;
         integer px,py;
         begin
             px=touch_kind==1?750:40;py=touch_kind==1?100:450;
+            if(touch_kind==6)begin px=750;py=360;end
+            if(touch_kind==7)begin px=750;py=420;end
+            if(touch_kind==8)begin px=650;py=210;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -106,6 +112,13 @@ module tb_touch_ui;
         touch_kind=3;#5000000;
         if(event_count!=2)$fatal(1,"No-fresh-frame incorrectly released key");
         touch_kind=0;wait(event_count==3);#1000000;
+        touch_kind=6;wait(visual_mode);#5000000;
+        touch_kind=0;#5000000;
+        touch_kind=7;wait(xy_delay==25);#5000000;
+        if(xy_delay!=25)$fatal(1,"Held delay button repeated");
+        touch_kind=0;#5000000;
+        touch_kind=8;wait(octave==-1);#5000000;
+        if(!visual_mode||xy_delay!=25)$fatal(1,"Negative octave overwrote view/delay bits");
         $display("PASS real UI firmware, I2C, held control, shared-key fingers and final release");$finish;
     end
     initial begin #150000000;$fatal(1,"Touch UI timeout PC=%h",dut.address);end

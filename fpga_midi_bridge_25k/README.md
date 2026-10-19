@@ -2,6 +2,8 @@
 
 这是独立的新工程，不修改原 fpga_project_FM。键盘插 Primer25K Dock 的 USB-A，沿用已验证的 USB1.1 PHY/SIE + RV32I 主机固件，只把 MIDI 事件送给 138K，不在本板合成声音。
 
+SRAM下载、外部Flash固化与两板联调详见 [下载与固化步骤](../fpga_project_FM_138k/docs/PROGRAM_AND_FLASH.md)。
+
 ## 烧录与接线
 
 工程：midi_bridge_25k.gprj。芯片 GW5A-LV25MG121NC1/I0，版本 B。

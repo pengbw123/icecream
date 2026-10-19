@@ -38,6 +38,8 @@ module top_138k (
     wire ui_valid,ui_ready,external_ready,touch_present;
     wire signed [3:0] keyboard_octave;
     wire [6:0] master_volume;
+    wire visual_mode;
+    wire [6:0] xy_delay_samples;
     assign bridge_ready=external_ready;
     assign ui_ready=external_ready && !bridge_valid;
     touch_ui_controller u_ui (
@@ -45,7 +47,8 @@ module top_138k (
         .uart_tx(uart_tx_pin),.midi_event_data(ui_event),.midi_event_valid(ui_valid),.midi_event_ready(ui_ready),
         .monitor_event(event_data),.monitor_event_valid(event_valid),
         .preset_index(preset),.algorithm(algorithm),.active_voices(voices),
-        .touch_present(touch_present),.keyboard_octave(keyboard_octave),.master_volume(master_volume)
+        .touch_present(touch_present),.keyboard_octave(keyboard_octave),.master_volume(master_volume),
+        .visual_mode(visual_mode),.xy_delay_samples(xy_delay_samples)
     );
     top #(.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(1)) u_audio (
         .clk(clk),.key_s2(~reset_n),.uart_rx_pin(uart_rx_pin),
@@ -71,6 +74,7 @@ module top_138k (
         .active_voice_count(voices),.preset_index(preset),.algorithm(algorithm),
         .operator_envelopes(operator_eg),.touch_present(touch_present),
         .keyboard_octave(keyboard_octave),.master_volume(master_volume),
+        .visual_mode(visual_mode),.xy_delay_samples(xy_delay_samples),
         .lcd_pclk(lcd_pclk),.lcd_de(lcd_de),.lcd_hsync(lcd_hsync),.lcd_vsync(lcd_vsync),
         .lcd_bl(lcd_bl),.lcd_r(lcd_r),.lcd_g(lcd_g),.lcd_b(lcd_b),.pll_locked(video_lock)
     );

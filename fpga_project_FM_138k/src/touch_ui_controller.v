@@ -14,7 +14,9 @@ module touch_ui_controller (
     input wire [4:0] preset_index, algorithm, active_voices,
     output wire touch_present,
     output wire signed [3:0] keyboard_octave,
-    output wire [6:0] master_volume
+    output wire [6:0] master_volume,
+    output wire visual_mode,
+    output wire [6:0] xy_delay_samples
 );
     wire reset_ready,int_o,int_t;
     gt9147_reset u_gt_reset(.clk(clk),.reset_n(reset_n),.tp_int_o(int_o),
@@ -46,6 +48,8 @@ module touch_ui_controller (
     assign touch_present=ui_state[0];
     assign keyboard_octave=ui_state[11:8];
     assign master_volume=volume;
+    assign visual_mode=ui_state[12];
+    assign xy_delay_samples=ui_state[22:16];
     RV32I #(.FIRMWARE_FILE("src/ui_firmware/firmware.hex")) u_cpu (
         .CLK(clk),.RST_X(reset_n),.w_mic_addr(address),.w_data(read_data),
         .w_mic_wdata(write_data),.w_mic_req(request),.w_mic_ctrl(),.w_stall(1'b0)
