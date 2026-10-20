@@ -14,7 +14,7 @@ module tb_touch_ui;
     wire [3:0] menu_page;
     reg [15:0] pr_data=16'h0021;
     reg pr_valid=0;
-    integer cmd_69=0,cmd_60=0,cmd_62=0,text_cells=0;
+    integer cmd_69=0,cmd_60=0,cmd_62=0,text_cells=0,pal_writes=0;
     touch_ui_controller dut(.clk(clk),.reset_n(reset_n),.tp_scl(scl),.tp_sda(sda),
         .tp_int(int_pin),.tp_rst(rst_pin),.uart_tx(uart),.midi_event_data(event_word),
         .midi_event_valid(valid),.midi_event_ready(1'b1),.monitor_event(32'd0),
@@ -48,6 +48,7 @@ module tb_touch_ui;
             default:;
         endcase
         if(dut.text_write)text_cells<=text_cells+1;
+        if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
     reg slave_low=0;
@@ -60,17 +61,19 @@ module tb_touch_ui;
         integer px,py;
         begin
             px=touch_kind==1?750:40;py=touch_kind==1?100:450;
-            if(touch_kind==6)begin px=750;py=360;end
-            if(touch_kind==7)begin px=750;py=420;end
+            if(touch_kind==6)begin px=750;py=310;end
+            if(touch_kind==7)begin px=750;py=345;end
             if(touch_kind==8)begin px=650;py=210;end
-            if(touch_kind==9)begin px=750;py=460;end
+            if(touch_kind==9)begin px=750;py=378;end
             if(touch_kind==10)begin px=100;py=8;end
             if(touch_kind==11)begin px=8;py=8;end
             if(touch_kind==12)begin px=104;py=8;end
-            if(touch_kind==13)begin px=200;py=70;end
-            if(touch_kind==14)begin px=530;py=70;end
+            if(touch_kind==13)begin px=200;py=104;end
+            if(touch_kind==14)begin px=530;py=104;end
             if(touch_kind==15)begin px=200;py=8;end
-            if(touch_kind==16)begin px=30;py=40;end
+            if(touch_kind==17)begin px=720;py=8;end
+            if(touch_kind==18)begin px=400;py=200;end
+            if(touch_kind==16)begin px=30;py=72;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -166,34 +169,43 @@ module tb_touch_ui;
         if(display_auto_gain)$fatal(1,"Held AGC button repeated");
         touch_kind=0;#5000000;
         touch_kind=9;wait(display_auto_gain);
-        // ---- Phase 1 menu regression -------------------------------------
+        // ---- Phase 1.1 regression: universal tabs, perf chrome, themes ----
         touch_kind=0;#8000000;
         if(menu_page!==4'd0)$fatal(1,"Performance page should not show the menu");
-        $display("M1 enter menu at %t",$time);touch_kind=10;wait(menu_page==4'd1);#5000000;$display("M2 page1 at %t",$time);
-        if(cmd_69<5)$fatal(1,"Menu entry did not read patch parameters");
-        if(text_cells<300)$fatal(1,"Menu entry did not draw the character layer");
+        if(!dut.text_enable)$fatal(1,"Character layer was never enabled");
+        if(text_cells<200)$fatal(1,"Performance chrome was not drawn");
+        $display("M1 perf chrome at %t",$time);
+        touch_kind=12;wait(menu_page==4'd1);#5000000;
+        if(cmd_69<5)$fatal(1,"ALGO tab did not read patch parameters");
+        $display("M2 algo at %t",$time);
         touch_kind=0;#8000000;
-        touch_kind=13;#5000000;   // select the algorithm row
+        touch_kind=13;#5000000;
         touch_kind=0;#8000000;
-        touch_kind=14;#5000000;   // press "+" on the algorithm row
+        touch_kind=14;#5000000;
         touch_kind=0;#8000000;
         if(cmd_60<1)$fatal(1,"Algorithm edit did not send command 0x60");
-        $display("M3 algo edit done at %t",$time);touch_kind=11;wait(menu_page==4'd0);#8000000;$display("M4 back perf at %t",$time);
+        $display("M3 algo edit at %t",$time);
+        touch_kind=11;wait(menu_page==4'd0);#8000000;
+        touch_kind=11;#20000000;
+        if(menu_page!==4'd0)$fatal(1,"PERF tab re-entered the menu while held");
         touch_kind=0;#8000000;
-        touch_kind=12;wait(menu_page==4'd1);#8000000;$display("M5 page1 again at %t",$time);
+        $display("M4 perf stable at %t",$time);
+        touch_kind=15;wait(menu_page==4'd2);#5000000;
         touch_kind=0;#8000000;
-        $display("M6 enter osc at %t",$time);touch_kind=15;wait(menu_page==4'd2);#5000000;$display("M7 osc page at %t",$time);
-        touch_kind=0;#8000000;
-        touch_kind=16;#5000000;                          // select OP1
+        touch_kind=16;#5000000;
         touch_kind=0;#8000000;
         if(cmd_69<20)$fatal(1,"OSC page did not read operator fields");
+        $display("M5 osc reads at %t",$time);
+        touch_kind=17;wait(menu_page==4'd7);#5000000;
+        touch_kind=0;#8000000;
+        if(pal_writes<16)$fatal(1,"Theme palette was not written");
+        touch_kind=18;#5000000;
+        touch_kind=0;#8000000;
+        if(pal_writes<32)$fatal(1,"Theme cycle did not rewrite the palette");
+        $display("M6 theme at %t",$time);
         $fclose(cell_fd);
-        $display("PASS real UI firmware, I2C, menu pages, 0x69 readback and edit commands");$finish;
+        $display("PASS real UI firmware, I2C, universal tabs, perf chrome, theme");$finish;
     end
     initial begin #450000000;$fclose(cell_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
 endmodule
-
-
-
-
 

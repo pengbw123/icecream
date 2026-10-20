@@ -20,6 +20,7 @@ module rgb_visualizer #(
     input wire [23:0] background_color,wave_color,xy_color,
     input wire text_write,input wire [11:0] text_address,input wire [15:0] text_data,
     input wire palette_write,input wire [3:0] palette_index,input wire [23:0] palette_data,
+    input wire text_enable,
     input wire display_auto_gain,
     output wire lcd_pclk,
     output reg lcd_de,lcd_hsync,lcd_vsync,
@@ -68,7 +69,7 @@ module rgb_visualizer #(
             .text_write(text_write),.text_address(text_address),.text_data(text_data),
             .palette_write(palette_write),.palette_index(palette_index),.palette_data(palette_data),
             .pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
-            .enabled(page_frame!=0),.ink(menu_ink),.color(menu_color));
+            .enabled(text_enable),.ink(menu_ink),.color(menu_color));
     end endgenerate
     wire xy_pixel,wave_valid;
     wire [7:0] wave_min,wave_max;
@@ -145,12 +146,6 @@ module rgb_visualizer #(
     reg [7:0] peak_meta,peak_sync,peak_frame;
     reg [1:0] clip_sync;
     reg clip_frame;
-    wire performance_ink;
-    wire [23:0] performance_color;
-    rtl_performance_text u_text(.pclk(pclk),.reset_n(video_reset_n),.enabled(page_frame==0),
-        .h(hcount),.v(vcount),.preset(preset_frame),.voices(voices_frame),.algorithm(alg_frame),
-        .volume(volume_frame),.delay_samples(delay_frame),.octave(octave_frame),
-        .touch_ok(touch_frame),.auto_gain(auto_frame),.ink(performance_ink),.color(performance_color));
     always @(posedge pclk or negedge video_reset_n) begin
         if (!video_reset_n) begin
             keys_meta<=0;keys_sync<=0;keys_frame<=0;eg_meta<=0;eg_sync<=0;eg_frame<=0;
@@ -252,33 +247,9 @@ module rgb_visualizer #(
         font_enable=0;font_character=0;font_x=0;font_y=0;font_color=24'hFFFFFF;
         bx=0;key_index=0;note_class=0;eg_height=0;black_key=0;menu_row=0;
         base_note=48+$signed(octave_frame)*12;
-        if (y<60) rgb=24'h142439;
-        if (x>=24 && x<216 && y>=14 && y<26) begin
-            tx=(x-24)>>1;ty=(y-14)>>1;
-            character=TITLE[127-(tx/6)*8 -: 8];
-            font_enable=1;font_character=character;font_x=tx%6;font_y=ty;
-            font_color=24'h5AE8D0;
-        end
-        if (x>=24 && x<144 && y>=36 && y<48) begin
-            tx=(x-24)>>1;ty=(y-36)>>1;
-            character=preset_names[preset_frame*10+tx/6];
-            font_enable=1;font_character=character;font_x=tx%6;font_y=ty;
-        end
-        // Two-digit status: Pxx (preset 1..32), Vxx, Axx (algorithm 1..32).
-        if (x>=350 && x<566 && y>=24 && y<36) begin
-            tx=(x-350)>>1;ty=(y-24)>>1;
-            case (tx/6)
-                0:character="P";1:character="0"+(preset_frame+1)/10;
-                2:character="0"+(preset_frame+1)%10;4:character="V";
-                5:character="0"+voices_frame/10;6:character="0"+voices_frame%10;
-                8:character="A";9:character="0"+(alg_frame+1)/10;
-                10:character="0"+(alg_frame+1)%10;default:character=" ";
-            endcase
-            font_enable=1;font_character=character;font_x=tx%6;font_y=ty;
-        end
         if (x>=32 && x<544 && y>=64 && y<320) begin
-            rgb=24'h0A1624;
-            if (x[5:0]==32 || y==64 || y==128 || y==192 || y==256 || y==319) rgb=24'h20354B;
+            rgb=24'h101013;
+            if (x[5:0]==32 || y==64 || y==128 || y==192 || y==256 || y==319) rgb=24'h24242A;
             // One extra row above and below: a 1-pixel trace loses pixels on the
             // real panel and reads as a broken line.  The XY view already draws
             // 2x2 blocks, which is why only the waveform looked discontinuous.
@@ -287,94 +258,26 @@ module rgb_visualizer #(
             if (visual_frame && xy_pixel) rgb=xc_frame;
         end
         if (x>=576 && x<608 && y>=64 && y<316) begin
-            rgb=24'h1B2B3F;
-            if (y>=315-peak_frame) rgb=(peak_frame>120) ? 24'hFF8050 : 24'h53D48E;
+            rgb=24'h151517;
+            if (y>=315-peak_frame) rgb=(peak_frame>120) ? 24'hFF3B00 : wc_frame;
         end
-        if (clip_frame && x>=576 && x<608 && y>=40 && y<52) rgb=24'hFF3040;
+        if (clip_frame && x>=576 && x<608 && y>=40 && y<52) rgb=24'hFF3B00;
         for (k=0;k<6;k=k+1) begin
             bx=32+k*86;eg_height=eg_frame[k*8 +: 8]>>2;
             if (x>=bx && x<bx+62 && y>=324 && y<388) begin
-                rgb=24'h1B2B3F;
-                if (y>=388-eg_height) rgb=24'h798CFF;
+                rgb=24'h151517;
+                if (y>=388-eg_height) rgb=wc_frame;
             end
         end
         if (x>=20 && x<620 && y>=408 && y<460) begin
             key_index=(x-20)/40;
-            rgb=keys_frame[base_note+white_note(key_index)] ? 24'h35DFC1 : 24'hCFD9E5;
-            if ((x-20)%40==0 || y==459) rgb=24'h080D18;
+            rgb=keys_frame[base_note+white_note(key_index)] ? wc_frame : 24'hD8D8DC;
+            if ((x-20)%40==0 || y==459) rgb=bg_frame;
             for(k=0;k<10;k=k+1)begin
                 bx=20+black_boundary(k)*40;
                 if(x>=bx-11&&x<bx+11&&y<439)
-                    rgb=keys_frame[base_note+black_note(k)] ? 24'h1B9B99 : 24'h182137;
+                    rgb=keys_frame[base_note+black_note(k)] ? wc_frame : 24'h101013;
             end
-        end
-        // Menu buttons have fixed hit boxes shared with ui_firmware/main.c.
-        if(x>=640&&x<800&&y>=64)rgb=24'h101E30;
-        for(k=0;k<5;k=k+1)begin
-            menu_row=k<3?80+k*56:k==3?344:400;
-            if(y>=menu_row&&y<menu_row+40&&((x>=648&&x<714)||(x>=726&&x<792)))begin
-                rgb=24'h284763;tx=(x<720)?(x-672)/3:(x-750)/3;ty=(y-menu_row-11)/3;
-                if(k==3 && ((x<720&&!visual_frame)||(x>=720&&visual_frame)))rgb=24'h26786F;
-                // The old 4x6 bitmap glyph had its stem in cell 2 of a 4-cell
-                // row, so at 3x zoom the "+" horizontal bar was 6 px to the
-                // left of the stem and 3 px to its right.  Draw the icons as
-                // symmetric geometry instead: 12 px wide bars, 4 px stem
-                // centred with 4 px on each side.
-                if(k!=3&&y>=menu_row+11&&y<menu_row+29)begin
-                    if(x>=672&&x<684)begin
-                        if(y>=menu_row+19&&y<menu_row+22)rgb=24'hFFFFFF; // "-"
-                    end else if(x>=750&&x<762)begin
-                        if(y>=menu_row+19&&y<menu_row+22)rgb=24'hFFFFFF; // "+" horizontal
-                        if(x>=754&&x<758)rgb=24'hFFFFFF;                  // "+" vertical stem
-                    end
-                end
-            end
-        end
-        if(x>=648&&x<792&&y>=248&&y<288)rgb=24'h733946;
-        if(x>=648&&x<792&&y>=304&&y<324)rgb=touch_frame?24'h174D48:24'h733946;
-        if(x>=648&&x<792&&y>=448&&y<480)rgb=auto_frame?24'h174D48:24'h284763;
-        if(x>=648&&x<792)begin
-            character=0;tx=(x-648)/6;ty=0;
-            if(y>=68&&y<74)begin
-                ty=y-68;case(tx)0:character="P";1:character="R";2:character="E";
-                    3:character="S";4:character="E";5:character="T";default:character=0;endcase
-            end else if(y>=124&&y<130)begin
-                ty=y-124;case(tx)0:character="V";1:character="O";2:character="L";
-                    3:character="U";4:character="M";5:character="E";
-                    8:character="0"+volume_frame/100;9:character="0"+(volume_frame/10)%10;
-                    10:character="0"+volume_frame%10;default:character=0;endcase
-            end else if(y>=180&&y<186)begin
-                ty=y-180;case(tx)0:character="O";1:character="C";2:character="T";
-                    3:character="A";4:character="V";5:character="E";
-                    8:character=octave_frame<0?"-":"+";
-                    9:character="0"+(octave_frame<0?-octave_frame:octave_frame);
-                    default:character=0;endcase
-            end else if(y>=264&&y<270)begin
-                ty=y-264;case(tx)7:character="P";8:character="A";9:character="N";
-                    10:character="I";11:character="C";default:character=0;endcase
-            end else if(y>=312&&y<318)begin
-                ty=y-312;case(tx)1:character="T";2:character="O";3:character="U";
-                    4:character="C";5:character="H";7:character=touch_frame?"O":"E";
-                    8:character=touch_frame?"K":"R";9:character=touch_frame?0:"R";
-                    default:character=0;endcase
-            end else if(y>=332&&y<338)begin
-                ty=y-332;case(tx)0:character="V";1:character="I";2:character="E";3:character="W";
-                    default:character=0;endcase
-            end else if(y>=360&&y<366)begin
-                ty=y-360;case(tx)2:character="W";3:character="A";4:character="V";5:character="E";
-                    17:character="X";18:character="Y";default:character=0;endcase
-            end else if(y>=388&&y<394)begin
-                ty=y-388;case(tx)0:character="X";1:character="Y";3:character="D";4:character="E";
-                    5:character="L";6:character="A";7:character="Y";
-                    10:character="0"+delay_frame/100;11:character="0"+(delay_frame/10)%10;
-                    12:character="0"+delay_frame%10;default:character=0;endcase
-            end else if(y>=460&&y<466)begin
-                ty=y-460;case(tx)3:character="A";4:character="U";5:character="T";
-                    6:character="O";8:character="O";9:character=auto_frame?"N":"F";
-                    10:character=auto_frame?0:"F";default:character=0;endcase
-            end
-            font_enable=character!=0;font_character=character;font_x=(x-648)%6;font_y=ty[2:0];
-            font_color=24'hF0F5FA;
         end
         // Menu pages are a flat panel drawn entirely by the character layer;
         // hide the performance-page graphics behind it.  page_frame is latched
@@ -401,8 +304,7 @@ module rgb_visualizer #(
     reg [7:0] character_pipe;
     reg [2:0] font_x_pipe,font_y_pipe;
     reg font_enable_pipe,de_pipe,hs_pipe,vs_pipe;
-    wire [23:0] final_rgb=performance_ink?performance_color:
-        (menu_ink?menu_color:background_pipe);
+    wire [23:0] final_rgb=menu_ink?menu_color:background_pipe;
     always @(posedge pclk) begin
         if (!video_reset_n) begin
             lcd_de<=0;lcd_hsync<=0;lcd_vsync<=0;lcd_r<=0;lcd_g<=0;lcd_b<=0;
@@ -419,3 +321,4 @@ module rgb_visualizer #(
         end
     end
 endmodule
+

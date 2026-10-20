@@ -12,11 +12,13 @@
   & 'D:\Gowin\Gowin_V1.9.12.03_x64\IDE\bin\gw_sh.exe' build_cli.tcl
   ```
 
-- 当前可烧录文件：`impl/pnr/fm_138k_rgb.fs`。2026-10-20 17:46 的**阶段 1 菜单版**：演奏页点顶部标题条进入多页菜单，ALGORITHM 与 OSC 1-6 页可读改参数，4..8 页占位。旧位流在 `impl/pnr/backup/`，IDE 工程目录中可能有旧的 `fpga_project.fs`，不要误烧旧文件。
-- 提交历史：`31de69e`（字库/波形修复）、`590569d`（修复前快照，标签 `pre-display-fix-20261020`）、阶段 0 标签 `phase0-done`、阶段 1 标签 `phase1-done`。更早正式基线 `2d60072`。
-- **多阶段改造进度看 `docs/PRO_MENU_PROGRESS.md`**（阶段 0..5 的唯一账本，含 0x69 回读地址表、字符格格式、软核寄存器变化、菜单交互与已知限制）。接手新阶段先读它。
-- 最近一次回归 `sim/run_checks.ps1` 全通过（14 项）；完整 Gowin 综合、布局布线和位流生成成功。2026-10-20 17:46 报告：50 MHz 主时钟 Fmax 56.449 MHz；33.333 MHz 像素时钟 Fmax 43.015 MHz；两时钟 setup/hold TNS 都为 0。资源：Logic 19375、Register 10567、CLS 14352、BSRAM 123/340、DSP 23.5/298。以 `impl/pnr` 最新报告为准，不要引用旧文档中的旧 Fmax。
-- UI 固件 15 708 B（64 KiB 上限的 24%）。改 C 后必须先跑 `src/ui_firmware/build_firmware.ps1 -Zig <zig.exe>` 再综合。
+- 当前可烧录文件：`impl/pnr/fm_138k_rgb.fs`。2026-10-20 18:30 的**阶段 1.1 重设计版**：页签常驻所有页面，演奏页在页签下方显示波形/XY/EG/键盘并用字符层画状态与右侧快捷键；ALGORITHM、OSC 1-6、UTIL（主题）可用，4..7 页部分占位。旧位流在 `impl/pnr/backup/`，IDE 工程目录中可能有旧的 `fpga_project.fs`，不要误烧旧文件。
+- 提交历史：`31de69e`（字库/波形修复）、`590569d`（修复前快照，标签 `pre-display-fix-20261020`）、`852ac95`（阶段 0，`phase0-done`）、`a835b6a`（阶段 1，`phase1-done`）、阶段 1.1 标签 `phase1b-done`。更早正式基线 `2d60072`。
+- **多阶段改造进度看 `docs/PRO_MENU_PROGRESS.md`**（阶段 0..5 的唯一账本）。**改 UI 固件先读 `docs/UI_FIRMWARE_GUIDE.md`**（软核/RTL 分工、寄存器与命令映射、构建流程、常见坑）。接手新阶段先读这两份。
+- 最近一次回归 `sim/run_checks.ps1` 全通过（14 项）；完整 Gowin 综合、布局布线和位流生成成功。2026-10-20 18:30 报告：50 MHz 主时钟 Fmax 53.752 MHz；33.333 MHz 像素时钟 Fmax 41.433 MHz；两时钟 setup/hold TNS 都为 0。资源：Logic 18931、Register 11214、CLS 14397、BSRAM 130/340、DSP 23/298。以 `impl/pnr` 最新报告为准，不要引用旧文档中的旧 Fmax。
+- UI 固件 19 180 B（64 KiB 上限的 29%）。改 C 后必须先跑 `src/ui_firmware/build_firmware.ps1 -Zig <zig.exe>` 再综合。
+- 重要：`touch_ui_controller` 的 UI 寄存器号是 `address[7:2]`（6 位）。旧版 4 位导致所有 >15 的寄存器别名，主题色一直不生效，已于阶段 1.1 修复。
+- 真实 ACG720 + TFT 屏幕本轮已上板：背光、扫描、触摸、WAVE/XY 均工作，但文字笔画随机丢点；根因是转发像素时钟反相 180°，已于 2026-10-20 修复（9.2）。触摸/显示仍建议继续实板观察。
 - 真实 ACG720 + TFT 屏幕本轮已上板：背光、扫描、触摸、WAVE/XY 均工作，但文字笔画随机丢点；根因是转发像素时钟反相 180°，已于 2026-10-20 修复（9.2）。触摸/显示仍建议继续实板观察。
 
 ## 2. 产品目标与用户优先级

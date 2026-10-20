@@ -85,19 +85,21 @@ static void publish(void){UI[5]=((u32)(page&15u)<<24)|
     (display_auto_gain?0u:0x80000000u)|((u32)xy_delay<<16)|
     ((u32)visual_mode<<12)|((u32)(octave&15)<<8)|(present?1u:0u);}
 
-/* Performance-page controls (unchanged from the shipped baseline). */
+/* Performance-page controls, hit boxes shared with draw_perf_controls(). */
+static void draw_status(void);
+static void draw_perf_controls(void);
 static void perf_control(int x,int y){u32 st=UI[4];int value;
     if(x<640||x>=800)return;
-    if(y>=80&&y<120){value=(int)((st>>7)&31u)+(x<720?-1:1);emit(0xb0,27,(u8)(value&31));}
-    else if(y>=136&&y<176){value=(int)(st&127u)+(x<720?-5:5);
+    if(y>=80&&y<112){value=(int)((st>>7)&31u)+(x<720?-1:1);emit(0xb0,27,(u8)(value&31));}
+    else if(y>=144&&y<176){value=(int)(st&127u)+(x<720?-5:5);
         if(value<0)value=0;if(value>127)value=127;emit(0xb0,20,(u8)value);}
-    else if(y>=192&&y<232){release_all();octave+=x<720?-1:1;
-        if(octave< -3)octave=-3;if(octave>3)octave=3;publish();}
-    else if(y>=248&&y<288){release_all();emit(0xb0,64,0);emit(0xb0,123,0);}
-    else if(y>=344&&y<384){visual_mode=x<720?0:1;publish();}
-    else if(y>=400&&y<440){xy_delay+=x<720?-1:1;
-        if(xy_delay<1)xy_delay=1;if(xy_delay>96)xy_delay=96;publish();}
-    else if(y>=448&&y<480){display_auto_gain=!display_auto_gain;publish();}
+    else if(y>=208&&y<240){release_all();octave+=x<720?-1:1;
+        if(octave< -3)octave=-3;if(octave>3)octave=3;publish();draw_status();}
+    else if(y>=256&&y<272){release_all();emit(0xb0,64,0);emit(0xb0,123,0);}
+    else if(y>=304&&y<320){visual_mode=x<720?0:1;publish();draw_perf_controls();}
+    else if(y>=336&&y<352){xy_delay+=x<720?-1:1;
+        if(xy_delay<1)xy_delay=1;if(xy_delay>96)xy_delay=96;publish();draw_perf_controls();}
+    else if(y>=368&&y<384){display_auto_gain=!display_auto_gain;publish();draw_perf_controls();}
 }
 static int detect(void){u8 id[4],res[4],cfg[7];int a,r;
     bus_recover();for(r=0;r<3;r++)for(a=0;a<2;a++){
@@ -292,20 +294,106 @@ static void send_scaling(void){
 /* ------------------------------------------------------------------ */
 /* Page drawing                                                        */
 /* ------------------------------------------------------------------ */
+static const char preset_names[32][11]={
+    "BRASS   1 ", "BRASS   2 ", "BRASS   3 ", "STRINGS 1 ",
+    "STRINGS 2 ", "STRINGS 3 ", "ORCHESTRA ", "PIANO   1 ",
+    "PIANO   2 ", "PIANO   3 ", "E.PIANO 1 ", "GUITAR  1 ",
+    "GUITAR  2 ", "SYN-LEAD 1", "BASS    1 ", "BASS    2 ",
+    "E.ORGAN 1 ", "PIPES   1 ", "HARPSICH 1", "CLAV    1 ",
+    "VIBE    1 ", "MARIMBA   ", "KOTO      ", "FLUTE   1 ",
+    "ORCH-CHIME", "TUB BELLS ", "STEEL DRUM", "TIMPANI   ",
+    "REFS WHISL", "VOICE   1 ", "TRAIN     ", "TAKE OFF  "
+};
 static const char*const tab_names[8]={"1 PERF","2 ALGO","3 OSC","4 EG","5 LFO","6 FX","7 NAME","8 UTIL"};
-static void draw_header(void){
-    u8 i,j;u8 pal;
-    clear_all();
+static const char*const theme_names[3]={"GRAPHITE","AMBER","ICE"};
+/* Palette: 0 bg,1 text,2 dim,3 accent,4 accent2,5 panel,6 button,7 active,
+   8 ok,9 warn,10 danger,11 separator,12 dark2,13 header,14 light,15 black. */
+static const u32 theme_pal[3][16]={
+ {0x0B0B0Cu,0xF2F2F2u,0x6E6E72u,0xFF3B00u,0xFFB000u,0x151517u,0x1E1E22u,0x2A2A30u,
+  0x35DFC1u,0xFFB000u,0x733946u,0x24242Au,0x101013u,0x16161Au,0xD8D8DCu,0x000000u},
+ {0x0D0C0Au,0xF0E6D2u,0x8A8070u,0xFFA028u,0xFFD060u,0x16140Fu,0x221E16u,0x332B1Eu,
+  0x7FD8B0u,0xFFC040u,0x6E3A2Au,0x2A251Cu,0x12100Bu,0x191612u,0xE8DCC4u,0x000000u},
+ {0x081014u,0xE6F4F8u,0x6E8A94u,0x2FD8FFu,0x9BE8FFu,0x0E1A20u,0x15262Eu,0x1E3642u,
+  0x4FD8A0u,0xFFC040u,0x5A2A3Au,0x1A3038u,0x0A1418u,0x0C181Eu,0xD8E8EEu,0x000000u}
+};
+static const u32 theme_bg[3]={0x0B0B0Cu,0x0D0C0Au,0x081014u};
+static const u32 theme_wave[3]={0xFF3B00u,0xFFA028u,0x2FD8FFu};
+static const u32 theme_xy[3]={0xFFB000u,0xFFD060u,0x9BE8FFu};
+static u8 theme=0;
+static void apply_theme(u8 t){
+    u8 i;theme=t;
+    for(i=0;i<16;i++)UI[16]=((u32)i<<24)|theme_pal[t][i];
+    UI[10]=theme_bg[t];UI[11]=theme_wave[t];UI[12]=theme_xy[t];
+}
+static void draw_tabs(void){
+    u8 i,j;
     for(i=0;i<8;i++){
         u8 base=(u8)(i*12u+1u);
-        pal=(page==i)?3u:2u;
+        u8 pal=(page==i)?3u:2u;
         for(j=0;j<11;j++)c_at((u8)(base+j),0,0,pal,1);
         for(j=0;j<10&&tab_names[i][j];j++)c_at((u8)(base+j),0,(u8)tab_names[i][j],pal,1);
     }
-    fill_cells(0,99,1,12,4);
+    for(i=0;i<100;i++)c_at(i,1,0,12,4);
+}
+static void draw_status(void){
+    u32 st=UI[4];u16 pidx=(u16)((st>>7)&31u);u8 vol=(u8)(st&127u);
+    u8 alg=(u8)((st>>12)&31u);u8 vc=(u8)((st>>17)&31u);
+    char buf[40];u8 n=0,i;
+    buf[n++]='P';
+    buf[n++]=(char)('0'+(((pidx+1u)/10u)%10u));
+    buf[n++]=(char)('0'+((pidx+1u)%10u));
+    buf[n++]=' ';
+    for(i=0;i<10&&preset_names[pidx&31u][i];i++)buf[n++]=preset_names[pidx&31u][i];
+    buf[n++]=' ';buf[n++]='V';
+    buf[n++]=(char)('0'+((vol/100u)%10u));
+    buf[n++]=(char)('0'+(((u16)vol/10u)%10u));
+    buf[n++]=(char)('0'+(vol%10u));
+    buf[n++]=' ';buf[n++]='O';buf[n++]=(octave<0)?'-':'+';
+    buf[n++]=(char)('0'+((u32)(octave<0?-octave:octave)%10u));
+    buf[n++]=' ';buf[n++]='A';
+    buf[n++]=(char)('0'+(((alg+1u)/10u)%10u));
+    buf[n++]=(char)('0'+((alg+1u)%10u));
+    buf[n++]=' ';buf[n++]=(char)('0'+vc);
+    buf[n++]='V';buf[n]=0;
+    for(i=0;i<100;i++)c_at((u8)(2+i),2,(u8)(i<n?buf[i]:' '),1,0);
+}
+static void btn_cells(u8 c0,u8 c1,u8 row,const char*s,u8 pal){
+    u8 c,j;u8 n=0;while(s[n])n++;
+    for(c=c0;c<=c1;c++)c_at(c,row,0,pal,1);
+    for(j=0;j<n&&(u8)(c0+j)<=c1;j++)c_at((u8)(c0+j),row,(u8)s[j],pal,1);
+}
+static void draw_perf_controls(void){
+    text(81,4,"PRESET",2,0);
+    btn_cells(81,89,5,"-",2);btn_cells(91,99,5,"+",2);
+    btn_cells(81,89,6,"-",2);btn_cells(91,99,6,"+",2);
+    text(81,8,"VOLUME",2,0);
+    btn_cells(81,89,9,"-",2);btn_cells(91,99,9,"+",2);
+    btn_cells(81,89,10,"-",2);btn_cells(91,99,10,"+",2);
+    text(81,12,"OCTAVE",2,0);
+    btn_cells(81,89,13,"-",2);btn_cells(91,99,13,"+",2);
+    btn_cells(81,89,14,"-",2);btn_cells(91,99,14,"+",2);
+    btn_cells(81,99,16,"PANIC",2);
+    text(81,18,"VIEW",2,0);
+    btn_cells(81,89,19,"WAVE",visual_mode?2:3);
+    btn_cells(91,99,19,"XY",visual_mode?3:2);
+    text(81,20,"XY DELAY",2,0);
+    btn_cells(81,89,21,"-",2);btn_cells(91,99,21,"+",2);
+    btn_cells(81,99,23,display_auto_gain?"AUTO ON":"AUTO OFF",2);
+}
+static void draw_perf(void){
+    u8 i;
+    for(i=0;i<100;i++)c_at(i,2,0,0,0);
+    draw_tabs();
+    draw_status();
+    draw_perf_controls();
+}
+static void draw_header(void){
+    u8 i;
+    clear_all();
+    draw_tabs();
     text(2,28,"TAP ROW   -/+ STEP   DRAG SLIDE",2,0);
-    text_r(98,28,"V1.0",2,0);
-    fill_cells(0,99,27,12,4);
+    text_r(98,28,"V1.1",2,0);
+    for(i=0;i<100;i++)c_at(i,27,0,12,4);
 }
 static void buttons(u8 row){
     u8 c;
@@ -326,15 +414,15 @@ static void prow(u8 row,const char*label,const char*val,int selected){
 static void draw_placeholder(void){
     text(2,4,"PAGE NOT READY",3,0);
     text(2,6,"PHASE 2 ADDS THIS EDITOR",2,0);
-    text(2,8,"TABS 1-3 ARE ACTIVE NOW",2,0);
+    text(2,8,"TABS 1-3 AND 8 ARE ACTIVE",2,0);
 }
 static void draw_algo(void){
     u8 i,row;u32 f;u16 w0,w1,w2;
-    text(2,2,"ALGORITHM",3,0);
-    prow(4,"ALGORITHM",u2d((u32)g_algo+1u),(sel_row==0));
-    prow(5,"FEEDBACK",u1d(g_fb),(sel_row==1));
-    prow(6,"OSC SYNC",g_sync?"ON":"OFF",(sel_row==2));
-    text(2,8,"ROUTING (LIVE FROM FPGA)",2,0);
+    text(2,4,"ALGORITHM",3,0);
+    prow(6,"ALGORITHM",u2d((u32)g_algo+1u),(sel_row==0));
+    prow(7,"FEEDBACK",u1d(g_fb),(sel_row==1));
+    prow(8,"OSC SYNC",g_sync?"ON":"OFF",(sel_row==2));
+    text(2,10,"ROUTING (LIVE FROM FPGA)",2,0);
     w0=rd(0x0009u);w1=rd(0x000Au);w2=rd(0x000Bu);
     for(i=0;i<6;i++){
         if(i==0)f=(u32)(w0&0xFFu);
@@ -343,7 +431,7 @@ static void draw_algo(void){
         else if(i==3)f=(u32)((w1>>8)&0xFFu);
         else if(i==4)f=(u32)(w2&0xFFu);
         else f=(u32)((w2>>8)&0xFFu);
-        row=(u8)(9u+i);
+        row=(u8)(11u+i);
         c_at(4,row,'O',2,0);c_at(5,row,'P',2,0);c_at(6,row,(u8)('0'+(6-i)),2,0);
         text(9,row,"OUT",2,0);
         text(13,row,(f&3u)==0u?"CAR":(((f&3u)==1u)?"BUS1":"BUS2"),2,0);
@@ -357,12 +445,12 @@ static void draw_osc(void){
     for(i=0;i<6;i++){
         u8 base=(u8)(2u+i*9u);
         u8 pal=(sel_op==(u8)(5-i))?3u:2u;
-        for(j=0;j<7;j++)c_at((u8)(base+j),2,0,pal,1);
-        c_at(base,2,'O',pal,1);c_at((u8)(base+1u),2,'P',pal,1);
-        c_at((u8)(base+2u),2,(u8)('0'+(i+1)),pal,1);
+        for(j=0;j<7;j++)c_at((u8)(base+j),4,0,pal,1);
+        c_at(base,4,'O',pal,1);c_at((u8)(base+1u),4,'P',pal,1);
+        c_at((u8)(base+2u),4,(u8)('0'+(i+1)),pal,1);
     }
-    text(66,2,"OSC EDIT",3,0);
-    row=4;prow(row,"MODE",o_fx?"FIXED":"RATIO",(sel_row==0));row++;
+    text(66,4,"OSC EDIT",3,0);
+    row=6;prow(row,"MODE",o_fx?"FIXED":"RATIO",(sel_row==0));row++;
     prow(row,o_fx?"FREQ":"COARSE",u1d(o_coarse),(sel_row==1));row++;
     prow(row,"FINE",u1d(o_fine),(sel_row==2));row++;
     prow(row,"DETUNE",sgn1((int)o_det-7),(sel_row==3));row++;
@@ -376,11 +464,20 @@ static void draw_osc(void){
     prow(row,"L CURVE",curve_name(o_lc),(sel_row==11));row++;
     prow(row,"R CURVE",curve_name(o_rc),(sel_row==12));
 }
+static void draw_theme(void){
+    text(2,4,"THEME",3,0);
+    btn_cells(2,20,6,theme_names[theme],3);
+    text(2,8,"TAP ANYWHERE TO CHANGE",2,0);
+    text(2,10,"THE THEME ALSO COLOURS THE",2,0);
+    text(2,11,"WAVE, XY, LEVEL AND KEYS",2,0);
+    text(2,24,"UI 1.1  PHASE 1",2,0);
+}
 static void draw_page(void){
-    if(page==PAGE_PERF)return;
+    if(page==PAGE_PERF){clear_all();draw_perf();return;}
     draw_header();
     if(page==PAGE_ALGO)draw_algo();
     else if(page==PAGE_OSC)draw_osc();
+    else if(page==7)draw_theme();
     else draw_placeholder();
 }
 static void page_enter(u8 p){
@@ -434,27 +531,33 @@ static int editable_rows(void){
     if(page==PAGE_OSC)return 13;
     return 0;
 }
+/* First pixel row of the editable list (ALGO/OSC start below the title/OP row). */
+static int content_top(void){
+    if(page==PAGE_ALGO||page==PAGE_OSC)return 96;
+    return 64;
+}
 static void adj(u8 row,int d){
     if(page==PAGE_ALGO)adj_algo(row,d);
     else adj_op(row,d);
 }
 static int menu_press(int x,int y){
     int t;
-    
     if(y<16){t=(x-4)/96;if(t<0)t=0;if(t>7)t=7;
         if((u8)t!=page)page_enter((u8)t);return 1;}
-    if(page==PAGE_OSC&&y>=32&&y<48){
+    if(page==7&&y>=64){theme=(u8)((theme+1u)%3u);apply_theme(theme);draw_page();return 1;}
+    if(page==PAGE_OSC&&y>=64&&y<80){
         int i;for(i=0;i<6;i++){int x0=16+i*72;
             if(x>=x0&&x<x0+64){sel_op=(u8)(5-i);load_op(sel_op);sel_row=0;draw_page();return 1;}}
         return 1;
     }
-    if(y>=64&&(int)((y-64)/16)<editable_rows()){
-        u8 row=(u8)((y-64)/16);
+    {int top=content_top();
+     if(y>=top&&(int)((y-top)/16)<editable_rows()){
+        u8 row=(u8)((y-top)/16);
         if(x>=448&&x<504)adj(row,-1);
         else if(x>=512&&x<568)adj(row,1);
         else {sel_row=row;draw_page();}
         return 1;
-    }
+    }}
     return 0;
 }
 static void menu_repeat(void){
@@ -522,13 +625,14 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
             control_down|=(u16)(1u<<id);
             
             if(page==PAGE_PERF){
-                if(py[id]<32){release_all();page_enter(PAGE_ALGO);}
+                if(py[id]<16){menu_press(px[id],py[id]);}
                 else if(px[id]>=640&&px[id]<800)perf_control(px[id],py[id]);
             }else{
                 held_id=0xFF;held_kind=0;
                 if(menu_press(px[id],py[id])){
-                    if(py[id]>=64&&py[id]<64+editable_rows()*16){
-                        u8 row=(u8)((py[id]-64)/16);
+                    int top=content_top();
+                    if(py[id]>=top&&py[id]<top+editable_rows()*16){
+                        u8 row=(u8)((py[id]-top)/16);
                         held_id=(u8)id;held_x=px[id];held_t=now();held_count=0;
                         held_row=row;
                         if(px[id]>=448&&px[id]<504)held_kind=1;
@@ -558,20 +662,25 @@ static void init_colors(void){
     for(i=0;i<16;i++)UI[16]=((u32)i<<24)|pal[i];
     UI[10]=0x0B0B0Cu; /* RTL background / menu page background */
 }
-int main(void){int i,result,errors=0;u32 retry=0;
+int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
     for(i=0;i<16;i++)slot_note[i]=-1;
     lines=0;UI[0]=0;
     page=0;sel_row=0;sel_op=5;held_id=0xFF;
-    init_colors();
+    apply_theme(0);
+    clear_all();
+    draw_perf();
+    UI[17]=1; /* enable the character layer after the first clear */
     publish();puts("ACG720 138K FM RGB/GT UI ready\r\n");
     while(!(UI[0]&0x100u)){} /* Exact 177 ms reset/synchronization in RTL. */
     delay_us(10000);present=detect();publish();
     for(;;){if(present){result=poll_touch();if(result!=-2)errors=0;
         else if(result==-2&&++errors>=40){puts("GT I2C lost\r\n");release_all();present=0;publish();retry=now();}
+        if(page==PAGE_PERF){u32 st=UI[4];if(st!=last_status){last_status=st;draw_status();}}
         menu_repeat();}
         else if((u32)(now()-retry)>500000u){retry=now();present=detect();publish();}
         delay_us(2000);
     }
 }
+
 
 
