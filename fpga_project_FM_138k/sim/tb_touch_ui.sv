@@ -14,7 +14,7 @@ module tb_touch_ui;
     wire [3:0] menu_page;
     reg [15:0] pr_data=16'h0021;
     reg pr_valid=0;
-    integer cmd_69=0,cmd_60=0,cmd_62=0,text_cells=0,pal_writes=0;
+    integer cmd_69=0,cmd_60=0,cmd_62=0,cmd_63=0,text_cells=0,pal_writes=0;
     touch_ui_controller dut(.clk(clk),.reset_n(reset_n),.tp_scl(scl),.tp_sda(sda),
         .tp_int(int_pin),.tp_rst(rst_pin),.uart_tx(uart),.midi_event_data(event_word),
         .midi_event_valid(valid),.midi_event_ready(1'b1),.monitor_event(32'd0),
@@ -45,6 +45,7 @@ module tb_touch_ui;
             8'h69:cmd_69<=cmd_69+1;
             8'h60:cmd_60<=cmd_60+1;
             8'h62:cmd_62<=cmd_62+1;
+            8'h63:cmd_63<=cmd_63+1;
             default:;
         endcase
         if(dut.text_write)text_cells<=text_cells+1;
@@ -73,6 +74,8 @@ module tb_touch_ui;
             if(touch_kind==15)begin px=200;py=8;end
             if(touch_kind==17)begin px=720;py=8;end
             if(touch_kind==18)begin px=400;py=200;end
+            if(touch_kind==19)begin px=338;py=8;end
+            if(touch_kind==20)begin px=434;py=8;end
             if(touch_kind==16)begin px=30;py=72;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
@@ -203,11 +206,30 @@ module tb_touch_ui;
         touch_kind=0;#8000000;
         if(pal_writes<32)$fatal(1,"Theme cycle did not rewrite the palette");
         $display("M6 theme at %t",$time);
+        touch_kind=19;wait(menu_page==4'd3);#5000000;
+        if(cmd_69<8)$fatal(1,"EG page did not read the envelope");
+        touch_kind=0;#8000000;
+        touch_kind=13;#5000000;
+        touch_kind=0;#8000000;
+        touch_kind=14;#5000000;
+        touch_kind=0;#8000000;
+        if(cmd_63<1)$fatal(1,"EG edit did not send command 0x63");
+        $display("M7 eg edit at %t",$time);
+        touch_kind=20;wait(menu_page==4'd4);#5000000;
+        touch_kind=0;#8000000;
+        touch_kind=13;#5000000;
+        touch_kind=0;#8000000;
+        touch_kind=14;#5000000;
+        touch_kind=0;#8000000;
+        if(cmd_60<2)$fatal(1,"LFO edit did not send command 0x60");
+        $display("M8 lfo edit at %t",$time);
         $fclose(cell_fd);
-        $display("PASS real UI firmware, I2C, universal tabs, perf chrome, theme");$finish;
+        $display("PASS real UI firmware, I2C, universal tabs, perf chrome, theme, EG and LFO pages");$finish;
     end
     initial begin #450000000;$fclose(cell_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
 endmodule
+
+
 
 
 

@@ -33,6 +33,9 @@ int __divsi3(int a,int b){u32 q;int neg=0;u32 ua,ub;
     q=__udivsi3(ua,ub);return neg?-(int)q:(int)q;}
 u32 __umodsi3(u32 n,u32 d){u32 r=0;int i;if(!d)return 0;
     for(i=31;i>=0;i--){r=(r<<1)|((n>>i)&1u);if(r>=d)r-=d;}return r;}
+/* Shift-add multiply: the RV32I core has no M extension and the C compiler
+   emits libcalls for some non-power-of-two products used by the EG scaling. */
+u32 __mulsi3(u32 a,u32 b){u32 r=0;while(b){if(b&1u)r+=a;a<<=1;b>>=1;}return r;}
 
 static u32 now(void){return UI[1];}
 static void delay_us(u32 us){u32 start=now();while((u32)(now()-start)<us){}}
@@ -106,11 +109,11 @@ static void perf_step(u8 k){
     } else if(k==3||k==4){
         int v=vol_local+((k==3)?-5:5);
         if(v<0)v=0;if(v>127)v=127;vol_local=v;
-        emit(0xb0,20,(u8)v);draw_status();
+        emit(0xb0,20,(u8)v);draw_status();draw_perf_controls();
     } else if(k==5||k==6){
         release_all();octave+= (k==5)?-1:1;
         if(octave< -3)octave=-3;if(octave>3)octave=3;
-        publish();draw_status();
+        publish();draw_status();draw_perf_controls();
     } else if(k==7||k==8){
         xy_delay+= (k==7)?-1:1;
         if(xy_delay<1)xy_delay=1;if(xy_delay>96)xy_delay=96;
@@ -283,13 +286,18 @@ static void decode_fixed(u32 w,u8 det,u8*co,u8*fi){
 static u8 g_algo,g_fb,g_sync,g_lsync,g_trans,g_wave,g_speed,g_delay,g_pmd,g_amd,g_pms;
 /* Selected operator cache */
 static u8 o_en,o_fx,o_det,o_lvl,o_rs,o_vel,o_ams,o_bp,o_ld,o_rd,o_lc,o_rc,o_coarse,o_fine,o_eg0r;
+static u8 o_rate[4],o_lev[4];
 static u16 o_eg0l;
 static u32 o_freq;
 
+static u8 rate_from_qrate(u8 q);
+static u8 qrate_from_rate(u8 r);
+static u16 internal_from_level(u8 l);
+static u8 level_from_internal(u16 v);
 static void load_globals(void){
     u16 v;
     g_algo=(u8)(rd(0x000)&31u);g_fb=(u8)(rd(0x001)&7u);
-    v=rd(0x002);g_wave=(u8)(v&7u);g_lsync=(u8)((v>>3)&1u);g_sync=(u8)((v>>4)&1u);
+    v=rd(0x002);g_wave=(u8)((v>>2)&7u);g_lsync=(u8)((v>>1)&1u);g_sync=(u8)(v&1u);
     g_trans=(u8)(rd(0x003)&0x7Fu);g_speed=(u8)(rd(0x004)&0x7Fu);
     g_delay=(u8)(rd(0x005)&0x7Fu);g_pmd=(u8)(rd(0x006)&0x7Fu);
     g_amd=(u8)(rd(0x007)&0x7Fu);g_pms=(u8)(rd(0x008)&7u);
@@ -304,6 +312,10 @@ static void load_op(u8 op){
     v=rd((u16)(a+7u));o_lc=(u8)(v&3u);o_rc=(u8)((v>>2)&3u);
     v=rd((u16)(a+8u));o_ams=(u8)((v>>6)&3u);o_vel=(u8)((v>>3)&7u);o_rs=(u8)(v&7u);
     o_eg0r=(u8)(rd((u16)(a+9u))&0x3Fu);o_eg0l=rd((u16)(a+13u));
+    {u8 s;for(s=0;s<4;s++){
+        o_rate[s]=rate_from_qrate((u8)(rd((u16)(a+9u+s))&0x3Fu));
+        o_lev[s]=level_from_internal(rd((u16)(a+13u+s)));
+    }}
     if(o_fx)decode_fixed(o_freq,o_det,&o_coarse,&o_fine);
     else decode_ratio(o_freq,o_det,&o_coarse,&o_fine);
 }
@@ -511,6 +523,69 @@ static void draw_osc(void){
     prow(row,"L CURVE",curve_name(o_lc),(sel_row==11));row++;
     prow(row,"R CURVE",curve_name(o_rc),(sel_row==12));
 }
+/* DX7 helpers shared by the EG page.  The patch stores a 6-bit qrate and a
+   16-bit internal level; the UI works in the familiar 0..99 units. */
+static const u8 dx7_low_levels[20]={0,5,9,13,17,20,23,25,27,29,31,33,35,37,39,41,42,43,45,46};
+static const char*const lfo_wave_names[6]={"TRI","SAW D","SAW U","SQR","SIN","S&H"};
+static u8 qrate_from_rate(u8 r){return (u8)(((u32)r*41u)>>6);}
+static u8 rate_from_qrate(u8 q){u32 r=(((u32)q*64u)+40u)/41u;if(r>99u)r=99u;return (u8)r;}
+static u16 internal_from_level(u8 l){
+    u32 s;if(l>=20u)s=28u+l;else s=dx7_low_levels[l];
+    return (u16)((s>>1)<<6);
+}
+static u8 level_from_internal(u16 v){
+    u32 s=(u32)((v>>6)<<1);int i,bl=0;u32 bd=0xFFFFFFFFu;
+    if(s>=48u){u32 l=s-28u;if(l>99u)l=99u;return (u8)l;}
+    for(i=0;i<20;i++){
+        u32 d=internal_from_level((u8)i);
+        d=(d>v)?(d-v):(v-d);
+        if(d<bd){bd=d;bl=i;}
+    }
+    return (u8)bl;
+}
+static void draw_eg(void){
+    u8 i,j,row=6;
+    for(i=0;i<6;i++){
+        u8 base=(u8)(2u+i*9u);u8 pal=(sel_op==(u8)(5-i))?3u:2u;
+        for(j=0;j<7;j++)c_at((u8)(base+j),4,0,pal,1);
+        c_at(base,4,'O',pal,1);c_at((u8)(base+1u),4,'P',pal,1);
+        c_at((u8)(base+2u),4,(u8)('0'+(i+1)),pal,1);
+    }
+    text(66,4,"ENVELOPE",3,0);
+    for(i=0;i<4;i++){
+        char lbl[7];u8 n=0;
+        lbl[n++]='R';lbl[n++]='A';lbl[n++]='T';lbl[n++]='E';lbl[n++]=' ';
+        lbl[n++]=(char)('1'+i);lbl[n]=0;
+        prow(row,lbl,u2d(o_rate[i]),(sel_row==i));row++;
+    }
+    row=11;
+    for(i=0;i<4;i++){
+        char lbl[8];u8 n=0;
+        lbl[n++]='L';lbl[n++]='E';lbl[n++]='V';lbl[n++]='E';lbl[n++]='L';lbl[n++]=' ';
+        lbl[n++]=(char)('1'+i);lbl[n]=0;
+        prow(row,lbl,u2d(o_lev[i]),(sel_row==4+i));row++;
+    }
+    /* Four-stage target preview: one bar per level, 4 cells wide. */
+    for(i=0;i<4;i++){
+        u8 h=(u8)(((u32)o_lev[i]*12u)/99u);
+        u8 top=(u8)(23u-h);
+        for(row=10;row<=23;row++)
+            for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,12,4);
+        for(row=top;row<=23;row++)
+            for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,3,4);
+    }
+}
+static void draw_lfo(void){
+    u8 row=6;
+    prow(row,"WAVE",lfo_wave_names[g_wave%6u],(sel_row==0));row++;
+    prow(row,"SPEED",u2d(g_speed),(sel_row==1));row++;
+    prow(row,"DELAY",u2d(g_delay),(sel_row==2));row++;
+    prow(row,"P MOD DEPTH",u2d(g_pmd),(sel_row==3));row++;
+    prow(row,"A MOD DEPTH",u2d(g_amd),(sel_row==4));row++;
+    prow(row,"P MOD SENS",u1d(g_pms),(sel_row==5));row++;
+    prow(row,"LFO SYNC",g_lsync?"ON":"OFF",(sel_row==6));row++;
+    prow(row,"KEY SYNC",g_sync?"ON":"OFF",(sel_row==7));
+}
 static void draw_theme(void){
     text(2,4,"THEME",3,0);
     btn_cells(2,20,6,theme_names[theme],3);
@@ -524,6 +599,8 @@ static void draw_page(void){
     draw_header();
     if(page==PAGE_ALGO)draw_algo();
     else if(page==PAGE_OSC)draw_osc();
+    else if(page==3)draw_eg();
+    else if(page==4)draw_lfo();
     else if(page==7)draw_theme();
     else draw_placeholder();
 }
@@ -531,9 +608,11 @@ static void page_enter(u8 p){
     if(p==page&&p!=PAGE_PERF)return;
     
     release_all();
-    page=p;sel_row=0;
+    page=p;sel_row=0;last_adj=0;
     if(p==PAGE_ALGO)load_globals();
     else if(p==PAGE_OSC)load_op(sel_op);
+    else if(p==3)load_op(sel_op);
+    else if(p==4)load_globals();
     
     publish();
     
@@ -573,18 +652,54 @@ static void adj_op(u8 row,int d){
     if(row==11){v=(int)o_lc+d;if(v<0)v=0;if(v>3)v=3;o_lc=(u8)v;send_scaling();draw_page();return;}
     if(row==12){v=(int)o_rc+d;if(v<0)v=0;if(v>3)v=3;o_rc=(u8)v;send_scaling();return;}
 }
+
+static void send_eg_stage(u8 s){
+    u32 lo=(u32)sel_op|((u32)s<<8)|((u32)qrate_from_rate(o_rate[s])<<16);
+    u32 hi=(u32)internal_from_level(o_lev[s])|((u32)o_rs<<16)|((u32)o_vel<<24)|((u32)o_ams<<28);
+    cmd(0x63,lo,hi);
+}
+static void adj_eg(u8 row,int d){
+    int v;
+    if(row<4){
+        v=(int)o_rate[row]+d;
+        if(v<0)v=0;if(v>99)v=99;
+        o_rate[row]=(u8)v;send_eg_stage(row);
+    }else{
+        v=(int)o_lev[row-4]+d;
+        if(v<0)v=0;if(v>99)v=99;
+        o_lev[row-4]=(u8)v;send_eg_stage((u8)(row-4));
+    }
+    draw_page();
+}
+static void adj_lfo(u8 row,int d){
+    int v;
+    if(row==0){v=((int)g_wave+d+6)%6;g_wave=(u8)v;}
+    else if(row==1){v=(int)g_speed+d;if(v<0)v=0;if(v>99)v=99;g_speed=(u8)v;}
+    else if(row==2){v=(int)g_delay+d;if(v<0)v=0;if(v>99)v=99;g_delay=(u8)v;}
+    else if(row==3){v=(int)g_pmd+d;if(v<0)v=0;if(v>99)v=99;g_pmd=(u8)v;}
+    else if(row==4){v=(int)g_amd+d;if(v<0)v=0;if(v>99)v=99;g_amd=(u8)v;}
+    else if(row==5){v=(int)g_pms+d;if(v<0)v=0;if(v>7)v=7;g_pms=(u8)v;}
+    else if(row==6){g_lsync=(u8)(g_lsync?0:1);}
+    else {g_sync=(u8)(g_sync?0:1);}
+    send_global();
+    draw_page();
+}
 static int editable_rows(void){
     if(page==PAGE_ALGO)return 3;
     if(page==PAGE_OSC)return 13;
+    if(page==3)return 8;
+    if(page==4)return 8;
     return 0;
 }
 /* First pixel row of the editable list (ALGO/OSC start below the title/OP row). */
 static int content_top(void){
-    if(page==PAGE_ALGO||page==PAGE_OSC)return 96;
+    if(page==PAGE_ALGO||page==PAGE_OSC||page==3||page==4)return 96;
     return 64;
 }
 static void adj(u8 row,int d){
     if(page==PAGE_ALGO)adj_algo(row,d);
+    else if(page==3)adj_eg(row,d);
+    else if(page==4)adj_lfo(row,d);
     else adj_op(row,d);
 }
 static int menu_press(int x,int y){
@@ -592,7 +707,7 @@ static int menu_press(int x,int y){
     if(y<16){t=(x-4)/96;if(t<0)t=0;if(t>7)t=7;
         if((u8)t!=page)page_enter((u8)t);return 1;}
     if(page==7&&y>=64){theme=(u8)((theme+1u)%3u);apply_theme(theme);draw_page();return 1;}
-    if(page==PAGE_OSC&&y>=64&&y<80){
+    if((page==PAGE_OSC||page==3)&&y>=64&&y<80){
         int i;for(i=0;i<6;i++){int x0=16+i*72;
             if(x>=x0&&x<x0+64){sel_op=(u8)(5-i);load_op(sel_op);sel_row=0;draw_page();return 1;}}
         return 1;
@@ -743,6 +858,8 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
         delay_us(2000);
     }
 }
+
+
 
 
 

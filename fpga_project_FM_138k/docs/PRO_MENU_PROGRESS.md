@@ -90,3 +90,4 @@
 ## 阶段 2 入口清单（下次会话直接照做）
 
 1. ALGORITHM 六算子连线图：RTL 画布（按 48 bit flags 画盒�?总线/箭头�? 固件标签坐标约定�?2. ENVELOPE 页：6 算子 × 4 段速率/电平，带 4 段柱状图；Pitch EG 页；LFO 页（波形/速度/延迟/PMD/AMD/Sync）�?3. 键位缩放曲线预览；operator enable 行；全局字段补齐�?4. 命名页（10 字符）、用户槽保存/读取、ROM1A 复制、CC27 拦截�?UI 重同步�?5. 每步保持 `sim/run_checks.ps1` 通过；阶段末完整 PnR + 实板确认清单�?
+
