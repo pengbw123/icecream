@@ -61,9 +61,12 @@ static int gt_write(u16 reg,u8 value){int ok=start()&&write_byte(gt_addr<<1)&&
 static void bus_recover(void){int i;sda(0);for(i=0;i<9;i++){scl(1);delay_us(5);scl(0);delay_us(5);}stop();}
 static void emit(u8 status,u8 d1,u8 d2){u32 t=now();while(!(UI[2]&1u))
     if((u32)(now()-t)>20000)return;UI[3]=((u32)status<<16)|((u32)d1<<8)|d2;}
+/* Release every sounding note.  Deliberately does NOT clear control_down:
+ * doing so made a still-held finger look like a brand-new press, so a single
+ * OCTAVE tap stepped repeatedly and page switches could re-enter the menu. */
 static void release_all(void){int i,j,n;for(i=0;i<16;i++)if(slot_note[i]>=0){
     n=slot_note[i];emit(0x80,(u8)n,0);
-    for(j=i;j<16;j++)if(slot_note[j]==n)slot_note[j]=-1;}control_down=0;}
+    for(j=i;j<16;j++)if(slot_note[j]==n)slot_note[j]=-1;}}
 
 /* ------------------------------------------------------------------ */
 /* Menu state                                                          */
@@ -88,18 +91,57 @@ static void publish(void){UI[5]=((u32)(page&15u)<<24)|
 /* Performance-page controls, hit boxes shared with draw_perf_controls(). */
 static void draw_status(void);
 static void draw_perf_controls(void);
-static void perf_control(int x,int y){u32 st=UI[4];int value;
+static void c_at(u8 col,u8 row,u8 ch,u8 pal,u8 attr);
+static u32 ctrl_last[9];
+static u8 ctrl_hold, ctrl_hold_id;
+static u32 ctrl_hold_t, ctrl_hold_count;
+static u32 last_adj;
+static int vol_local=96, preset_local=0;
+/* k: 1 preset-, 2 preset+, 3 volume-, 4 volume+, 5 octave-, 6 octave+,
+   7 xy-, 8 xy+.  Single tap = one step; repeat starts after 1.5 s. */
+static void perf_step(u8 k){
+    if(k==1||k==2){
+        preset_local=(preset_local+(k==1?-1:1)+32)&31;
+        emit(0xb0,27,(u8)preset_local);
+    } else if(k==3||k==4){
+        int v=vol_local+((k==3)?-5:5);
+        if(v<0)v=0;if(v>127)v=127;vol_local=v;
+        emit(0xb0,20,(u8)v);draw_status();
+    } else if(k==5||k==6){
+        release_all();octave+= (k==5)?-1:1;
+        if(octave< -3)octave=-3;if(octave>3)octave=3;
+        publish();draw_status();
+    } else if(k==7||k==8){
+        xy_delay+= (k==7)?-1:1;
+        if(xy_delay<1)xy_delay=1;if(xy_delay>96)xy_delay=96;
+        publish();draw_perf_controls();
+    }
+}
+static void perf_control(int x,int y,u8 id){u8 k=0;u32 t=now();
     if(x<640||x>=800)return;
-    if(y>=80&&y<112){value=(int)((st>>7)&31u)+(x<720?-1:1);emit(0xb0,27,(u8)(value&31));}
-    else if(y>=144&&y<176){value=(int)(st&127u)+(x<720?-5:5);
-        if(value<0)value=0;if(value>127)value=127;emit(0xb0,20,(u8)value);}
-    else if(y>=208&&y<240){release_all();octave+=x<720?-1:1;
-        if(octave< -3)octave=-3;if(octave>3)octave=3;publish();draw_status();}
-    else if(y>=256&&y<272){release_all();emit(0xb0,64,0);emit(0xb0,123,0);}
-    else if(y>=304&&y<320){visual_mode=x<720?0:1;publish();draw_perf_controls();}
-    else if(y>=336&&y<352){xy_delay+=x<720?-1:1;
-        if(xy_delay<1)xy_delay=1;if(xy_delay>96)xy_delay=96;publish();draw_perf_controls();}
-    else if(y>=368&&y<384){display_auto_gain=!display_auto_gain;publish();draw_perf_controls();}
+    if(y>=80&&y<112)k=(x<720)?1:2;
+    else if(y>=144&&y<176)k=(x<720)?3:4;
+    else if(y>=208&&y<240)k=(x<720)?5:6;
+    else if(y>=256&&y<272){release_all();emit(0xb0,64,0);emit(0xb0,123,0);return;}
+    else if(y>=304&&y<320){visual_mode=x<720?0:1;publish();draw_perf_controls();return;}
+    else if(y>=336&&y<352)k=(x<720)?7:8;
+    else if(y>=368&&y<384){display_auto_gain=!display_auto_gain;publish();draw_perf_controls();return;}
+    if(!k)return;
+    /* Debounce: track-id churn used to fire the same button several times per
+       physical tap, which made OCTAVE jump straight to -3/+3. */
+    if(ctrl_last[k]!=0u&&(u32)(t-ctrl_last[k])<300000u)return;
+    ctrl_last[k]=t;
+    perf_step(k);
+    ctrl_hold=k;ctrl_hold_id=id;ctrl_hold_t=t;ctrl_hold_count=0;
+}
+static void perf_repeat(void){
+    u32 dt;
+    if(!ctrl_hold)return;
+    dt=(u32)(now()-ctrl_hold_t);
+    if(dt>1500000u){
+        u32 n=1u+(dt-1500000u)/150000u;
+        if(n>ctrl_hold_count&&n<100u){ctrl_hold_count=n;perf_step(ctrl_hold);}
+    }
 }
 static int detect(void){u8 id[4],res[4],cfg[7];int a,r;
     bus_recover();for(r=0;r<3;r++)for(a=0;a<2;a++){
@@ -318,7 +360,7 @@ static const u32 theme_pal[3][16]={
 };
 static const u32 theme_bg[3]={0x0B0B0Cu,0x0D0C0Au,0x081014u};
 static const u32 theme_wave[3]={0xFF3B00u,0xFFA028u,0x2FD8FFu};
-static const u32 theme_xy[3]={0xFFB000u,0xFFD060u,0x9BE8FFu};
+static const u32 theme_xy[3]={0xFF6A2Cu,0xFFC040u,0x9BE8FFu};
 static u8 theme=0;
 static void apply_theme(u8 t){
     u8 i;theme=t;
@@ -362,21 +404,26 @@ static void btn_cells(u8 c0,u8 c1,u8 row,const char*s,u8 pal){
     for(c=c0;c<=c1;c++)c_at(c,row,0,pal,1);
     for(j=0;j<n&&(u8)(c0+j)<=c1;j++)c_at((u8)(c0+j),row,(u8)s[j],pal,1);
 }
+/* Two-cell-tall button with a single glyph in the upper row (the old version
+   drew the same "-"/"+" twice and looked like two separate buttons). */
+static void btn_tall(u8 c0,u8 c1,u8 row,const char*s,u8 pal){
+    u8 c,j;u8 n=0;while(s[n])n++;
+    for(c=c0;c<=c1;c++){c_at(c,row,0,pal,1);c_at(c,(u8)(row+1),0,pal,1);}
+    for(j=0;j<n&&(u8)(c0+j)<=c1;j++)c_at((u8)(c0+j),row,(u8)s[j],pal,1);
+}
 static void draw_perf_controls(void){
+    u32 st=UI[4];u8 vol=(u8)(st&127u);
     text(81,4,"PRESET",2,0);
-    btn_cells(81,89,5,"-",2);btn_cells(91,99,5,"+",2);
-    btn_cells(81,89,6,"-",2);btn_cells(91,99,6,"+",2);
-    text(81,8,"VOLUME",2,0);
-    btn_cells(81,89,9,"-",2);btn_cells(91,99,9,"+",2);
-    btn_cells(81,89,10,"-",2);btn_cells(91,99,10,"+",2);
-    text(81,12,"OCTAVE",2,0);
-    btn_cells(81,89,13,"-",2);btn_cells(91,99,13,"+",2);
-    btn_cells(81,89,14,"-",2);btn_cells(91,99,14,"+",2);
+    btn_tall(81,89,5,"-",2);btn_tall(91,99,5,"+",2);
+    text(81,8,"VOLUME",2,0);text_r(99,8,u2d(vol),14,0);
+    btn_tall(81,89,9,"-",2);btn_tall(91,99,9,"+",2);
+    text(81,12,"OCTAVE",2,0);text_r(99,12,sgn1(octave),14,0);
+    btn_tall(81,89,13,"-",2);btn_tall(91,99,13,"+",2);
     btn_cells(81,99,16,"PANIC",2);
     text(81,18,"VIEW",2,0);
     btn_cells(81,89,19,"WAVE",visual_mode?2:3);
     btn_cells(91,99,19,"XY",visual_mode?3:2);
-    text(81,20,"XY DELAY",2,0);
+    text(81,20,"XY DELAY",2,0);text_r(99,20,u2d(xy_delay),14,0);
     btn_cells(81,89,21,"-",2);btn_cells(91,99,21,"+",2);
     btn_cells(81,99,23,display_auto_gain?"AUTO ON":"AUTO OFF",2);
 }
@@ -553,9 +600,12 @@ static int menu_press(int x,int y){
     {int top=content_top();
      if(y>=top&&(int)((y-top)/16)<editable_rows()){
         u8 row=(u8)((y-top)/16);
-        if(x>=448&&x<504)adj(row,-1);
-        else if(x>=512&&x<568)adj(row,1);
-        else {sel_row=row;draw_page();}
+        u32 t=now();
+        if(x>=448&&x<504){
+            if(last_adj==0u||(u32)(t-last_adj)>120000u){last_adj=t;adj(row,-1);}
+        } else if(x>=512&&x<568){
+            if(last_adj==0u||(u32)(t-last_adj)>120000u){last_adj=t;adj(row,1);}
+        } else {sel_row=row;draw_page();}
         return 1;
     }}
     return 0;
@@ -564,8 +614,10 @@ static void menu_repeat(void){
     if(page==PAGE_PERF||held_id==0xFF)return;
     if(held_kind==1||held_kind==2){
         u32 dt=(u32)(now()-held_t);
-        if(dt>500000u){
-            u32 n=1u+(dt-500000u)/100000u;
+        /* Single tap = one step.  Continuous stepping starts only after a
+           deliberate 1.5 s hold, then repeats every 150 ms. */
+        if(dt>1500000u){
+            u32 n=1u+(dt-1500000u)/150000u;
             if(n>held_count&&n<40u){held_count=n;adj(held_row,held_kind==1?-1:1);}
         }
     }
@@ -626,7 +678,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
             
             if(page==PAGE_PERF){
                 if(py[id]<16){menu_press(px[id],py[id]);}
-                else if(px[id]>=640&&px[id]<800)perf_control(px[id],py[id]);
+                else if(px[id]>=640&&px[id]<800)perf_control(px[id],py[id],(u8)id);
             }else{
                 held_id=0xFF;held_kind=0;
                 if(menu_press(px[id],py[id])){
@@ -649,6 +701,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         }
     }else control_down&=(u16)~(1u<<id);
     if(held_id!=0xFF&&!(seen&(1u<<held_id))){held_id=0xFF;held_kind=0;}
+    if(ctrl_hold&&!(seen&(1u<<ctrl_hold_id)))ctrl_hold=0;
     return n;
 }
 
@@ -674,13 +727,27 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
     while(!(UI[0]&0x100u)){} /* Exact 177 ms reset/synchronization in RTL. */
     delay_us(10000);present=detect();publish();
     for(;;){if(present){result=poll_touch();if(result!=-2)errors=0;
-        else if(result==-2&&++errors>=40){puts("GT I2C lost\r\n");release_all();present=0;publish();retry=now();}
-        if(page==PAGE_PERF){u32 st=UI[4];if(st!=last_status){last_status=st;draw_status();}}
-        menu_repeat();}
+        else if(result==-2&&++errors>=40){puts("GT I2C lost\r\n");release_all();
+            control_down=0;ctrl_hold=0;held_id=0xFF;held_kind=0;
+            present=0;publish();retry=now();}
+        if(page==PAGE_PERF){
+            u32 st=UI[4];
+            if(st!=last_status){
+                last_status=st;
+                vol_local=(int)(st&127u);preset_local=(int)((st>>7)&31u);
+                draw_status();
+            }
+        }
+        menu_repeat();perf_repeat();}
         else if((u32)(now()-retry)>500000u){retry=now();present=detect();publish();}
         delay_us(2000);
     }
 }
+
+
+
+
+
 
 
 
