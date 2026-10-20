@@ -389,6 +389,7 @@ static void draw_tabs(void){
     }
     for(i=0;i<100;i++)c_at(i,1,0,12,4);
 }
+static char cur_name[11];
 static void draw_status(void){
     u32 st=UI[4];u16 pidx=(u16)((st>>7)&31u);u8 vol=(u8)(st&127u);
     u8 alg=(u8)((st>>12)&31u);u8 vc=(u8)((st>>17)&31u);
@@ -397,7 +398,8 @@ static void draw_status(void){
     buf[n++]=(char)('0'+(((pidx+1u)/10u)%10u));
     buf[n++]=(char)('0'+((pidx+1u)%10u));
     buf[n++]=' ';
-    for(i=0;i<10&&preset_names[pidx&31u][i];i++)buf[n++]=preset_names[pidx&31u][i];
+    if(cur_name[0])for(i=0;i<10&&cur_name[i];i++)buf[n++]=cur_name[i];
+    else for(i=0;i<10&&preset_names[pidx&31u][i];i++)buf[n++]=preset_names[pidx&31u][i];
     buf[n++]=' ';buf[n++]='V';
     buf[n++]=(char)('0'+((vol/100u)%10u));
     buf[n++]=(char)('0'+(((u16)vol/10u)%10u));
@@ -476,28 +478,36 @@ static void draw_placeholder(void){
     text(2,8,"TABS 1-3 AND 8 ARE ACTIVE",2,0);
 }
 static void draw_algo(void){
-    u8 i,row;u32 f;u16 w0,w1,w2;
+    u8 i,j,row;u32 f;u16 w0,w1,w2;u8 fl[6];
     text(2,4,"ALGORITHM",3,0);
     prow(6,"ALGORITHM",u2d((u32)g_algo+1u),(sel_row==0));
     prow(7,"FEEDBACK",u1d(g_fb),(sel_row==1));
     prow(8,"OSC SYNC",g_sync?"ON":"OFF",(sel_row==2));
-    text(2,10,"ROUTING (LIVE FROM FPGA)",2,0);
+    prow(9,"TRANSPOSE",u2d(g_trans),(sel_row==3));
+    text(2,10,"ROUTING MAP (LIVE FROM FPGA)",2,0);
     w0=rd(0x0009u);w1=rd(0x000Au);w2=rd(0x000Bu);
+    fl[0]=(u8)(w0&0xFFu);fl[1]=(u8)((w0>>8)&0xFFu);
+    fl[2]=(u8)(w1&0xFFu);fl[3]=(u8)((w1>>8)&0xFFu);
+    fl[4]=(u8)(w2&0xFFu);fl[5]=(u8)((w2>>8)&0xFFu);
     for(i=0;i<6;i++){
-        if(i==0)f=(u32)(w0&0xFFu);
-        else if(i==1)f=(u32)((w0>>8)&0xFFu);
-        else if(i==2)f=(u32)(w1&0xFFu);
-        else if(i==3)f=(u32)((w1>>8)&0xFFu);
-        else if(i==4)f=(u32)(w2&0xFFu);
-        else f=(u32)((w2>>8)&0xFFu);
-        row=(u8)(11u+i);
-        c_at(4,row,'O',2,0);c_at(5,row,'P',2,0);c_at(6,row,(u8)('0'+(6-i)),2,0);
-        text(9,row,"OUT",2,0);
-        text(13,row,(f&3u)==0u?"CAR":(((f&3u)==1u)?"BUS1":"BUS2"),2,0);
-        text(20,row,"IN",2,0);
-        text(23,row,(((f>>4)&3u)==0u)?"--":((((f>>4)&3u)==1u)?"BUS1":"BUS2"),2,0);
-        if((f>>6)==3u)text(31,row,"FB",2,0);
+        u8 c0=(i&1u)?52u:2u;
+        u8 r0=(u8)(12u+(i/2u)*5u);
+        u8 out=(u8)(fl[i]&3u),in=(u8)((fl[i]>>4)&3u),fb=(u8)((fl[i]>>6)==3u);
+        for(row=r0;row<=(u8)(r0+3u);row++)
+            for(j=0;j<42;j++)c_at((u8)(c0+j),row,0,5,4);
+        for(j=1;j<41;j++){c_at((u8)(c0+j),r0,'-',2,0);c_at((u8)(c0+j),(u8)(r0+3u),'-',2,0);}
+        c_at(c0,r0,'+',2,0);c_at((u8)(c0+41u),r0,'+',2,0);
+        c_at(c0,(u8)(r0+3u),'+',2,0);c_at((u8)(c0+41u),(u8)(r0+3u),'+',2,0);
+        for(row=(u8)(r0+1u);row<=(u8)(r0+2u);row++){c_at(c0,row,'|',2,0);c_at((u8)(c0+41u),row,'|',2,0);}
+        text((u8)(c0+2u),(u8)(r0+1u),"OP",3,0);
+        c_at((u8)(c0+4u),(u8)(r0+1u),(u8)('0'+(6-i)),3,0);
+        text((u8)(c0+7u),(u8)(r0+1u),"OUT",2,0);
+        text((u8)(c0+11u),(u8)(r0+1u),out==0u?"CAR":(out==1u?"BUS1":"BUS2"),1,0);
+        text((u8)(c0+2u),(u8)(r0+2u),"IN",2,0);
+        text((u8)(c0+5u),(u8)(r0+2u),in==0u?"--":(in==1u?"BUS1":"BUS2"),1,0);
+        if(fb)text((u8)(c0+20u),(u8)(r0+2u),"FB",4,0);
     }
+    text(2,25,"CAR=CARRIER  BUS=MODULATION BUS  FB=FEEDBACK",2,0);
 }
 static void draw_osc(void){
     u8 i,row,j;
@@ -521,7 +531,8 @@ static void draw_osc(void){
     prow(row,"L DEPTH",u2d(o_ld),(sel_row==9));row++;
     prow(row,"R DEPTH",u2d(o_rd),(sel_row==10));row++;
     prow(row,"L CURVE",curve_name(o_lc),(sel_row==11));row++;
-    prow(row,"R CURVE",curve_name(o_rc),(sel_row==12));
+    prow(row,"R CURVE",curve_name(o_rc),(sel_row==12));row++;
+    prow(row,"ENABLE",o_en?"ON":"OFF",(sel_row==13));
 }
 /* DX7 helpers shared by the EG page.  The patch stores a 6-bit qrate and a
    16-bit internal level; the UI works in the familiar 0..99 units. */
@@ -543,6 +554,166 @@ static u8 level_from_internal(u16 v){
     }
     return (u8)bl;
 }
+
+/* ------------------------------------------------------------------ */
+/* Pitch EG, user slots and patch name (phase 2b)                      */
+/* ------------------------------------------------------------------ */
+static const signed char pitch_units_tab[100]={
+    -128, -116, -104, -95, -85, -76, -68, -61, -56, -52,
+    -49, -46, -43, -41, -39, -37, -35, -33, -32, -31,
+    -30, -29, -28, -27, -26, -25, -24, -23, -22, -21,
+    -20, -19, -18, -17, -16, -15, -14, -13, -12, -11,
+    -10, -9, -8, -7, -6, -5, -4, -3, -2, -1,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+    30, 31, 32, 33, 34, 35, 38, 40, 43, 46,
+    49, 53, 58, 65, 73, 82, 92, 103, 115, 127,
+};
+static const unsigned short pitch_rate_tab[100]={
+    1, 2, 3, 3, 4, 4, 5, 5, 6, 6,
+    7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
+    12, 12, 13, 13, 14, 14, 15, 16, 16, 17,
+    18, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+    27, 28, 30, 31, 33, 34, 36, 37, 38, 39,
+    41, 42, 44, 46, 47, 49, 51, 53, 54, 56,
+    58, 60, 62, 64, 66, 68, 70, 72, 74, 76,
+    79, 82, 85, 88, 91, 94, 98, 102, 106, 110,
+    115, 120, 125, 130, 135, 141, 147, 153, 159, 165,
+    171, 178, 185, 193, 202, 211, 232, 243, 254, 255,
+};
+
+static u8 eg_mode;            /* 0 = operator amp EG, 1 = pitch EG */
+static u8 p_rate[4],p_lev[4];
+static u8 name_pos,slot_sel;
+static u8 last_preset=0xFF;
+static void draw_page(void);
+static const char name_chars[]="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.- ";
+#define NAME_CHAR_COUNT 39
+
+static u8 pitch_rate_from_coeff(u16 c){
+    int i,best=0;u32 bd=0xFFFFFFFFu;
+    for(i=0;i<100;i++){
+        u32 d=((u32)pitch_rate_tab[i]>c)?((u32)pitch_rate_tab[i]-c):((u32)c-pitch_rate_tab[i]);
+        if(d<bd){bd=d;best=i;}
+    }
+    return (u8)best;
+}
+static u8 pitch_level_from_units(s32 u){
+    int i,best=0;u32 bd=0xFFFFFFFFu;
+    for(i=0;i<100;i++){
+        s32 d=(s32)pitch_units_tab[i]-u;
+        u32 ad=(d<0)?(u32)(-d):(u32)d;
+        if(ad<bd){bd=ad;best=i;}
+    }
+    return (u8)best;
+}
+static void load_pitch(void){
+    u8 s;
+    for(s=0;s<4;s++){
+        u16 a=(u16)(0x140u+s*8u);u32 t;
+        p_rate[s]=pitch_rate_from_coeff((u16)(rd(a)&0xFFu));
+        t=(u32)rd((u16)(a+1u))|((u32)rd((u16)(a+2u))<<16);
+        if(t&0x400000u)t|=0xFF800000u;
+        p_lev[s]=pitch_level_from_units(((s32)t)>>15);
+    }
+}
+static void send_pitch_stage(u8 s){
+    u32 lo=(u32)s|((u32)pitch_rate_tab[p_rate[s]]<<8);
+    s32 target=((s32)pitch_units_tab[p_lev[s]])<<15;
+    u32 hi=((u32)target&0x7FFFFFu)<<24;
+    cmd(0x65,lo,hi);
+}
+static void adj_pitch(u8 row,int d){
+    int v;
+    if(row<4){v=(int)p_rate[row]+d;if(v<0)v=0;if(v>99)v=99;p_rate[row]=(u8)v;send_pitch_stage(row);}
+    else {v=(int)p_lev[row-4]+d;if(v<0)v=0;if(v>99)v=99;p_lev[row-4]=(u8)v;send_pitch_stage((u8)(row-4));}
+    draw_page();
+}
+static void name_from_preset(u8 pr){
+    u8 i;pr&=31u;
+    for(i=0;i<10&&preset_names[pr][i];i++)cur_name[i]=preset_names[pr][i];
+    cur_name[i]=0;
+}
+static void name_cycle(int d){
+    char c=cur_name[name_pos];u8 i,idx=0;
+    for(i=0;i<NAME_CHAR_COUNT;i++)if(name_chars[i]==c){idx=i;break;}
+    idx=(u8)((idx+(d>0?1:NAME_CHAR_COUNT-1))%NAME_CHAR_COUNT);
+    cur_name[name_pos]=name_chars[idx];
+}
+/* User slots keep the complete parameter image: 9 globals, 6x17 operator
+   words and 12 pitch-EG words, read through 0x69 and written back through
+   0x60/0x62/0x63/0x64/0x65. */
+#define SLOT_MAGIC 0x5A5Au
+struct slot_t {u16 magic;char name[11];u16 globals[9];u16 op[6][17];u16 pitch[12];};
+static struct slot_t slots[8];
+static void slot_read_all(struct slot_t *s){
+    u8 i,j;
+    s->magic=SLOT_MAGIC;
+    for(i=0;i<11;i++)s->name[i]=cur_name[i];
+    for(i=0;i<9;i++)s->globals[i]=rd((u16)i);
+    for(i=0;i<6;i++){
+        u16 a=(u16)(0x040u+(u16)i*0x20u);
+        for(j=0;j<17;j++)s->op[i][j]=rd((u16)(a+j));
+    }
+    for(i=0;i<4;i++){
+        u16 a=(u16)(0x140u+(u16)i*8u);
+        s->pitch[i*3+0]=rd(a);
+        s->pitch[i*3+1]=rd((u16)(a+1u));
+        s->pitch[i*3+2]=rd((u16)(a+2u));
+    }
+}
+static void slot_save(void){
+    if(slot_sel>7u)slot_sel=0;
+    slot_read_all(&slots[slot_sel]);
+    draw_page();
+}
+static void slot_load(void){
+    struct slot_t *s;
+    u8 i,j;
+    if(slot_sel>7u)slot_sel=0;
+    s=&slots[slot_sel];
+    if(s->magic!=SLOT_MAGIC)return;
+    {
+        u16 g2=s->globals[2];
+        u32 lo=(u32)(s->globals[0]&31u)|((u32)(s->globals[1]&7u)<<8)|
+               ((u32)(g2&1u)<<11)|((u32)((g2>>1)&1u)<<12)|
+               ((u32)(s->globals[3]&0x7Fu)<<16)|((u32)((g2>>2)&7u)<<24);
+        u32 hi=(u32)(s->globals[4]&0x7Fu)|((u32)(s->globals[5]&0x7Fu)<<8)|
+               ((u32)(s->globals[6]&0x7Fu)<<16)|((u32)(s->globals[7]&0x7Fu)<<24);
+        cmd(0x60,lo,hi);cmd(0x61,(u32)(s->globals[8]&7u),0);
+    }
+    for(i=0;i<6;i++){
+        u16 w0=s->op[i][0];u32 freq=(u32)s->op[i][1]|((u32)s->op[i][2]<<16);
+        u32 lo=(u32)i|((u32)(w0&1u)<<8)|((u32)((w0>>1)&1u)<<9)|
+               ((u32)((w0>>2)&15u)<<10)|(1u<<14)|((freq&0xFFFFu)<<16);
+        u32 hi=((freq>>16)&0xFFFFu)|((u32)s->op[i][3]<<16);
+        cmd(0x62,lo,hi);
+        for(j=0;j<4;j++){
+            u32 elo=(u32)i|((u32)j<<8)|((u32)(s->op[i][9+j]&0x3Fu)<<16);
+            u32 ehi=(u32)s->op[i][13+j]|((u32)(s->op[i][8]&7u)<<16)|
+                    ((u32)((s->op[i][8]>>3)&7u)<<24)|((u32)((s->op[i][8]>>6)&3u)<<28);
+            cmd(0x63,elo,ehi);
+        }
+        {
+            u16 cw=s->op[i][7];
+            u32 slo=(u32)i|((u32)(s->op[i][4]&0x7Fu)<<8)|
+                    ((u32)(s->op[i][5]&0x7Fu)<<16)|((u32)(s->op[i][6]&0x7Fu)<<24);
+            u32 shi=(u32)(cw&3u)|((u32)((cw>>2)&3u)<<2);
+            cmd(0x64,slo,shi);
+        }
+    }
+    for(i=0;i<4;i++){
+        u32 target=(u32)s->pitch[i*3+1]|((u32)(s->pitch[i*3+2]&0x7Fu)<<16);
+        cmd(0x65,(u32)i|((u32)(s->pitch[i*3+0]&0xFFu)<<8),((target&0x7FFFFFu)<<24));
+    }
+    for(i=0;i<11;i++)cur_name[i]=s->name[i];
+    cur_name[10]=0;
+    if(page==1||page==4)load_globals();
+    else if(page==2){load_op(sel_op);}
+    else if(page==3){load_op(sel_op);if(eg_mode)load_pitch();}
+    draw_page();
+}
 static void draw_eg(void){
     u8 i,j,row=6;
     for(i=0;i<6;i++){
@@ -551,28 +722,51 @@ static void draw_eg(void){
         c_at(base,4,'O',pal,1);c_at((u8)(base+1u),4,'P',pal,1);
         c_at((u8)(base+2u),4,(u8)('0'+(i+1)),pal,1);
     }
-    text(66,4,"ENVELOPE",3,0);
-    for(i=0;i<4;i++){
-        char lbl[7];u8 n=0;
-        lbl[n++]='R';lbl[n++]='A';lbl[n++]='T';lbl[n++]='E';lbl[n++]=' ';
-        lbl[n++]=(char)('1'+i);lbl[n]=0;
-        prow(row,lbl,u2d(o_rate[i]),(sel_row==i));row++;
-    }
-    row=11;
-    for(i=0;i<4;i++){
-        char lbl[8];u8 n=0;
-        lbl[n++]='L';lbl[n++]='E';lbl[n++]='V';lbl[n++]='E';lbl[n++]='L';lbl[n++]=' ';
-        lbl[n++]=(char)('1'+i);lbl[n]=0;
-        prow(row,lbl,u2d(o_lev[i]),(sel_row==4+i));row++;
-    }
-    /* Four-stage target preview: one bar per level, 4 cells wide. */
-    for(i=0;i<4;i++){
-        u8 h=(u8)(((u32)o_lev[i]*12u)/99u);
-        u8 top=(u8)(23u-h);
-        for(row=10;row<=23;row++)
-            for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,12,4);
-        for(row=top;row<=23;row++)
-            for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,3,4);
+    text(66,4,eg_mode?"PITCH EG":"AMP EG",3,0);
+    if(eg_mode==0u){
+        for(i=0;i<4;i++){
+            char lbl[7];u8 n=0;
+            lbl[n++]='R';lbl[n++]='A';lbl[n++]='T';lbl[n++]='E';lbl[n++]=' ';
+            lbl[n++]=(char)('1'+i);lbl[n]=0;
+            prow(row,lbl,u2d(o_rate[i]),(sel_row==i));row++;
+        }
+        row=11;
+        for(i=0;i<4;i++){
+            char lbl[8];u8 n=0;
+            lbl[n++]='L';lbl[n++]='E';lbl[n++]='V';lbl[n++]='E';lbl[n++]='L';lbl[n++]=' ';
+            lbl[n++]=(char)('1'+i);lbl[n]=0;
+            prow(row,lbl,u2d(o_lev[i]),(sel_row==4+i));row++;
+        }
+        for(i=0;i<4;i++){
+            u8 h=(u8)(((u32)o_lev[i]*12u)/99u);
+            u8 top=(u8)(23u-h);
+            for(row=10;row<=23;row++)
+                for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,12,4);
+            for(row=top;row<=23;row++)
+                for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,3,4);
+        }
+    }else{
+        for(i=0;i<4;i++){
+            char lbl[8];u8 n=0;
+            lbl[n++]='P';lbl[n++]='R';lbl[n++]='A';lbl[n++]='T';lbl[n++]='E';lbl[n++]=' ';
+            lbl[n++]=(char)('1'+i);lbl[n]=0;
+            prow(row,lbl,u2d(p_rate[i]),(sel_row==i));row++;
+        }
+        row=11;
+        for(i=0;i<4;i++){
+            char lbl[10];u8 n=0;
+            lbl[n++]='T';lbl[n++]='A';lbl[n++]='R';lbl[n++]='G';lbl[n++]='E';lbl[n++]='T';
+            lbl[n++]=' ';lbl[n++]=(char)('1'+i);lbl[n]=0;
+            prow(row,lbl,u2d(p_lev[i]),(sel_row==4+i));row++;
+        }
+        for(i=0;i<4;i++){
+            u8 h=(u8)(((u32)p_lev[i]*12u)/99u);
+            u8 top=(u8)(23u-h);
+            for(row=10;row<=23;row++)
+                for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,12,4);
+            for(row=top;row<=23;row++)
+                for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,4,4);
+        }
     }
 }
 static void draw_lfo(void){
@@ -585,6 +779,28 @@ static void draw_lfo(void){
     prow(row,"P MOD SENS",u1d(g_pms),(sel_row==5));row++;
     prow(row,"LFO SYNC",g_lsync?"ON":"OFF",(sel_row==6));row++;
     prow(row,"KEY SYNC",g_sync?"ON":"OFF",(sel_row==7));
+}
+static void draw_name(void){
+    u8 i;
+    u8 used=(slots[slot_sel].magic==SLOT_MAGIC);
+    text(2,4,"NAME / USER SLOT",3,0);
+    text(2,6,"NAME",2,0);
+    for(i=0;i<10;i++){
+        u8 col=(u8)(14u+i*3u);
+        u8 pal=(i==name_pos)?3u:2u;
+        c_at(col,6,0,pal,1);
+        c_at(col,6,(u8)(cur_name[i]?cur_name[i]:' '),pal,1);
+    }
+    btn_cells(56,60,6,"-",2);btn_cells(64,68,6,"+",2);
+    text(2,8,"SLOT",2,0);
+    c_at(14,8,(u8)('1'+slot_sel),3,1);
+    btn_cells(30,36,8,"SLOT -",2);btn_cells(40,46,8,"SLOT +",2);
+    btn_cells(30,40,10,"SAVE",2);btn_cells(50,60,10,"LOAD",2);
+    if(used)text(2,12,"SLOT HAS DATA",2,0);
+    else text(2,12,"SLOT EMPTY",2,0);
+    text(2,14,"TAP A NAME CHAR, THEN +/-",2,0);
+    text(2,15,"SAVE KEEPS ALL PATCH FIELDS",2,0);
+    for(i=0;i<10;i++)c_at((u8)(14u+i*3u),7,0,12,4);
 }
 static void draw_theme(void){
     text(2,4,"THEME",3,0);
@@ -601,6 +817,7 @@ static void draw_page(void){
     else if(page==PAGE_OSC)draw_osc();
     else if(page==3)draw_eg();
     else if(page==4)draw_lfo();
+    else if(page==6)draw_name();
     else if(page==7)draw_theme();
     else draw_placeholder();
 }
@@ -613,6 +830,7 @@ static void page_enter(u8 p){
     else if(p==PAGE_OSC)load_op(sel_op);
     else if(p==3)load_op(sel_op);
     else if(p==4)load_globals();
+    else if(p==6)name_from_preset((u8)((UI[4]>>7)&31u));
     
     publish();
     
@@ -628,7 +846,8 @@ static void adj_algo(u8 row,int d){
     int v;
     if(row==0){v=(int)g_algo+d;if(v<0)v=0;if(v>31)v=31;g_algo=(u8)v;send_global();}
     else if(row==1){v=(int)g_fb+d;if(v<0)v=0;if(v>7)v=7;g_fb=(u8)v;send_global();}
-    else {g_sync=(u8)(g_sync?0:1);send_global();}
+    else if(row==2){g_sync=(u8)(g_sync?0:1);send_global();}
+    else {v=(int)g_trans+d;if(v<0)v=0;if(v>48)v=48;g_trans=(u8)v;send_global();}
     draw_page();
 }
 static void adj_op(u8 row,int d){
@@ -651,6 +870,7 @@ static void adj_op(u8 row,int d){
     if(row==10){v=(int)o_rd+d;if(v<0)v=0;if(v>99)v=99;o_rd=(u8)v;send_scaling();draw_page();return;}
     if(row==11){v=(int)o_lc+d;if(v<0)v=0;if(v>3)v=3;o_lc=(u8)v;send_scaling();draw_page();return;}
     if(row==12){v=(int)o_rc+d;if(v<0)v=0;if(v>3)v=3;o_rc=(u8)v;send_scaling();return;}
+    if(row==13){o_en=(u8)(o_en?0:1);send_op();draw_page();return;}
 }
 
 static void send_eg_stage(u8 s){
@@ -685,8 +905,8 @@ static void adj_lfo(u8 row,int d){
     draw_page();
 }
 static int editable_rows(void){
-    if(page==PAGE_ALGO)return 3;
-    if(page==PAGE_OSC)return 13;
+    if(page==PAGE_ALGO)return 4;
+    if(page==PAGE_OSC)return 14;
     if(page==3)return 8;
     if(page==4)return 8;
     return 0;
@@ -698,7 +918,7 @@ static int content_top(void){
 }
 static void adj(u8 row,int d){
     if(page==PAGE_ALGO)adj_algo(row,d);
-    else if(page==3)adj_eg(row,d);
+    else if(page==3){if(eg_mode)adj_pitch(row,d);else adj_eg(row,d);}
     else if(page==4)adj_lfo(row,d);
     else adj_op(row,d);
 }
@@ -707,6 +927,26 @@ static int menu_press(int x,int y){
     if(y<16){t=(x-4)/96;if(t<0)t=0;if(t>7)t=7;
         if((u8)t!=page)page_enter((u8)t);return 1;}
     if(page==7&&y>=64){theme=(u8)((theme+1u)%3u);apply_theme(theme);draw_page();return 1;}
+    if(page==3&&y>=64&&y<80&&x>=620){eg_mode=(u8)(eg_mode?0:1);if(eg_mode)load_pitch();draw_page();return 1;}
+    if(page==6){
+        if(y>=96&&y<112){
+            if(x>=448&&x<504)name_cycle(-1);
+            else if(x>=512&&x<568)name_cycle(1);
+            else {int q=(x-112)/24;if(q<0)q=0;if(q>9)q=9;name_pos=(u8)q;}
+            draw_page();return 1;
+        }
+        if(y>=128&&y<144){
+            if(x>=240&&x<328)slot_sel=(u8)((slot_sel+7u)&7u);
+            else if(x>=320&&x<488)slot_sel=(u8)((slot_sel+1u)&7u);
+            draw_page();return 1;
+        }
+        if(y>=160&&y<176){
+            if(x>=240&&x<328)slot_save();
+            else if(x>=400&&x<488)slot_load();
+            return 1;
+        }
+        return 1;
+    }
     if((page==PAGE_OSC||page==3)&&y>=64&&y<80){
         int i;for(i=0;i<6;i++){int x0=16+i*72;
             if(x>=x0&&x<x0+64){sel_op=(u8)(5-i);load_op(sel_op);sel_row=0;draw_page();return 1;}}
@@ -835,6 +1075,7 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
     lines=0;UI[0]=0;
     page=0;sel_row=0;sel_op=5;held_id=0xFF;
     apply_theme(0);
+    name_from_preset(0);
     clear_all();
     draw_perf();
     UI[17]=1; /* enable the character layer after the first clear */
@@ -853,11 +1094,26 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
                 draw_status();
             }
         }
+        {
+            u8 pr=(u8)((UI[4]>>7)&31u);
+            if(pr!=last_preset){
+                last_preset=pr;
+                name_from_preset(pr);
+                if(page==PAGE_PERF)draw_status();
+                else if(page>=1&&page<=4){
+                    if(page==PAGE_ALGO||page==4)load_globals();
+                    else {load_op(sel_op);if(page==3&&eg_mode)load_pitch();}
+                    draw_page();
+                }
+            }
+        }
         menu_repeat();perf_repeat();}
         else if((u32)(now()-retry)>500000u){retry=now();present=detect();publish();}
         delay_us(2000);
     }
 }
+
+
 
 
 
