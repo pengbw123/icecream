@@ -12,10 +12,11 @@
   & 'D:\Gowin\Gowin_V1.9.12.03_x64\IDE\bin\gw_sh.exe' build_cli.tcl
   ```
 
-- 当前可烧录文件：`impl/pnr/fm_138k_rgb.fs`。2026-10-20 16:52 的**阶段 0 地基版**（参数回读、算法路由、字符显示层，界面外观不变）。上一版是 15:48 的“像素时钟相位修复”版（见 9.2）。旧位流在 `impl/pnr/backup/`，IDE 工程目录中可能有旧的 `fpga_project.fs`，不要误烧旧文件。
-- 提交历史：`31de69e`（字库/波形修复）、`590569d`（修复前快照，标签 `pre-display-fix-20261020`）、更早正式基线 `2d60072`。
-- **多阶段改造进度看 `docs/PRO_MENU_PROGRESS.md`**（阶段 0..5 的唯一账本，含 0x69 回读地址表、字符格格式、软核寄存器变化）。接手新阶段先读它。
-- 最近一次回归 `sim/run_checks.ps1` 全通过；完整 Gowin 综合、布局布线和位流生成成功。2026-10-20 16:52 报告：50 MHz 主时钟 Fmax 51.218 MHz；33.333 MHz 像素时钟 Fmax 47.214 MHz；两时钟 setup/hold TNS 都为 0。资源：Logic 19388、Register 10567、CLS 14308、BSRAM 119/340、DSP 23.5/298。以 `impl/pnr` 最新报告为准，不要引用旧文档中的旧 Fmax。
+- 当前可烧录文件：`impl/pnr/fm_138k_rgb.fs`。2026-10-20 17:46 的**阶段 1 菜单版**：演奏页点顶部标题条进入多页菜单，ALGORITHM 与 OSC 1-6 页可读改参数，4..8 页占位。旧位流在 `impl/pnr/backup/`，IDE 工程目录中可能有旧的 `fpga_project.fs`，不要误烧旧文件。
+- 提交历史：`31de69e`（字库/波形修复）、`590569d`（修复前快照，标签 `pre-display-fix-20261020`）、阶段 0 标签 `phase0-done`、阶段 1 标签 `phase1-done`。更早正式基线 `2d60072`。
+- **多阶段改造进度看 `docs/PRO_MENU_PROGRESS.md`**（阶段 0..5 的唯一账本，含 0x69 回读地址表、字符格格式、软核寄存器变化、菜单交互与已知限制）。接手新阶段先读它。
+- 最近一次回归 `sim/run_checks.ps1` 全通过（14 项）；完整 Gowin 综合、布局布线和位流生成成功。2026-10-20 17:46 报告：50 MHz 主时钟 Fmax 56.449 MHz；33.333 MHz 像素时钟 Fmax 43.015 MHz；两时钟 setup/hold TNS 都为 0。资源：Logic 19375、Register 10567、CLS 14352、BSRAM 123/340、DSP 23.5/298。以 `impl/pnr` 最新报告为准，不要引用旧文档中的旧 Fmax。
+- UI 固件 15 708 B（64 KiB 上限的 24%）。改 C 后必须先跑 `src/ui_firmware/build_firmware.ps1 -Zig <zig.exe>` 再综合。
 - 真实 ACG720 + TFT 屏幕本轮已上板：背光、扫描、触摸、WAVE/XY 均工作，但文字笔画随机丢点；根因是转发像素时钟反相 180°，已于 2026-10-20 修复（9.2）。触摸/显示仍建议继续实板观察。
 
 ## 2. 产品目标与用户优先级

@@ -11,13 +11,44 @@ module tb_touch_ui;
     wire visual_mode;
     wire display_auto_gain;
     wire [6:0] xy_delay;
+    wire [3:0] menu_page;
+    reg [15:0] pr_data=16'h0021;
+    reg pr_valid=0;
+    integer cmd_69=0,cmd_60=0,cmd_62=0,text_cells=0;
     touch_ui_controller dut(.clk(clk),.reset_n(reset_n),.tp_scl(scl),.tp_sda(sda),
         .tp_int(int_pin),.tp_rst(rst_pin),.uart_tx(uart),.midi_event_data(event_word),
         .midi_event_valid(valid),.midi_event_ready(1'b1),.monitor_event(32'd0),
         .monitor_event_valid(1'b0),.preset_index(5'd0),.algorithm(5'd4),.active_voices(5'd0),
         .touch_present(present),.keyboard_octave(octave),.master_volume(volume),
         .visual_mode(visual_mode),.xy_delay_samples(xy_delay),.display_auto_gain(display_auto_gain),
-        .command_ready(1'b1),.fx_read_value(32'd0));
+        .command_ready(1'b1),.fx_read_value(32'd0),
+        .menu_page(menu_page),.patch_read_data(pr_data),.patch_read_valid(pr_valid));
+    // Minimal 0x69 responder: the real synth answers two clocks after the
+    // address is presented; the firmware only needs a valid response.
+    reg [1:0] pr_wait=0;
+    always @(posedge clk) begin
+        pr_valid<=0;
+        if(dut.command_valid&&dut.command==8'h69&&pr_wait==0)pr_wait<=2'd3;
+        else if(pr_wait!=0)begin
+            pr_wait<=pr_wait-1;
+            if(pr_wait==1)pr_valid<=1;
+        end
+    end
+    integer cell_fd;
+    initial cell_fd=$fopen("tmp/menu_cells.txt","w");
+    always @(posedge clk)begin
+        if(dut.text_write)
+            $fwrite(cell_fd,"%0d %0d %0d\n",dut.text_address,dut.text_data,$time);
+    end
+    always @(posedge clk)begin
+        if(dut.command_valid)case(dut.command)
+            8'h69:cmd_69<=cmd_69+1;
+            8'h60:cmd_60<=cmd_60+1;
+            8'h62:cmd_62<=cmd_62+1;
+            default:;
+        endcase
+        if(dut.text_write)text_cells<=text_cells+1;
+    end
     integer touch_kind=1;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -33,6 +64,13 @@ module tb_touch_ui;
             if(touch_kind==7)begin px=750;py=420;end
             if(touch_kind==8)begin px=650;py=210;end
             if(touch_kind==9)begin px=750;py=460;end
+            if(touch_kind==10)begin px=100;py=8;end
+            if(touch_kind==11)begin px=8;py=8;end
+            if(touch_kind==12)begin px=104;py=8;end
+            if(touch_kind==13)begin px=200;py=70;end
+            if(touch_kind==14)begin px=530;py=70;end
+            if(touch_kind==15)begin px=200;py=8;end
+            if(touch_kind==16)begin px=30;py=40;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -128,7 +166,34 @@ module tb_touch_ui;
         if(display_auto_gain)$fatal(1,"Held AGC button repeated");
         touch_kind=0;#5000000;
         touch_kind=9;wait(display_auto_gain);
-        $display("PASS real UI firmware, I2C, held control, shared-key fingers and final release");$finish;
+        // ---- Phase 1 menu regression -------------------------------------
+        touch_kind=0;#8000000;
+        if(menu_page!==4'd0)$fatal(1,"Performance page should not show the menu");
+        $display("M1 enter menu at %t",$time);touch_kind=10;wait(menu_page==4'd1);#5000000;$display("M2 page1 at %t",$time);
+        if(cmd_69<5)$fatal(1,"Menu entry did not read patch parameters");
+        if(text_cells<300)$fatal(1,"Menu entry did not draw the character layer");
+        touch_kind=0;#8000000;
+        touch_kind=13;#5000000;   // select the algorithm row
+        touch_kind=0;#8000000;
+        touch_kind=14;#5000000;   // press "+" on the algorithm row
+        touch_kind=0;#8000000;
+        if(cmd_60<1)$fatal(1,"Algorithm edit did not send command 0x60");
+        $display("M3 algo edit done at %t",$time);touch_kind=11;wait(menu_page==4'd0);#8000000;$display("M4 back perf at %t",$time);
+        touch_kind=0;#8000000;
+        touch_kind=12;wait(menu_page==4'd1);#8000000;$display("M5 page1 again at %t",$time);
+        touch_kind=0;#8000000;
+        $display("M6 enter osc at %t",$time);touch_kind=15;wait(menu_page==4'd2);#5000000;$display("M7 osc page at %t",$time);
+        touch_kind=0;#8000000;
+        touch_kind=16;#5000000;                          // select OP1
+        touch_kind=0;#8000000;
+        if(cmd_69<20)$fatal(1,"OSC page did not read operator fields");
+        $fclose(cell_fd);
+        $display("PASS real UI firmware, I2C, menu pages, 0x69 readback and edit commands");$finish;
     end
-    initial begin #180000000;$fatal(1,"Touch UI timeout PC=%h",dut.address);end
+    initial begin #450000000;$fclose(cell_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
 endmodule
+
+
+
+
+

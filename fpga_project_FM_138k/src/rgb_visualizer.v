@@ -376,11 +376,10 @@ module rgb_visualizer #(
             font_enable=character!=0;font_character=character;font_x=(x-648)%6;font_y=ty[2:0];
             font_color=24'hF0F5FA;
         end
-        if(page_frame!=0 && x<640&&y>=64&&y<400)begin rgb=bg_frame;font_enable=0;end
-        if(page_frame!=0&&x>=640&&y>=64)begin
-            rgb=24'h101E30;font_enable=0;
-            if(y<400&&((y-80)%56)<40&&y>=80)rgb=24'h284763;
-        end
+        // Menu pages are a flat panel drawn entirely by the character layer;
+        // hide the performance-page graphics behind it.  page_frame is latched
+        // at the frame boundary, so this switch is tear-free.
+        if(page_frame!=0)begin rgb=bg_frame;font_enable=0;end
         if (!de) rgb=0;
     end
     // Forward the pixel clock with the SAME phase as the logic that launches
