@@ -41,7 +41,9 @@ module top #(
     output wire [4:0] monitor_voice_count,
     output wire [4:0] monitor_preset,
     output wire [4:0] monitor_algorithm,
-    output wire [47:0] monitor_operator_envelopes
+    output wire [47:0] monitor_operator_envelopes,
+    output wire [15:0] readback_data,
+    output wire readback_valid
 );
     wire clk_usb_48m;
     wire clk_usb_bram_96m;
@@ -245,6 +247,8 @@ module top #(
     wire [15:0] fm_note_gain_value;
     wire fm_patch_commit;
     wire [4:0] current_preset;
+    wire [9:0] fm_patch_read_address;
+    wire [15:0] fm_patch_read_data;
 
     fm_uart_control u_fm_uart_control (
         .clk(clk), .reset_n(audio_reset_n), .uart_rx_pin(uart_rx_pin),
@@ -301,6 +305,9 @@ module top #(
         .fm_note_gain_address(fm_note_gain_address),
         .fm_note_gain_value(fm_note_gain_value),
         .fm_patch_commit(fm_patch_commit),
+        .patch_read_address(fm_patch_read_address),
+        .patch_read_data(fm_patch_read_data),
+        .readback_data(readback_data), .readback_valid(readback_valid),
         .packet_received(uart_packet_received), .packet_error(uart_packet_error),
         .current_preset(current_preset)
     );
@@ -371,7 +378,10 @@ module top #(
         .fm_note_gain_write_valid(fm_note_gain_write_valid),
         .fm_note_gain_address(fm_note_gain_address),
         .fm_note_gain_value(fm_note_gain_value),
-        .fm_patch_commit(fm_patch_commit), .pitch_bend(pitch_bend),
+        .fm_patch_commit(fm_patch_commit),
+        .patch_read_address(fm_patch_read_address),
+        .patch_read_data(fm_patch_read_data),
+        .pitch_bend(pitch_bend),
         .vibrato_depth(vibrato_depth), .vibrato_rate(vibrato_rate),
         .portamento_time(portamento_time), .sample_out(synth_sample),
         .active_voice_count(active_voice_count),

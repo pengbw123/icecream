@@ -43,7 +43,8 @@ module tb_rgb_visualizer;
         .visual_mode(!show_wave),.xy_delay_samples(7'd24),
         .display_auto_gain(1'b1),.menu_page(4'd0),.algorithm_flags(48'd0),
         .background_color(24'h080D18),.wave_color(24'h40EAD0),.xy_color(24'hFFB95A),
-        .text_write(1'b0),.text_address(11'd0),.text_data(16'd0),
+        .text_write(1'b0),.text_address(12'd0),.text_data(16'd0),
+        .palette_write(1'b0),.palette_index(4'd0),.palette_data(24'd0),
         .lcd_pclk(pclk),.lcd_de(de),.lcd_hsync(hs),.lcd_vsync(vs),.lcd_bl(bl),
         .lcd_r(r),.lcd_g(g),.lcd_b(b),.pll_locked(lock));
     task note_on(input [6:0] note);

@@ -44,11 +44,16 @@ module top_138k (
     wire [3:0] menu_page;
     wire [23:0] background_color,wave_color,xy_color;
     wire text_write;
-    wire [10:0] text_address;
+    wire [11:0] text_address;
     wire [15:0] text_data;
+    wire palette_write;
+    wire [3:0] palette_index;
+    wire [23:0] palette_data;
     wire ui_command_valid,ui_command_ready;
     wire [7:0] ui_command;
     wire [63:0] ui_command_payload;
+    wire [15:0] readback_data;
+    wire readback_valid;
     assign bridge_ready=external_ready;
     assign ui_ready=external_ready && !bridge_valid;
     touch_ui_controller u_ui (
@@ -60,7 +65,9 @@ module top_138k (
         .visual_mode(visual_mode),.xy_delay_samples(xy_delay_samples),.display_auto_gain(display_auto_gain),
         .menu_page(menu_page),.background_color(background_color),.wave_color(wave_color),.xy_color(xy_color),
         .text_write(text_write),.text_address(text_address),.text_data(text_data),
+        .palette_write(palette_write),.palette_index(palette_index),.palette_data(palette_data),
         .command_valid(ui_command_valid),.command(ui_command),.command_payload(ui_command_payload),.command_ready(ui_command_ready),
+        .patch_read_data(readback_data),.patch_read_valid(readback_valid),
         .fx_write(),.fx_index(),.fx_value(),.fx_read_value(32'd0),.numeric_display()
     );
     top #(.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(1)) u_audio (
@@ -78,7 +85,8 @@ module top_138k (
         .monitor_sample(pcm),.monitor_sample_tick(tick),
         .monitor_midi_event_data(event_data),.monitor_midi_event_valid(event_valid),
         .monitor_voice_count(voices),.monitor_preset(preset),
-        .monitor_algorithm(algorithm),.monitor_operator_envelopes(operator_eg)
+        .monitor_algorithm(algorithm),.monitor_operator_envelopes(operator_eg),
+        .readback_data(readback_data),.readback_valid(readback_valid)
     );
     ws2812_keys u_leds (
         .clk(clk),.reset_n(reset_n),.midi_event_data(event_data),
@@ -95,6 +103,7 @@ module top_138k (
         .display_auto_gain(display_auto_gain),.menu_page(menu_page),.algorithm_flags(48'd0),
         .background_color(background_color),.wave_color(wave_color),.xy_color(xy_color),
         .text_write(text_write),.text_address(text_address),.text_data(text_data),
+        .palette_write(palette_write),.palette_index(palette_index),.palette_data(palette_data),
         .lcd_pclk(lcd_pclk),.lcd_de(lcd_de),.lcd_hsync(lcd_hsync),.lcd_vsync(lcd_vsync),
         .lcd_bl(lcd_bl),.lcd_r(lcd_r),.lcd_g(lcd_g),.lcd_b(lcd_b),.pll_locked(video_lock)
     );

@@ -2,9 +2,6 @@
 // The 512-point waveform is a ping-pong snapshot. Audio writes one bank;
 // video switches banks only in vertical blanking, then releases the old bank.
 module rgb_visualizer #(
-    // Professional character editing pages are still under integration.
-    // Do not burden the verified performance/AGC build with unfinished RAM.
-    parameter ENABLE_MENU_TEXT = 0,
     // Fallback only: 1 forwards an inverted pixel clock.  Keep at 0 to match
     // the vendor TFT example and this panel's sampling edge.
     parameter integer PIXEL_CLK_INVERT = 0
@@ -21,7 +18,8 @@ module rgb_visualizer #(
     input wire [6:0] xy_delay_samples,
     input wire [3:0] menu_page,input wire [47:0] algorithm_flags,
     input wire [23:0] background_color,wave_color,xy_color,
-    input wire text_write,input wire [10:0] text_address,input wire [15:0] text_data,
+    input wire text_write,input wire [11:0] text_address,input wire [15:0] text_data,
+    input wire palette_write,input wire [3:0] palette_index,input wire [23:0] palette_data,
     input wire display_auto_gain,
     output wire lcd_pclk,
     output reg lcd_de,lcd_hsync,lcd_vsync,
@@ -62,11 +60,15 @@ module rgb_visualizer #(
         if(!video_reset_n)begin page_frame<=0;bg_frame<=24'h080D18;wc_frame<=24'h40EAD0;xc_frame<=24'hFFB95A;flags_frame<=0;end
         else if(frame_latch)begin page_frame<=page_sync;bg_frame<=bg_sync;wc_frame<=wc_sync;xc_frame<=xc_sync;flags_frame<=flags_sync;end
     end
-    generate if(ENABLE_MENU_TEXT)begin:g_menu_text
-        rtl_menu_text u_menu(.clk(clk),.text_write(text_write),.text_address(text_address),.text_data(text_data),
-            .pclk(pclk),.reset_n(video_reset_n),.h(hcount),.v(vcount),.enabled(page_frame!=0),.ink(menu_ink),.color(menu_color));
-    end else begin:g_no_menu_text
-        assign menu_ink=1'b0;assign menu_color=24'd0;
+    generate if(1)begin:g_menu_text
+        // Character-cell menu layer.  Phase 0 keeps it disabled on the
+        // performance page (page_frame==0) so the verified play screen is
+        // unchanged; the page firmware drives it later.
+        rtl_char_display u_menu(.clk(clk),.reset_n(reset_n),
+            .text_write(text_write),.text_address(text_address),.text_data(text_data),
+            .palette_write(palette_write),.palette_index(palette_index),.palette_data(palette_data),
+            .pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
+            .enabled(page_frame!=0),.ink(menu_ink),.color(menu_color));
     end endgenerate
     wire xy_pixel,wave_valid;
     wire [7:0] wave_min,wave_max;
@@ -379,13 +381,6 @@ module rgb_visualizer #(
             rgb=24'h101E30;font_enable=0;
             if(y<400&&((y-80)%56)<40&&y>=80)rgb=24'h284763;
         end
-        if(ENABLE_MENU_TEXT && x>=640&&y<60)begin
-            rgb=24'h284763;
-            if((x>=666&&x<678)||(x>=752&&x<764))begin
-                tx=(x<720)?(x-666)/3:(x-752)/3;ty=(y-20)/3;
-                if(y>=20&&y<38&&text_pixel(x<720?"-":"+",tx,ty))rgb=24'hFFFFFF;
-            end
-        end
         if (!de) rgb=0;
     end
     // Forward the pixel clock with the SAME phase as the logic that launches
@@ -407,7 +402,8 @@ module rgb_visualizer #(
     reg [7:0] character_pipe;
     reg [2:0] font_x_pipe,font_y_pipe;
     reg font_enable_pipe,de_pipe,hs_pipe,vs_pipe;
-    wire [23:0] final_rgb=performance_ink?performance_color:background_pipe;
+    wire [23:0] final_rgb=performance_ink?performance_color:
+        (menu_ink?menu_color:background_pipe);
     always @(posedge pclk) begin
         if (!video_reset_n) begin
             lcd_de<=0;lcd_hsync<=0;lcd_vsync<=0;lcd_r<=0;lcd_g<=0;lcd_b<=0;
@@ -418,9 +414,9 @@ module rgb_visualizer #(
             font_x_pipe<=font_x;font_y_pipe<=font_y;font_enable_pipe<=font_enable;
             de_pipe<=de;hs_pipe<=hsync;vs_pipe<=vsync;
             lcd_de<=de_pipe;lcd_hsync<=hs_pipe;lcd_vsync<=vs_pipe;
-            lcd_r<=menu_ink?menu_color[23:19]:final_rgb[23:19];
-            lcd_g<=menu_ink?menu_color[15:10]:final_rgb[15:10];
-            lcd_b<=menu_ink?menu_color[7:3]:final_rgb[7:3];
+            lcd_r<=final_rgb[23:19];
+            lcd_g<=final_rgb[15:10];
+            lcd_b<=final_rgb[7:3];
         end
     end
 endmodule

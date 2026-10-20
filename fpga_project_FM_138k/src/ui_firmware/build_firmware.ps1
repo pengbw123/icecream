@@ -54,10 +54,15 @@ if ($LASTEXITCODE -ne 0) { throw 'Firmware link failed.' }
 if ($LASTEXITCODE -ne 0) { throw 'Firmware objcopy failed.' }
 
 $bytes = [System.IO.File]::ReadAllBytes($binary)
+# Instruction fetch uses a 14-bit word address (64 KiB window).  Keep the whole
+# load image below that limit; .bss is not part of the image and may use the
+# remaining data RAM.
 if ($bytes.Length -gt 65536) {
-    throw "Firmware load image is $($bytes.Length) bytes, larger than the 64 KiB instruction ROM."
+    throw "Firmware load image is $($bytes.Length) bytes, larger than the 64 KiB instruction ROM window."
 }
 
+# Pad to the full 128 KiB data-memory image.  The soft core loads the same hex
+# into instruction_mem (first 16 384 words) and data_mem (all 32 768 words).
 $lines = [System.Collections.Generic.List[string]]::new(4096)
 for ($offset = 0; $offset -lt 131072; $offset += 4) {
     $word = [uint32]0

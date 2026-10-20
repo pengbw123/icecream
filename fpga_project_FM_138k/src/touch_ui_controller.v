@@ -19,10 +19,13 @@ module touch_ui_controller (
     output wire [6:0] xy_delay_samples,
     output wire display_auto_gain,
     output reg command_valid,output reg [7:0] command,output reg [63:0] command_payload,input wire command_ready,
-    output wire text_write,output wire [10:0] text_address,output wire [15:0] text_data,
+    output wire text_write,output wire [11:0] text_address,output wire [15:0] text_data,
+    output wire palette_write,output wire [3:0] palette_index,output wire [23:0] palette_data,
     output wire [3:0] menu_page,output reg [23:0] background_color,wave_color,xy_color,
     output wire fx_write,output wire [3:0] fx_index,output wire [31:0] fx_value,input wire [31:0] fx_read_value,
-    output reg [31:0] numeric_display
+    output reg [31:0] numeric_display,
+    // 0x69 readback results from the synth (registers 14/15).
+    input wire [15:0] patch_read_data,input wire patch_read_valid
 );
     wire reset_ready,int_o,int_t;
     gt9147_reset u_gt_reset(.clk(clk),.reset_n(reset_n),.tp_int_o(int_o),
@@ -50,6 +53,8 @@ module touch_ui_controller (
     wire ui_select=address[31:8]==24'h230000;
     wire [31:0] uart_data;
     reg [31:0] ui_data,ui_state;
+    reg [15:0] readback_value;
+    reg readback_ready;
     reg [6:0] volume;
     assign touch_present=ui_state[0];
     assign keyboard_octave=ui_state[11:8];
@@ -61,7 +66,11 @@ module touch_ui_controller (
     assign display_auto_gain=!ui_state[31];
     assign menu_page=ui_state[27:24];
     assign text_write=ui_select&&write_en&&address[5:2]==6;
-    assign text_address=write_data[10:0];assign text_data={4'd0,write_data[27:24],write_data[23:16]};
+    // Cell word: {attr[3:0], palette[3:0], char[7:0]} in write_data[31:16];
+    // address is the flat cell index {row[4:0], col[6:0]}.
+    assign text_address=write_data[11:0];assign text_data=write_data[31:16];
+    assign palette_write=ui_select&&write_en&&address[5:2]==16;
+    assign palette_index=write_data[27:24];assign palette_data=write_data[23:0];
     wire fx_select=address[31:8]==24'h250000;
     assign fx_write=fx_select&&write_en;assign fx_index=address[5:2];assign fx_value=write_data;
     RV32I #(.FIRMWARE_FILE("src/ui_firmware/firmware.hex")) u_cpu (
@@ -83,6 +92,8 @@ module touch_ui_controller (
             4:ui_data={10'd0,active_voices,algorithm,preset_index,volume};
             5:ui_data=ui_state;
             9:ui_data={31'd0,command_ready&&!command_valid};
+            14:ui_data={16'd0,readback_value};
+            15:ui_data={31'd0,readback_ready};
             default:ui_data=0;
         endcase
     end
@@ -90,8 +101,12 @@ module touch_ui_controller (
         if(!reset_n)begin
             i2c_drive<=0;midi_event_data<=0;midi_event_valid<=0;ui_state<=0;volume<=96;
             command_valid<=0;command<=0;command_payload<=0;
+            readback_value<=16'd0;readback_ready<=1'b0;
             background_color<=24'h080D18;wave_color<=24'h40EAD0;xy_color<=24'hFFB95A;numeric_display<=0;
         end else begin
+            if(patch_read_valid)begin
+                readback_value<=patch_read_data;readback_ready<=1'b1;
+            end
             if(midi_event_valid&&midi_event_ready)midi_event_valid<=0;
             if(command_valid&&command_ready)command_valid<=0;
             if(monitor_event_valid && monitor_event[23:20]==4'hB && monitor_event[14:8]==20)
@@ -110,6 +125,7 @@ module touch_ui_controller (
                     11:wave_color<=write_data[23:0];
                     12:xy_color<=write_data[23:0];
                     13:numeric_display<=write_data;
+                    15:readback_ready<=1'b0;
                     default:;
                 endcase
             end

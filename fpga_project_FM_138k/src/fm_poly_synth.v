@@ -68,6 +68,9 @@ module fm_poly_synth #(
     input  wire [9:0]         fm_note_gain_address,
     input  wire [15:0]        fm_note_gain_value,
     input  wire               fm_patch_commit,
+    // 0x69 parameter readback: live patch values for the on-device editor.
+    input  wire [9:0]         patch_read_address,
+    output reg  [15:0]        patch_read_data,
 
     input  wire [13:0]        pitch_bend,
     input  wire [6:0]         vibrato_depth,
@@ -155,6 +158,82 @@ module fm_poly_synth #(
     reg [7:0] patch_pitch_step [0:3];
     reg signed [22:0] patch_pitch_target [0:3];
     reg [7:0]  patch_algorithm_flags [0:5];
+
+    // Patch readback for the on-device editor (UART command 0x69).
+    //   0x000..0x00B global fields + 48-bit routing flags
+    //   0x040 + op*0x20 + off  per-operator fields (op 0..5)
+    //   0x140 + stage*8 + off  pitch envelope (stage 0..3)
+    // The answer is registered, so the control plane waits two clocks.
+    wire [2:0] patch_read_op = patch_read_address[9:5] - 3'd2;
+    wire [4:0] patch_read_offset = patch_read_address[4:0];
+    wire [1:0] patch_read_pitch_stage = patch_read_address[4:3];
+    always @(posedge clk) begin
+        patch_read_data <= 16'd0;
+        if (patch_read_address < 10'h040) begin
+            case (patch_read_address[3:0])
+                4'h0: patch_read_data <= {11'd0, fm_algorithm};
+                4'h1: patch_read_data <= {13'd0, fm_feedback};
+                4'h2: patch_read_data <= {13'd0, fm_lfo_waveform,
+                                          fm_lfo_sync, fm_osc_sync};
+                4'h3: patch_read_data <= {9'd0, fm_transpose};
+                4'h4: patch_read_data <= {9'd0, fm_lfo_speed};
+                4'h5: patch_read_data <= {9'd0, fm_lfo_delay};
+                4'h6: patch_read_data <= {9'd0, fm_lfo_pitch_depth};
+                4'h7: patch_read_data <= {9'd0, fm_lfo_amp_depth};
+                4'h8: patch_read_data <= {13'd0, fm_pitch_mod_sensitivity};
+                4'h9: patch_read_data <= fm_algorithm_flags[15:0];
+                4'hA: patch_read_data <= fm_algorithm_flags[31:16];
+                4'hB: patch_read_data <= fm_algorithm_flags[47:32];
+                default: patch_read_data <= 16'd0;
+            endcase
+        end else if (patch_read_address < 10'h100) begin
+            case (patch_read_offset)
+                5'd0: patch_read_data <= {10'd0, patch_op_detune[patch_read_op],
+                                          patch_op_fixed[patch_read_op],
+                                          patch_op_enable[patch_read_op]};
+                5'd1: patch_read_data <= patch_op_frequency[patch_read_op][15:0];
+                5'd2: patch_read_data <= patch_op_frequency[patch_read_op][31:16];
+                5'd3: patch_read_data <= patch_op_gain[patch_read_op];
+                5'd4: patch_read_data <= {9'd0, patch_breakpoint[patch_read_op]};
+                5'd5: patch_read_data <= {9'd0, patch_left_depth[patch_read_op]};
+                5'd6: patch_read_data <= {9'd0, patch_right_depth[patch_read_op]};
+                5'd7: patch_read_data <= {14'd0, patch_right_curve[patch_read_op],
+                                          patch_left_curve[patch_read_op]};
+                5'd8: patch_read_data <= {8'd0,
+                                          patch_amp_mod_sensitivity[patch_read_op],
+                                          patch_velocity_sensitivity[patch_read_op],
+                                          patch_rate_scaling[patch_read_op]};
+                5'd9:  patch_read_data <= {10'd0,
+                                          patch_eg_qrate[patch_read_op*4 + 2'd0]};
+                5'd10: patch_read_data <= {10'd0,
+                                          patch_eg_qrate[patch_read_op*4 + 2'd1]};
+                5'd11: patch_read_data <= {10'd0,
+                                          patch_eg_qrate[patch_read_op*4 + 2'd2]};
+                5'd12: patch_read_data <= {10'd0,
+                                          patch_eg_qrate[patch_read_op*4 + 2'd3]};
+                5'd13: patch_read_data <=
+                                          patch_eg_level[patch_read_op*4 + 2'd0];
+                5'd14: patch_read_data <=
+                                          patch_eg_level[patch_read_op*4 + 2'd1];
+                5'd15: patch_read_data <=
+                                          patch_eg_level[patch_read_op*4 + 2'd2];
+                5'd16: patch_read_data <=
+                                          patch_eg_level[patch_read_op*4 + 2'd3];
+                default: patch_read_data <= 16'd0;
+            endcase
+        end else if (patch_read_address >= 10'h140 &&
+                     patch_read_address < 10'h160) begin
+            case (patch_read_address[2:0])
+                3'd0: patch_read_data <= {8'd0,
+                                          patch_pitch_step[patch_read_pitch_stage]};
+                3'd1: patch_read_data <=
+                                          patch_pitch_target[patch_read_pitch_stage][15:0];
+                3'd2: patch_read_data <= {9'd0,
+                                          patch_pitch_target[patch_read_pitch_stage][22:16]};
+                default: patch_read_data <= 16'd0;
+            endcase
+        end
+    end
 
     // Per-voice and per-operator real-time state.
     reg        voice_active [0:VOICE_COUNT-1];
@@ -1062,6 +1141,15 @@ module fm_poly_synth #(
                     <= fm_envelope_coefficient[5:0];
                 patch_eg_level[fm_envelope_operator * 4 + fm_envelope_stage]
                     <= fm_envelope_level;
+                // Rate scaling / velocity sensitivity / AMS belong to the
+                // envelope command.  They used to be re-latched by the scaling
+                // command, which silently copied the previous operator's
+                // values whenever only 0x64 was sent.
+                patch_rate_scaling[fm_envelope_operator] <= fm_rate_scaling;
+                patch_velocity_sensitivity[fm_envelope_operator]
+                    <= fm_velocity_sensitivity;
+                patch_amp_mod_sensitivity[fm_envelope_operator]
+                    <= fm_amp_mod_sensitivity;
             end
             if (fm_scaling_write_valid && fm_scaling_operator < 6) begin
                 patch_breakpoint[fm_scaling_operator] <= fm_scaling_breakpoint;
@@ -1069,11 +1157,6 @@ module fm_poly_synth #(
                 patch_right_depth[fm_scaling_operator] <= fm_scaling_right_depth;
                 patch_left_curve[fm_scaling_operator] <= fm_scaling_left_curve;
                 patch_right_curve[fm_scaling_operator] <= fm_scaling_right_curve;
-                patch_rate_scaling[fm_scaling_operator] <= fm_rate_scaling;
-                patch_velocity_sensitivity[fm_scaling_operator]
-                    <= fm_velocity_sensitivity;
-                patch_amp_mod_sensitivity[fm_scaling_operator]
-                    <= fm_amp_mod_sensitivity;
             end
             if (fm_pitch_envelope_write_valid) begin
                 patch_pitch_step[fm_pitch_envelope_stage]

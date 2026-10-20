@@ -10,9 +10,11 @@ try {
         @{ Name='tb_visual_auto_gain'; Sources=@('sim/tb_visual_auto_gain.sv','src/visual_auto_gain.v') },
         @{ Name='tb_audio_xy_scope'; Sources=@('sim/tb_audio_xy_scope.sv','src/audio_xy_scope.v') },
         @{ Name='tb_audio_wave_scope'; Sources=@('sim/tb_audio_wave_scope.sv','src/audio_wave_scope.v') },
+        @{ Name='tb_char_display'; Sources=@('sim/tb_char_display.sv','src/rtl_char_display.v') },
+        @{ Name='tb_fm_readback'; Sources=@('sim/tb_fm_readback.sv','src/fm_uart_control.v','src/fm_poly_synth.v','src/uart_rx.v') },
         @{ Name='tb_138k_io'; Sources=@('sim/tb_138k_io.sv','../fpga_midi_bridge_25k/src/midi_frame_tx.v','src/midi_bridge_rx.v','src/uart_rx.v','src/ws2812_keys.v','src/tmds_encoder.v') },
         @{ Name='tb_touch_ui'; Sources=@('sim/tb_touch_ui.sv','src/touch_ui_controller.v','src/gt9147_reset.v','src/usb_midi/rtl/rv32i.v','src/usb_midi/rtl/usb_midi_host.v') },
-        @{ Name='tb_rgb_visualizer'; Sources=@('sim/tb_rgb_visualizer.sv','src/rgb_visualizer.v','src/audio_xy_scope.v','src/audio_wave_scope.v','src/rtl_performance_text.v','src/rtl_menu_text.v') }
+        @{ Name='tb_rgb_visualizer'; Sources=@('sim/tb_rgb_visualizer.sv','src/rgb_visualizer.v','src/audio_xy_scope.v','src/audio_wave_scope.v','src/rtl_performance_text.v','src/rtl_char_display.v') }
     )
     foreach ($case in $cases) {
         $outputFile = 'tmp/' + $case.Name + '.vvp'

@@ -77,6 +77,13 @@ module fm_uart_control (
     output reg  [15:0] fm_note_gain_value,
     output reg         fm_patch_commit,
 
+    // 0x69 parameter readback.  The softcore supplies an address, the synth
+    // returns the live patch value; readback_valid is a one-clock pulse.
+    output reg  [9:0]  patch_read_address,
+    input  wire [15:0] patch_read_data,
+    output reg  [15:0] readback_data,
+    output reg         readback_valid,
+
     output reg         packet_received,
     output reg         packet_error,
     output reg  [4:0]  current_preset
@@ -98,13 +105,24 @@ module fm_uart_control (
     wire [7:0] uart_byte;
     wire uart_valid,uart_busy;
     reg local_pending;
-    wire [7:0] rx_byte=local_pending?checksum:uart_byte;
-    wire rx_valid=local_pending|uart_valid;
-    assign local_command_ready=parser_state==WAIT_A5 && preset_load_state==0 && !uart_busy && !uart_valid && !local_pending;
+    // One-deep UART holding register. The PC link runs at 115200 (one byte per
+    // ~4340 clocks) so a single entry is plenty, but it removes the old
+    // one-cycle window in which a byte arriving during local-command injection
+    // was silently dropped.  Local commands still never overwrite a pending
+    // physical byte because local_command_ready also waits for hold_valid=0.
+    reg hold_valid;
+    reg [7:0] hold_byte;
+    wire pop_uart = !local_pending && hold_valid;
+    wire [7:0] rx_byte = local_pending ? checksum : hold_byte;
+    wire rx_valid = local_pending | pop_uart;
+    assign local_command_ready=parser_state==WAIT_A5 && preset_load_state==0 &&
+        !uart_busy && !uart_valid && !local_pending && !hold_valid && read_wait==2'd0;
     reg  [3:0] parser_state;
     reg  [7:0] command;
     reg  [63:0] payload;
     reg  [7:0] checksum;
+    reg  [9:0] read_address;
+    reg  [1:0] read_wait;
 
     reg [63:0] preset_global_memory [0:31];
     reg [63:0] preset_operator_memory [0:191];
@@ -112,6 +130,10 @@ module fm_uart_control (
     reg [23:0] preset_envelope_memory [0:767];
     reg [39:0] preset_pitch_memory [0:127];
     reg [47:0] preset_algorithm_memory [0:31];
+    // Public DX7 routing rows.  Selecting an algorithm (0x60) installs the
+    // matching routing flags so the audible routing and the displayed algorithm
+    // number can never disagree; 0x67 stays available as an explicit override.
+    reg [47:0] algorithm_flags_rom [0:31];
     initial begin
         $readmemh("src/generated/fm_rom1a_global.mem", preset_global_memory);
         $readmemh("src/generated/fm_rom1a_operator.mem", preset_operator_memory);
@@ -119,6 +141,7 @@ module fm_uart_control (
         $readmemh("src/generated/fm_rom1a_envelope.mem", preset_envelope_memory);
         $readmemh("src/generated/fm_rom1a_pitch.mem", preset_pitch_memory);
         $readmemh("src/generated/fm_rom1a_algorithm.mem", preset_algorithm_memory);
+        $readmemh("src/generated/fm_algorithm_flags.mem", algorithm_flags_rom);
     end
     reg [5:0] preset_load_state;
     reg [2:0] preset_op_index;
@@ -132,6 +155,8 @@ module fm_uart_control (
     wire [63:0] preset_operator_word = preset_operator_memory[preset_op_address];
     wire [39:0] preset_scaling_word = preset_scaling_memory[preset_op_address];
     wire [23:0] preset_envelope_word = preset_envelope_memory[preset_eg_address];
+    wire [39:0] preset_eg_scaling_word =
+        preset_scaling_memory[current_preset * 6 + preset_eg_index[4:2]];
     wire [39:0] preset_pitch_word = preset_pitch_memory[preset_pitch_address];
 
     uart_rx #(.CLKS_PER_BIT(434)) u_uart_rx (
@@ -143,6 +168,13 @@ module fm_uart_control (
         if (!reset_n) begin
             parser_state <= WAIT_A5;
             local_pending <= 0;
+            hold_valid <= 1'b0;
+            hold_byte <= 8'd0;
+            patch_read_address <= 10'd0;
+            read_address <= 10'd0;
+            read_wait <= 2'd0;
+            readback_data <= 16'd0;
+            readback_valid <= 1'b0;
             command <= 8'd0;
             payload <= 64'd0;
             checksum <= 8'd0;
@@ -213,6 +245,26 @@ module fm_uart_control (
             preset_read_wait <= 1'b0;
         end else begin
             local_pending<=0;
+            // Buffer physical UART bytes so a local-command injection cycle can
+            // never swallow one.
+            if (uart_valid) begin
+                hold_byte <= uart_byte;
+                hold_valid <= 1'b1;
+            end else if (pop_uart) begin
+                hold_valid <= 1'b0;
+            end
+            // Three-wait-state readback: the synth registers its answer one
+            // clock after the address is presented, and the control plane must
+            // sample it on the following edge.
+            patch_read_address <= read_address;
+            readback_valid <= 1'b0;
+            if (read_wait == 2'b01) read_wait <= 2'b10;
+            else if (read_wait == 2'b10) read_wait <= 2'b11;
+            else if (read_wait == 2'b11) begin
+                read_wait <= 2'b00;
+                readback_data <= patch_read_data;
+                readback_valid <= 1'b1;
+            end
             if(local_command_valid && local_command_ready)begin
                 command<=local_command;payload<=local_payload;
                 checksum<=0;parser_state<=READ_SUM;local_pending<=1;
@@ -289,6 +341,11 @@ module fm_uart_control (
                                         ? 7'd127 : payload[54:48];
                                     fm_lfo_amp_depth <= (payload[63:56] > 127)
                                         ? 7'd127 : payload[62:56];
+                                    // Install the matching DX7 routing flags so
+                                    // "select algorithm" is a single atomic step
+                                    // and never disagrees with the display.
+                                    fm_algorithm_flags <= algorithm_flags_rom[payload[4:0]];
+                                    fm_algorithm_flags_write_valid <= 1'b1;
                                     fm_global_write_valid <= 1'b1;
                                 end
                                 8'h61: begin
@@ -349,11 +406,15 @@ module fm_uart_control (
                                     fm_algorithm_flags_write_valid <= 1'b1;
                                 end
                                 8'h68: begin
-                                    if ((payload[7:0] < 6) && (payload[15:8] < 128)) begin
-                                        fm_note_gain_address <= {payload[2:0], payload[14:8]};
-                                        fm_note_gain_value <= payload[31:16];
-                                        fm_note_gain_write_valid <= 1'b1;
-                                    end else packet_error <= 1'b1;
+                                    // Deprecated: per-key gain was only consumed
+                                    // by the retired midi_poly_synth path.  Stay
+                                    // honest and report it as unsupported instead
+                                    // of silently ignoring an editor's request.
+                                    packet_error <= 1'b1;
+                                end
+                                8'h69: begin
+                                    read_address <= payload[9:0];
+                                    read_wait <= 2'b01;
                                 end
                                 default: packet_error <= 1'b1;
                             endcase
@@ -435,6 +496,13 @@ module fm_uart_control (
                         fm_envelope_stage <= preset_eg_index[1:0];
                         fm_envelope_coefficient <= {10'd0, preset_envelope_word[5:0]};
                         fm_envelope_level <= preset_envelope_word[21:6];
+                        // Rate scaling / velocity / AMS travel with the
+                        // envelope command (0x63); preset load must supply them
+                        // on the same path so a later operator scaling write
+                        // cannot inherit a neighbour's values.
+                        fm_rate_scaling <= preset_eg_scaling_word[27:25];
+                        fm_velocity_sensitivity <= preset_eg_scaling_word[30:28];
+                        fm_amp_mod_sensitivity <= preset_eg_scaling_word[32:31];
                         fm_envelope_write_valid <= 1'b1;
                         if (preset_eg_index == 23) begin
                             preset_eg_index <= 0;
