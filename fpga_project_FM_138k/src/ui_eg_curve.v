@@ -20,12 +20,12 @@ module ui_eg_curve (
     output wire        ink,
     output wire [1:0]  cls
 );
-    localparam integer X0 = 576;   // panel left edge on screen
+    localparam integer X0 = 512;   // panel left edge on screen
     localparam integer Y0 = 96;    // panel top edge
-    localparam integer W  = 192;   // one sample per pixel column
+    localparam integer W  = 256;   // one sample per pixel column
     localparam integer H  = 256;   // one sample step per pixel row
 
-    reg [8:0] level_mem [0:191] /* synthesis syn_ramstyle = "block_ram" */;
+    reg [8:0] level_mem [0:255] /* synthesis syn_ramstyle = "block_ram" */;
 
     // Independent write port: the softcore writes these through UI[18]/UI[19].
     always @(posedge wclk) begin
@@ -73,5 +73,7 @@ module ui_eg_curve (
     assign cls = !in_q2 ? 2'd0 : is_edge ? 2'd2 : is_filled ? 2'd1 : is_grid ? 2'd3 : 2'd0;
     assign ink = (cls != 2'd0);
 endmodule
+
+
 
 

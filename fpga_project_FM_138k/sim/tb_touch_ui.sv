@@ -91,6 +91,8 @@ module tb_touch_ui;
             if(touch_kind==27)begin px=530;py=312;end
             if(touch_kind==28)begin px=200;py=152;end
             if(touch_kind==29)begin px=530;py=152;end
+            if(touch_kind==30)begin px=380;py=104;end
+            if(touch_kind==31)begin px=440;py=104;end
             if(touch_kind==16)begin px=30;py=72;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
@@ -227,7 +229,7 @@ module tb_touch_ui;
         touch_kind=0;#8000000;
         touch_kind=13;#5000000;
         touch_kind=0;#8000000;
-        touch_kind=14;#5000000;
+        touch_kind=31;#5000000;
         touch_kind=0;#8000000;
         if(cmd_63<1)$fatal(1,"EG edit did not send command 0x63");
         $display("M7 eg edit at %t",$time);
@@ -253,7 +255,7 @@ module tb_touch_ui;
         touch_kind=0;#8000000;
         touch_kind=13;#5000000;
         touch_kind=0;#8000000;
-        touch_kind=14;#5000000;
+        touch_kind=31;#5000000;
         touch_kind=0;#8000000;
         if(cmd_65<1)$fatal(1,"Pitch EG edit did not send 0x65");
         $display("M10 pitch eg at %t",$time);
@@ -284,6 +286,10 @@ module tb_touch_ui;
     end
     initial begin #900000000;$fclose(cell_fd);$fclose(eg_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
 endmodule
+
+
+
+
 
 
 

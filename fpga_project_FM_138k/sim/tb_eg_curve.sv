@@ -40,13 +40,13 @@ module tb_eg_curve;
         reset_n = 1;
         repeat (4) @(posedge pclk);
         // flat top level: panel fully filled, top edge highlighted
-        for (i = 0; i < 192; i = i + 1) wr(i[7:0], 9'd255);
+        for (i = 0; i < 256; i = i + 1) wr(i[7:0], 9'd255);
         repeat (4) @(posedge pclk);
         check(10'd640, 10'd120, 2'd1, "fill");
         check(10'd640, 10'd96,  2'd2, "edge");
         check(10'd640, 10'd90,  2'd0, "outside");
         // flat bottom level: only the baseline row, grid visible above it
-        for (i = 0; i < 192; i = i + 1) wr(i[7:0], 9'd0);
+        for (i = 0; i < 256; i = i + 1) wr(i[7:0], 9'd0);
         repeat (4) @(posedge pclk);
         check(10'd646, 10'd300, 2'd0, "not-filled");
         check(10'd646, 10'd351, 2'd2, "baseline");
@@ -59,6 +59,7 @@ module tb_eg_curve;
         $finish;
     end
 endmodule
+
 
 
 

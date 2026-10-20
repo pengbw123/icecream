@@ -467,6 +467,23 @@ static void buttons(u8 row){
     for(c=64;c<=70;c++)c_at(c,row,0,2,1);
     c_at(67,row,'+',2,1);
 }
+/* EG page uses a narrower value column so the curve panel can be wider. */
+static void buttons_eg(u8 row){
+    u8 c;
+    for(c=44;c<=50;c++)c_at(c,row,0,2,1);
+    c_at(46,row,'-',2,1);
+    for(c=52;c<=58;c++)c_at(c,row,0,2,1);
+    c_at(55,row,'+',2,1);
+}
+static void prow_eg(u8 row,const char*label,const char*val,int selected){
+    if(selected){
+        fill_cells(2,40,row,3,1);
+        text(2,row,label,3,1);text_r(40,row,val,3,1);
+        buttons_eg(row);
+    }else{
+        text(2,row,label,1,0);text_r(40,row,val,1,0);
+    }
+}
 static void prow(u8 row,const char*label,const char*val,int selected){
     if(selected){
         fill_cells(2,52,row,3,1);
@@ -538,22 +555,25 @@ static void draw_osc(void){
     prow(row,"R CURVE",curve_name(o_rc),(sel_row==12));row++;
     prow(row,"ENABLE",o_en?"ON":"OFF",(sel_row==13));
     text(2,20,"ROUTING (ASCII)",2,0);
-    for(i=0;i<3;i++){
-        u8 q;
-        for(q=0;q<2;q++){
-            u8 op=(u8)(i*2u+q);
-            u8 f=(u8)((g_flags[op>>1]>>((op&1u)*8u))&0xFFu);
-            u8 out=(u8)(f&3u),in=(u8)((f>>4)&3u),fb=(u8)((f>>6)==3u);
-            u8 cc=(u8)(q?48u:2u);
-            u8 rr=(u8)(21u+i);
-            c_at(cc,rr,'O',2,0);c_at((u8)(cc+1u),rr,'P',2,0);
-            c_at((u8)(cc+2u),rr,(u8)('0'+(6-op)),1,0);
-            text((u8)(cc+4u),rr,"OUT",2,0);
-            text((u8)(cc+8u),rr,out==0u?"CAR":(out==1u?"BUS1":"BUS2"),1,0);
-            text((u8)(cc+14u),rr,"IN",2,0);
-            text((u8)(cc+17u),rr,in==0u?"--":(in==1u?"BUS1":"BUS2"),1,0);
-            if(fb)text((u8)(cc+24u),rr,"FB",4,0);
-        }
+    for(i=0;i<6;i++){
+        u8 c0=(u8)(2u+(i%3u)*28u);
+        u8 r0=(u8)(21u+(i/3u)*3u);
+        u8 f=(u8)((g_flags[i>>1]>>((i&1u)*8u))&0xFFu);
+        u8 out=(u8)(f&3u),in=(u8)((f>>4)&3u),fb=(u8)((f>>6)==3u);
+        u8 j;
+        for(j=0;j<26;j++)c_at((u8)(c0+j),r0,'-',2,0);
+        c_at(c0,r0,'+',2,0);c_at((u8)(c0+25u),r0,'+',2,0);
+        for(j=0;j<26;j++)c_at((u8)(c0+j),(u8)(r0+2u),'-',2,0);
+        c_at(c0,(u8)(r0+2u),'+',2,0);c_at((u8)(c0+25u),(u8)(r0+2u),'+',2,0);
+        c_at(c0,(u8)(r0+1u),'|',2,0);c_at((u8)(c0+25u),(u8)(r0+1u),'|',2,0);
+        c_at((u8)(c0+1u),(u8)(r0+1u),'O',1,0);
+        c_at((u8)(c0+2u),(u8)(r0+1u),'P',1,0);
+        c_at((u8)(c0+3u),(u8)(r0+1u),(u8)('0'+(6-i)),1,0);
+        text((u8)(c0+5u),(u8)(r0+1u),"OUT",2,0);
+        text((u8)(c0+9u),(u8)(r0+1u),out==0u?"CAR":(out==1u?"BUS1":"BUS2"),1,0);
+        text((u8)(c0+15u),(u8)(r0+1u),"IN",2,0);
+        text((u8)(c0+18u),(u8)(r0+1u),in==0u?"--":(in==1u?"BUS1":"BUS2"),1,0);
+        if(fb)text((u8)(c0+23u),(u8)(r0+1u),"F",4,0);
     }
 }
 /* DX7 helpers shared by the EG page.  The patch stores a 6-bit qrate and a
@@ -737,25 +757,31 @@ static void slot_load(void){
     draw_page();
 }
 static void eg_rebuild(void){
-    u8 i;u16 wt[4],bx[5],lv[5];u32 total=0;
+    u16 i;u32 wt[4];u16 bx[5],lv[5];u32 total=0;
     if(eg_mode==0u){
-        for(i=0;i<4;i++){wt[i]=(u16)(100u-o_rate[i]);lv[i+1]=(u16)(((u32)o_lev[i]*255u)/99u);}
+        for(i=0;i<4;i++){
+            u32 s=99u-o_rate[i];wt[i]=4u+(s*s)/10u;
+            lv[i+1]=(u16)(((u32)o_lev[i]*255u)/99u);
+        }
         lv[0]=0;
     }else{
-        for(i=0;i<4;i++){wt[i]=(u16)(100u-p_rate[i]);lv[i+1]=(u16)(((u32)p_lev[i]*255u)/99u);}
+        for(i=0;i<4;i++){
+            u32 s=99u-p_rate[i];wt[i]=4u+(s*s)/10u;
+            lv[i+1]=(u16)(((u32)p_lev[i]*255u)/99u);
+        }
         lv[0]=(u16)((50u*255u)/99u);
     }
     for(i=0;i<4;i++){if(wt[i]<4u)wt[i]=4u;total+=wt[i];}
     bx[0]=0;
     for(i=0;i<4;i++){
-        u32 v=(u32)bx[i]+(((u32)wt[i]*192u)/total);
-        if(v>192u)v=192u;
+        u32 v=(u32)bx[i]+(((u32)wt[i]*256u)/total);
+        if(v>256u)v=256u;
         if(v<=bx[i])v=(u32)bx[i]+4u;
-        if(v>192u)v=192u;
+        if(v>256u)v=256u;
         bx[i+1]=(u16)v;
     }
-    bx[4]=192;
-    for(i=0;i<192;i++){
+    bx[4]=256;
+    for(i=0;i<256;i++){
         u8 s=0;u32 tt,h,w;
         while(s<3&&i>=bx[s+1])s++;
         w=(u32)bx[s+1]-bx[s];if(w==0u)w=1u;
@@ -780,31 +806,31 @@ static void draw_eg(void){
             char lbl[7];u8 n=0;
             lbl[n++]='R';lbl[n++]='A';lbl[n++]='T';lbl[n++]='E';lbl[n++]=' ';
             lbl[n++]=(char)('1'+i);lbl[n]=0;
-            prow(row,lbl,u2d(o_rate[i]),(sel_row==i));row++;
+            prow_eg(row,lbl,u2d(o_rate[i]),(sel_row==i));row++;
         }
         row=11;
         for(i=0;i<4;i++){
             char lbl[8];u8 n=0;
             lbl[n++]='L';lbl[n++]='E';lbl[n++]='V';lbl[n++]='E';lbl[n++]='L';lbl[n++]=' ';
             lbl[n++]=(char)('1'+i);lbl[n]=0;
-            prow(row,lbl,u2d(o_lev[i]),(sel_row==4+i));row++;
+            prow_eg(row,lbl,u2d(o_lev[i]),(sel_row==4+i));row++;
         }
-        text(74,22,"AMP EG LEVEL",2,0);
+        text(66,22,"AMP EG LEVEL",2,0);
     }else{
         for(i=0;i<4;i++){
             char lbl[8];u8 n=0;
             lbl[n++]='P';lbl[n++]='R';lbl[n++]='A';lbl[n++]='T';lbl[n++]='E';lbl[n++]=' ';
             lbl[n++]=(char)('1'+i);lbl[n]=0;
-            prow(row,lbl,u2d(p_rate[i]),(sel_row==i));row++;
+            prow_eg(row,lbl,u2d(p_rate[i]),(sel_row==i));row++;
         }
         row=11;
         for(i=0;i<4;i++){
             char lbl[10];u8 n=0;
             lbl[n++]='T';lbl[n++]='A';lbl[n++]='R';lbl[n++]='G';lbl[n++]='E';lbl[n++]='T';
             lbl[n++]=' ';lbl[n++]=(char)('1'+i);lbl[n]=0;
-            prow(row,lbl,u2d(p_lev[i]),(sel_row==4+i));row++;
+            prow_eg(row,lbl,u2d(p_lev[i]),(sel_row==4+i));row++;
         }
-        text(74,22,"PITCH EG LEVEL",2,0);
+        text(66,22,"PITCH EG LEVEL",2,0);
     }
 }
 static void draw_lfo(void){
@@ -994,7 +1020,13 @@ static int menu_press(int x,int y){
      if(y>=top&&(int)((y-top)/16)<editable_rows()){
         u8 row=(u8)((y-top)/16);
         u32 t=now();
-        if(x>=448&&x<504){
+        if(page==3){
+            if(x>=352&&x<408){
+                if(last_adj==0u||(u32)(t-last_adj)>120000u){last_adj=t;adj(row,-1);}
+            } else if(x>=416&&x<472){
+                if(last_adj==0u||(u32)(t-last_adj)>120000u){last_adj=t;adj(row,1);}
+            } else {sel_row=row;draw_page();}
+        } else if(x>=448&&x<504){
             if(last_adj==0u||(u32)(t-last_adj)>120000u){last_adj=t;adj(row,-1);}
         } else if(x>=512&&x<568){
             if(last_adj==0u||(u32)(t-last_adj)>120000u){last_adj=t;adj(row,1);}
@@ -1080,9 +1112,15 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
                         u8 row=(u8)((py[id]-top)/16);
                         held_id=(u8)id;held_x=px[id];held_t=now();held_count=0;
                         held_row=row;
-                        if(px[id]>=448&&px[id]<504)held_kind=1;
-                        else if(px[id]>=512&&px[id]<568)held_kind=2;
-                        else held_kind=3;
+                        if(page==3){
+                            if(px[id]>=352&&px[id]<408)held_kind=1;
+                            else if(px[id]>=416&&px[id]<472)held_kind=2;
+                            else held_kind=3;
+                        } else {
+                            if(px[id]>=448&&px[id]<504)held_kind=1;
+                            else if(px[id]>=512&&px[id]<568)held_kind=2;
+                            else held_kind=3;
+                        }
                     }
                 }
             }
@@ -1150,6 +1188,7 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
         delay_us(2000);
     }
 }
+
 
 
 
