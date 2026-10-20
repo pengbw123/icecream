@@ -26,6 +26,8 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Quiet-signal RGB simulation failed.' }
             & $vvp $outputFile '+wave'
             if ($LASTEXITCODE -ne 0) { throw 'Waveform RGB simulation failed.' }
+            & $vvp $outputFile '+messy'
+            if ($LASTEXITCODE -ne 0) { throw 'Complex-waveform continuity regression failed.' }
         }
         if ($case.Name -eq 'tb_audio_xy_scope') {
             & $vvp $outputFile '+attack'

@@ -274,7 +274,11 @@ module rgb_visualizer #(
         if (x>=32 && x<544 && y>=64 && y<320) begin
             rgb=24'h0A1624;
             if (x[5:0]==32 || y==64 || y==128 || y==192 || y==256 || y==319) rgb=24'h20354B;
-            if (!visual_frame && wave_valid && y>=10'd64+wave_min && y<=10'd64+wave_max) rgb=wc_frame;
+            // One extra row above and below: a 1-pixel trace loses pixels on the
+            // real panel and reads as a broken line.  The XY view already draws
+            // 2x2 blocks, which is why only the waveform looked discontinuous.
+            if (!visual_frame && wave_valid &&
+                y>=10'd64+wave_min-1'b1 && y<=10'd64+wave_max+1'b1) rgb=wc_frame;
             if (visual_frame && xy_pixel) rgb=xc_frame;
         end
         if (x>=576 && x<608 && y>=64 && y<316) begin

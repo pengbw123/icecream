@@ -18,13 +18,18 @@ module tb_rgb_visualizer;
     reg tick=0;
     reg signed [15:0] pcm=0;
     integer quiet_case=0,max_display_height=0,current_height;
+    integer messy_case=0;
     reg show_wave=0;
     real phase=0;
     always @(negedge clk)begin
         sample_div=sample_div+1;
         tick=sample_div==0;
         if(tick)begin phase=phase+0.033;
-            pcm=quiet_case?$rtoi(100*$sin(phase)):$rtoi(18000*$sin(phase)+5000*$sin(3*phase));end
+            if(messy_case)
+                pcm=$rtoi(9000*$sin(phase)+6000*$sin(2.71*phase+1.3)
+                         +4000*$sin(5.3*phase+0.7)+2500*$sin(11.7*phase));
+            else
+                pcm=quiet_case?$rtoi(100*$sin(phase)):$rtoi(18000*$sin(phase)+5000*$sin(3*phase));end
     end
     reg [31:0] event_word=0;
     reg event_valid=0;
@@ -47,21 +52,44 @@ module tb_rgb_visualizer;
     endtask
     integer file_handle,pixels,row_pixels=0,rows=0;
     reg de_prev=0;
+    // Display-level continuity check: the RGB565 waveform colour must form an
+    // unbroken band in every plot column and overlap between neighbouring
+    // columns.  This is the regression for "messy waveform shows break points".
+    localparam [15:0] WAVE565={5'd8,6'd58,5'd26};
+    integer col_lo[0:511],col_hi[0:511],col_n[0:511];
+    integer probe_x,probe_y,plot_x,i;
+    reg wave_pixel;
     initial begin
         quiet_case=$test$plusargs("quiet");
-        show_wave=$test$plusargs("wave");
+        messy_case=$test$plusargs("messy");
+        show_wave=$test$plusargs("wave")||messy_case;
         repeat(20)@(negedge clk);reset_n=1;
         note_on(48);note_on(52);note_on(55);
         repeat(2)begin wait(dut.frame_latch);@(posedge dut.pclk);wait(!dut.frame_latch);end
         wait(!de);@(posedge de);
-        file_handle=$fopen(show_wave?"tmp/rgb_wave_preview.ppm":quiet_case?"tmp/rgb_quiet_preview.ppm":"tmp/rgb_preview.ppm","wb");
+        file_handle=$fopen(messy_case?"tmp/rgb_messy_preview.ppm":show_wave?"tmp/rgb_wave_preview.ppm"
+            :quiet_case?"tmp/rgb_quiet_preview.ppm":"tmp/rgb_preview.ppm","wb");
         $fwrite(file_handle,"P6\n800 480\n255\n");
         pixels=0;
+        for(i=0;i<512;i=i+1)begin col_lo[i]=0;col_hi[i]=0;col_n[i]=0;end
         while(pixels<800*480)begin
             @(posedge pclk);
             if(de)begin
                 if(^{r,g,b}===1'bx)$fatal(1,"Unknown RGB output");
                 $fwrite(file_handle,"%c%c%c",{r,r[4:2]},{g,g[5:4]},{b,b[4:2]});
+                probe_x=pixels%800;probe_y=pixels/800;
+                if(probe_x>=32&&probe_x<544&&probe_y>=64&&probe_y<320)begin
+                    plot_x=probe_x-32;wave_pixel={r,g,b}==WAVE565;
+                    if(wave_pixel)begin
+                        if(col_n[plot_x]==0)begin
+                            col_lo[plot_x]=probe_y-64;col_hi[plot_x]=probe_y-64;
+                        end else begin
+                            if(probe_y-64<col_lo[plot_x])col_lo[plot_x]=probe_y-64;
+                            if(probe_y-64>col_hi[plot_x])col_hi[plot_x]=probe_y-64;
+                        end
+                        col_n[plot_x]=col_n[plot_x]+1;
+                    end
+                end
                 pixels=pixels+1;row_pixels=row_pixels+1;
             end
             if(de_prev&&!de)begin
@@ -71,8 +99,18 @@ module tb_rgb_visualizer;
             de_prev=de;
         end
         if(rows!=479||row_pixels!=800)$fatal(1,"Frame row count %0d",rows);
+        for(i=0;i<512;i=i+1)begin
+            if(col_n[i]>0)begin
+                if(col_n[i]!=col_hi[i]-col_lo[i]+1)
+                    $fatal(1,"Wave column %0d has holes: n=%0d lo=%0d hi=%0d",
+                        i,col_n[i],col_lo[i],col_hi[i]);
+                if(i<511&&col_n[i+1]>0&&(col_lo[i+1]>col_hi[i]||col_hi[i+1]<col_lo[i]))
+                    $fatal(1,"Wave break between columns %0d and %0d",i,i+1);
+            end
+        end
         if(quiet_case && max_display_height<30)$fatal(1,"Quiet waveform remained invisible: %d",max_display_height);
-        $fclose(file_handle);$display("PASS RGB/XY raster, stable pixels and PLL-loss recovery, quiet=%0d height=%0d",quiet_case,max_display_height);$finish;
+        $fclose(file_handle);$display("PASS RGB/XY raster, stable pixels and PLL-loss recovery, quiet=%0d messy=%0d height=%0d",
+            quiet_case,messy_case,max_display_height);$finish;
     end
     // Bank ownership is checked at every audio write, not just by image shape.
     always @(posedge clk)if(dut.capture_reset_n&&dut.u_wave.state==4)

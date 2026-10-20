@@ -50,12 +50,10 @@ def main():
                 for gi in range(5 if t==4 else 1):compact.append(coeff[(((t*24+fi)*4+qi)*5)+(gi if t==4 else 2)])
     out+=['static const int filter_coeff[864][5]={'+','.join('{'+','.join(map(str,r))+'}' for r in compact)+'};']
     (ROOT/'src/ui_firmware/pro_tables.h').write_text('\n'.join(out)+'\n',encoding='ascii')
-    font=ImageFont.truetype('C:/Windows/Fonts/consola.ttf',12)
-    rows=[]
-    for c in range(128):
-        im=Image.new('L',(8,16));ImageDraw.Draw(im).text((0,-1),chr(c) if c>=32 else ' ',font=font,fill=255)
-        for y in range(16):rows.append(sum((1<<(7-x)) for x in range(8) if im.getpixel((x,y))>=90))
-    (ROOT/'src/generated/font8x16.mem').write_text(''.join(f'{r:02X}\n' for r in rows),encoding='ascii')
+    # The 8x16 glyphs have their own supersampled generator; keep one source of
+    # truth so re-running this script cannot silently restore the old 8-row font.
+    from generators.generate_font8x16 import main as generate_font
+    generate_font()
     (ROOT/'src/generated/menu_blank.mem').write_text('0020\n'*2048,encoding='ascii')
     print('Generated bank, 6400 frequency words, 864 filter coefficient sets, 8x16 cell font.')
 if __name__=='__main__':main()
