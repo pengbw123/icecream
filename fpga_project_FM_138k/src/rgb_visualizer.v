@@ -21,6 +21,7 @@ module rgb_visualizer #(
     input wire text_write,input wire [11:0] text_address,input wire [15:0] text_data,
     input wire palette_write,input wire [3:0] palette_index,input wire [23:0] palette_data,
     input wire text_enable,
+    input wire eg_we,input wire [7:0] eg_addr,input wire [8:0] eg_data,
     input wire display_auto_gain,
     output wire lcd_pclk,
     output reg lcd_de,lcd_hsync,lcd_vsync,
@@ -304,7 +305,12 @@ module rgb_visualizer #(
     reg [7:0] character_pipe;
     reg [2:0] font_x_pipe,font_y_pipe;
     reg font_enable_pipe,de_pipe,hs_pipe,vs_pipe;
-    wire [23:0] final_rgb=menu_ink?menu_color:background_pipe;
+    wire eg_ink;wire [1:0] eg_cls;
+    wire [23:0] eg_color=(eg_cls==2'd1)?wc_frame:(eg_cls==2'd2)?24'hF2F2F2:24'h2A2A30;
+    ui_eg_curve u_eg(.pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
+        .enable(text_enable&&(page_frame==4'd3)),
+        .wclk(clk),.we(eg_we),.waddr(eg_addr),.wdata(eg_data),.ink(eg_ink),.cls(eg_cls));
+    wire [23:0] final_rgb=menu_ink?menu_color:(eg_ink?eg_color:background_pipe);
     always @(posedge pclk) begin
         if (!video_reset_n) begin
             lcd_de<=0;lcd_hsync<=0;lcd_vsync<=0;lcd_r<=0;lcd_g<=0;lcd_b<=0;
@@ -321,4 +327,5 @@ module rgb_visualizer #(
         end
     end
 endmodule
+
 

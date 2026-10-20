@@ -61,6 +61,25 @@
 - 修正 0x002 回读位序：实际 `wave[4:2], lfo_sync[1], osc_sync[0]`。
 - 新增 `__mulsi3`（移位加），固件 23 176 B；回归 14 项通过。
 
+## 阶段 2c（进行中，图形化第一批）
+
+- **EG 曲线面板（RTL）**：新增 `src/ui_eg_curve.v`。固件把 192 个 0..255 的高度样本
+  （每像素列一个）通过 UI[18]/UI[19] 写入一块 192×9 的双时钟 BSRAM；视频侧按列查表，
+  逐像素比较得到"填充/亮边/网格"三类，再叠加到字符层下方。面板 192×256 像素，
+  带网格、顶部亮边和主题色填充。AMP/PITCH 两种包络都走这条通路。
+  固件 `eg_rebuild()`：按 RATE 反比分配四段宽度、按 LEVEL 换算高度，PITCH 模式从 50（原音高）出发。
+- **OSC 页 ASCII 路由**：页面底部新增 6 行 `ROUTING (ASCII)`，显示每个算子的 OUT/IN/FB；
+  flags 缓存在 `g_flags[3]`，只在该页进入/换算法时读 0x69，避免拖动时反复读。
+- **测试**：新增 `sim/tb_eg_curve.sv`（填充/亮边/网格/禁用四类断言）。
+- 综合：Logic 19110、Register 11263、BSRAM 131/340；50 MHz Fmax 59.254 MHz、
+  像素域 45.439 MHz，TNS 0；固件约 29.6 KiB。
+- 预览：`tmp/menu_eg_pitch.png`（PITCH 曲线）、`tmp/menu_eg_amp.png`（AMP 曲线）。
+
+### 2d 待做（图形化第二批）
+- ALGORITHM 页的 Dexed 风格矢量算法图：32 套版式表 + 方框/正交连线/箭头/反馈环；
+  需要 `tools/generators/generate_algorithm_layout.py` 与 RTL 画布。
+- 按钮圆角/按下高亮：按下变色已有（反显），圆角需要同样的画布层，计划与算法图一起做。
+
 ## 阶段 2b（已完成，`phase2b-done`）
 
 - Pitch EG：EG 页 `AMP EG / PITCH EG` 切换；PRATE1..4、TARGET1..4（0..99，TARGET 50=原音高）；

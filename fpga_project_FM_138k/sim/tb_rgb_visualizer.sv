@@ -44,7 +44,7 @@ module tb_rgb_visualizer;
         .display_auto_gain(1'b1),.menu_page(4'd0),.algorithm_flags(48'd0),
         .background_color(24'h080D18),.wave_color(24'h40EAD0),.xy_color(24'hFFB95A),
         .text_write(1'b0),.text_address(12'd0),.text_data(16'd0),
-        .palette_write(1'b0),.palette_index(4'd0),.palette_data(24'd0),.text_enable(1'b0),
+        .palette_write(1'b0),.palette_index(4'd0),.palette_data(24'd0),.text_enable(1'b0),.eg_we(1'b0),.eg_addr(8'd0),.eg_data(9'd0),
         .lcd_pclk(pclk),.lcd_de(de),.lcd_hsync(hs),.lcd_vsync(vs),.lcd_bl(bl),
         .lcd_r(r),.lcd_g(g),.lcd_b(b),.pll_locked(lock));
     task note_on(input [6:0] note);
@@ -129,4 +129,5 @@ module tb_rgb_visualizer;
     end
     initial begin #100000000;$fatal(1,"Raster timeout");end
 endmodule
+
 

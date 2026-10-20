@@ -50,6 +50,7 @@ module top_138k (
     wire [3:0] palette_index;
     wire [23:0] palette_data;
     wire text_enable;
+    wire eg_we;wire [7:0] eg_addr;wire [8:0] eg_data;
     wire ui_command_valid,ui_command_ready;
     wire [7:0] ui_command;
     wire [63:0] ui_command_payload;
@@ -67,7 +68,7 @@ module top_138k (
         .menu_page(menu_page),.background_color(background_color),.wave_color(wave_color),.xy_color(xy_color),
         .text_write(text_write),.text_address(text_address),.text_data(text_data),
         .palette_write(palette_write),.palette_index(palette_index),.palette_data(palette_data),
-        .text_enable(text_enable),
+        .text_enable(text_enable),.eg_we(eg_we),.eg_addr(eg_addr),.eg_data(eg_data),
         .command_valid(ui_command_valid),.command(ui_command),.command_payload(ui_command_payload),.command_ready(ui_command_ready),
         .patch_read_data(readback_data),.patch_read_valid(readback_valid),
         .fx_write(),.fx_index(),.fx_value(),.fx_read_value(32'd0),.numeric_display()
@@ -106,7 +107,7 @@ module top_138k (
         .background_color(background_color),.wave_color(wave_color),.xy_color(xy_color),
         .text_write(text_write),.text_address(text_address),.text_data(text_data),
         .palette_write(palette_write),.palette_index(palette_index),.palette_data(palette_data),
-        .text_enable(text_enable),
+        .text_enable(text_enable),.eg_we(eg_we),.eg_addr(eg_addr),.eg_data(eg_data),
         .lcd_pclk(lcd_pclk),.lcd_de(lcd_de),.lcd_hsync(lcd_hsync),.lcd_vsync(lcd_vsync),
         .lcd_bl(lcd_bl),.lcd_r(lcd_r),.lcd_g(lcd_g),.lcd_b(lcd_b),.pll_locked(video_lock)
     );
@@ -122,3 +123,4 @@ module top_138k (
     end
     assign status_led={bridge_dropped!=0,touch_present,event_hold!=0,video_lock,heartbeat[25]};
 endmodule
+

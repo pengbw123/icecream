@@ -34,11 +34,14 @@ module tb_touch_ui;
             if(pr_wait==1)pr_valid<=1;
         end
     end
-    integer cell_fd;
+    integer cell_fd,eg_fd;
     initial cell_fd=$fopen("tmp/menu_cells.txt","w");
+    initial eg_fd=$fopen("tmp/eg_curve.txt","w");
     always @(posedge clk)begin
         if(dut.text_write)
             $fwrite(cell_fd,"%0d %0d %0d\n",dut.text_address,dut.text_data,$time);
+        if(dut.eg_we)
+            $fwrite(eg_fd,"%0d %0d %0d\n",dut.eg_addr,dut.eg_data,$time);
     end
     always @(posedge clk)begin
         if(dut.command_valid)case(dut.command)
@@ -211,6 +214,7 @@ module tb_touch_ui;
         touch_kind=0;#8000000;
         if(cmd_69<20)$fatal(1,"OSC page did not read operator fields");
         $display("M5 osc reads at %t",$time);
+        touch_kind=0;#30000000;
         touch_kind=17;wait(menu_page==4'd7);#5000000;
         touch_kind=0;#8000000;
         if(pal_writes<16)$fatal(1,"Theme palette was not written");
@@ -275,11 +279,12 @@ module tb_touch_ui;
         if(cmd_64<1)$fatal(1,"User-slot load did not restore key scaling");
         if(cmd_65<5)$fatal(1,"User-slot load did not restore the pitch EG");
         $display("M12 name/slot at %t",$time);
-        $fclose(cell_fd);
+        $fclose(cell_fd);$fclose(eg_fd);
         $display("PASS real UI firmware, I2C, menu pages, EG/LFO/pitch, name and user slots");$finish;
     end
-    initial begin #900000000;$fclose(cell_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
+    initial begin #900000000;$fclose(cell_fd);$fclose(eg_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
 endmodule
+
 
 
 

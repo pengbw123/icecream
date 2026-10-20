@@ -284,6 +284,7 @@ static void decode_fixed(u32 w,u8 det,u8*co,u8*fi){
 
 /* Global patch cache */
 static u8 g_algo,g_fb,g_sync,g_lsync,g_trans,g_wave,g_speed,g_delay,g_pmd,g_amd,g_pms;
+static u16 g_flags[3];
 /* Selected operator cache */
 static u8 o_en,o_fx,o_det,o_lvl,o_rs,o_vel,o_ams,o_bp,o_ld,o_rd,o_lc,o_rc,o_coarse,o_fine,o_eg0r;
 static u8 o_rate[4],o_lev[4];
@@ -294,6 +295,9 @@ static u8 rate_from_qrate(u8 q);
 static u8 qrate_from_rate(u8 r);
 static u16 internal_from_level(u8 l);
 static u8 level_from_internal(u16 v);
+static void load_flags(void){
+    g_flags[0]=rd(0x0009u);g_flags[1]=rd(0x000Au);g_flags[2]=rd(0x000Bu);
+}
 static void load_globals(void){
     u16 v;
     g_algo=(u8)(rd(0x000)&31u);g_fb=(u8)(rd(0x001)&7u);
@@ -533,6 +537,24 @@ static void draw_osc(void){
     prow(row,"L CURVE",curve_name(o_lc),(sel_row==11));row++;
     prow(row,"R CURVE",curve_name(o_rc),(sel_row==12));row++;
     prow(row,"ENABLE",o_en?"ON":"OFF",(sel_row==13));
+    text(2,20,"ROUTING (ASCII)",2,0);
+    for(i=0;i<3;i++){
+        u8 q;
+        for(q=0;q<2;q++){
+            u8 op=(u8)(i*2u+q);
+            u8 f=(u8)((g_flags[op>>1]>>((op&1u)*8u))&0xFFu);
+            u8 out=(u8)(f&3u),in=(u8)((f>>4)&3u),fb=(u8)((f>>6)==3u);
+            u8 cc=(u8)(q?48u:2u);
+            u8 rr=(u8)(21u+i);
+            c_at(cc,rr,'O',2,0);c_at((u8)(cc+1u),rr,'P',2,0);
+            c_at((u8)(cc+2u),rr,(u8)('0'+(6-op)),1,0);
+            text((u8)(cc+4u),rr,"OUT",2,0);
+            text((u8)(cc+8u),rr,out==0u?"CAR":(out==1u?"BUS1":"BUS2"),1,0);
+            text((u8)(cc+14u),rr,"IN",2,0);
+            text((u8)(cc+17u),rr,in==0u?"--":(in==1u?"BUS1":"BUS2"),1,0);
+            if(fb)text((u8)(cc+24u),rr,"FB",4,0);
+        }
+    }
 }
 /* DX7 helpers shared by the EG page.  The patch stores a 6-bit qrate and a
    16-bit internal level; the UI works in the familiar 0..99 units. */
@@ -714,6 +736,36 @@ static void slot_load(void){
     else if(page==3){load_op(sel_op);if(eg_mode)load_pitch();}
     draw_page();
 }
+static void eg_rebuild(void){
+    u8 i;u16 wt[4],bx[5],lv[5];u32 total=0;
+    if(eg_mode==0u){
+        for(i=0;i<4;i++){wt[i]=(u16)(100u-o_rate[i]);lv[i+1]=(u16)(((u32)o_lev[i]*255u)/99u);}
+        lv[0]=0;
+    }else{
+        for(i=0;i<4;i++){wt[i]=(u16)(100u-p_rate[i]);lv[i+1]=(u16)(((u32)p_lev[i]*255u)/99u);}
+        lv[0]=(u16)((50u*255u)/99u);
+    }
+    for(i=0;i<4;i++){if(wt[i]<4u)wt[i]=4u;total+=wt[i];}
+    bx[0]=0;
+    for(i=0;i<4;i++){
+        u32 v=(u32)bx[i]+(((u32)wt[i]*192u)/total);
+        if(v>192u)v=192u;
+        if(v<=bx[i])v=(u32)bx[i]+4u;
+        if(v>192u)v=192u;
+        bx[i+1]=(u16)v;
+    }
+    bx[4]=192;
+    for(i=0;i<192;i++){
+        u8 s=0;u32 tt,h,w;
+        while(s<3&&i>=bx[s+1])s++;
+        w=(u32)bx[s+1]-bx[s];if(w==0u)w=1u;
+        tt=(u32)(i-bx[s]);
+        {s32 d=(s32)lv[s+1]-(s32)lv[s];
+         h=(u32)lv[s]+(u32)((d*(s32)tt)/(s32)w);}
+        if(h>255u)h=255u;
+        UI[18]=i;UI[19]=(u8)h;
+    }
+}
 static void draw_eg(void){
     u8 i,j,row=6;
     for(i=0;i<6;i++){
@@ -737,14 +789,7 @@ static void draw_eg(void){
             lbl[n++]=(char)('1'+i);lbl[n]=0;
             prow(row,lbl,u2d(o_lev[i]),(sel_row==4+i));row++;
         }
-        for(i=0;i<4;i++){
-            u8 h=(u8)(((u32)o_lev[i]*12u)/99u);
-            u8 top=(u8)(23u-h);
-            for(row=10;row<=23;row++)
-                for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,12,4);
-            for(row=top;row<=23;row++)
-                for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,3,4);
-        }
+        text(74,22,"AMP EG LEVEL",2,0);
     }else{
         for(i=0;i<4;i++){
             char lbl[8];u8 n=0;
@@ -759,14 +804,7 @@ static void draw_eg(void){
             lbl[n++]=' ';lbl[n++]=(char)('1'+i);lbl[n]=0;
             prow(row,lbl,u2d(p_lev[i]),(sel_row==4+i));row++;
         }
-        for(i=0;i<4;i++){
-            u8 h=(u8)(((u32)p_lev[i]*12u)/99u);
-            u8 top=(u8)(23u-h);
-            for(row=10;row<=23;row++)
-                for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,12,4);
-            for(row=top;row<=23;row++)
-                for(j=0;j<4;j++)c_at((u8)(78u+i*5u+j),row,0,4,4);
-        }
+        text(74,22,"PITCH EG LEVEL",2,0);
     }
 }
 static void draw_lfo(void){
@@ -811,6 +849,7 @@ static void draw_theme(void){
     text(2,24,"UI 1.1  PHASE 1",2,0);
 }
 static void draw_page(void){
+    if(page==3)eg_rebuild();
     if(page==PAGE_PERF){clear_all();draw_perf();return;}
     draw_header();
     if(page==PAGE_ALGO)draw_algo();
@@ -827,13 +866,12 @@ static void page_enter(u8 p){
     release_all();
     page=p;sel_row=0;last_adj=0;
     if(p==PAGE_ALGO)load_globals();
-    else if(p==PAGE_OSC)load_op(sel_op);
+    else if(p==PAGE_OSC){load_op(sel_op);load_flags();}
     else if(p==3)load_op(sel_op);
     else if(p==4)load_globals();
     else if(p==6)name_from_preset((u8)((UI[4]>>7)&31u));
     
     publish();
-    
     draw_page();
     
 }
@@ -917,7 +955,7 @@ static int content_top(void){
     return 64;
 }
 static void adj(u8 row,int d){
-    if(page==PAGE_ALGO)adj_algo(row,d);
+    if(page==PAGE_ALGO){adj_algo(row,d);load_flags();}
     else if(page==3){if(eg_mode)adj_pitch(row,d);else adj_eg(row,d);}
     else if(page==4)adj_lfo(row,d);
     else adj_op(row,d);
@@ -1112,6 +1150,7 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
         delay_us(2000);
     }
 }
+
 
 
 

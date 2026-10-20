@@ -25,6 +25,7 @@ add_file -type verilog "src/audio_xy_scope.v"
 add_file -type verilog "src/audio_wave_scope.v"
 add_file -type verilog "src/rtl_performance_text.v"
 add_file -type verilog "src/rtl_char_display.v"
+add_file -type verilog "src/ui_eg_curve.v"
 add_file -type verilog "src/visual_auto_gain.v"
 add_file -type verilog "src/rtl_menu_text.v"
 add_file -type verilog "src/gt9147_reset.v"
@@ -41,3 +42,4 @@ set_option -use_sspi_as_gpio 1
 set_option -use_cpu_as_gpio 1
 
 run all
+
