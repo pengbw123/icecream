@@ -4,7 +4,10 @@
 module rgb_visualizer #(
     // Professional character editing pages are still under integration.
     // Do not burden the verified performance/AGC build with unfinished RAM.
-    parameter ENABLE_MENU_TEXT = 0
+    parameter ENABLE_MENU_TEXT = 0,
+    // Fallback only: 1 forwards an inverted pixel clock.  Keep at 0 to match
+    // the vendor TFT example and this panel's sampling edge.
+    parameter integer PIXEL_CLK_INVERT = 0
 ) (
     input wire clk, input wire reset_n,
     input wire sample_tick, input wire signed [15:0] audio_sample,
@@ -310,9 +313,19 @@ module rgb_visualizer #(
             if(y>=menu_row&&y<menu_row+40&&((x>=648&&x<714)||(x>=726&&x<792)))begin
                 rgb=24'h284763;tx=(x<720)?(x-672)/3:(x-750)/3;ty=(y-menu_row-11)/3;
                 if(k==3 && ((x<720&&!visual_frame)||(x>=720&&visual_frame)))rgb=24'h26786F;
-                if(k!=3&&y>=menu_row+11&&y<menu_row+29&&
-                   ((x>=672&&x<684)||(x>=750&&x<762))&&
-                   text_pixel(x<720?"-":"+",tx[2:0],ty[2:0]))rgb=24'hFFFFFF;
+                // The old 4x6 bitmap glyph had its stem in cell 2 of a 4-cell
+                // row, so at 3x zoom the "+" horizontal bar was 6 px to the
+                // left of the stem and 3 px to its right.  Draw the icons as
+                // symmetric geometry instead: 12 px wide bars, 4 px stem
+                // centred with 4 px on each side.
+                if(k!=3&&y>=menu_row+11&&y<menu_row+29)begin
+                    if(x>=672&&x<684)begin
+                        if(y>=menu_row+19&&y<menu_row+22)rgb=24'hFFFFFF; // "-"
+                    end else if(x>=750&&x<762)begin
+                        if(y>=menu_row+19&&y<menu_row+22)rgb=24'hFFFFFF; // "+" horizontal
+                        if(x>=754&&x<758)rgb=24'hFFFFFF;                  // "+" vertical stem
+                    end
+                end
             end
         end
         if(x>=648&&x<792&&y>=248&&y<288)rgb=24'h733946;
@@ -375,8 +388,19 @@ module rgb_visualizer #(
         end
         if (!de) rgb=0;
     end
-    // Forward the pixel clock with its active edge centered in stable data.
-    ODDR u_pixel_clock (.Q0(lcd_pclk),.Q1(),.D0(1'b0),.D1(1'b1),.TX(1'b0),.CLK(pclk));
+    // Forward the pixel clock with the SAME phase as the logic that launches
+    // RGB/DE/HS/VS, exactly like the vendor GW5AT-138K TFT example
+    // (`assign Disp_PCLK = ClkDisp;`).  The panel latches on the opposite
+    // clock edge, so a zero-degree forwarded clock puts the panel's sampling
+    // edge in the middle of stable data.
+    //
+    // The previous implementation drove an ODDR with D0=0,D1=1.  In the GW5A
+    // primitive Q0 = CLK ? d0_reg : d1_reg, so that produced an INVERTED
+    // (180-degree) forwarded clock: the panel's sampling edge landed on the
+    // data transition and thin glyph strokes lost pixels on the real screen
+    // (simulation cannot show this because it models perfect sampling).
+    // PIXEL_CLK_INVERT exists only as a fallback knob; keep it at 0.
+    assign lcd_pclk = PIXEL_CLK_INVERT ? ~pclk : pclk;
     // Pipeline the name-ROM lookup separately from the glyph decode.
     // Background RGB, DE and both syncs travel through the same registers.
     reg [23:0] background_pipe,font_color_pipe;
