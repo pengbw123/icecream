@@ -17,11 +17,14 @@ module tb_rgb_visualizer;
     reg [9:0] sample_div=0;
     reg tick=0;
     reg signed [15:0] pcm=0;
+    integer quiet_case=0,max_display_height=0,current_height;
+    reg show_wave=0;
     real phase=0;
     always @(negedge clk)begin
         sample_div=sample_div+1;
         tick=sample_div==0;
-        if(tick)begin phase=phase+0.033;pcm=$rtoi(18000*$sin(phase)+5000*$sin(3*phase));end
+        if(tick)begin phase=phase+0.033;
+            pcm=quiet_case?$rtoi(100*$sin(phase)):$rtoi(18000*$sin(phase)+5000*$sin(3*phase));end
     end
     reg [31:0] event_word=0;
     reg event_valid=0;
@@ -32,7 +35,10 @@ module tb_rgb_visualizer;
         .midi_event_data(event_word),.midi_event_valid(event_valid),.active_voice_count(5'd3),
         .preset_index(5'd10),.algorithm(5'd4),.operator_envelopes(48'hB090603080D0),
         .touch_present(1'b1),.keyboard_octave(4'sd0),.master_volume(7'd96),
-        .visual_mode(1'b1),.xy_delay_samples(7'd24),
+        .visual_mode(!show_wave),.xy_delay_samples(7'd24),
+        .display_auto_gain(1'b1),.menu_page(4'd0),.algorithm_flags(48'd0),
+        .background_color(24'h080D18),.wave_color(24'h40EAD0),.xy_color(24'hFFB95A),
+        .text_write(1'b0),.text_address(11'd0),.text_data(16'd0),
         .lcd_pclk(pclk),.lcd_de(de),.lcd_hsync(hs),.lcd_vsync(vs),.lcd_bl(bl),
         .lcd_r(r),.lcd_g(g),.lcd_b(b),.pll_locked(lock));
     task note_on(input [6:0] note);
@@ -42,11 +48,13 @@ module tb_rgb_visualizer;
     integer file_handle,pixels,row_pixels=0,rows=0;
     reg de_prev=0;
     initial begin
+        quiet_case=$test$plusargs("quiet");
+        show_wave=$test$plusargs("wave");
         repeat(20)@(negedge clk);reset_n=1;
         note_on(48);note_on(52);note_on(55);
         repeat(2)begin wait(dut.frame_latch);@(posedge dut.pclk);wait(!dut.frame_latch);end
         wait(!de);@(posedge de);
-        file_handle=$fopen("tmp/rgb_preview.ppm","wb");
+        file_handle=$fopen(show_wave?"tmp/rgb_wave_preview.ppm":quiet_case?"tmp/rgb_quiet_preview.ppm":"tmp/rgb_preview.ppm","wb");
         $fwrite(file_handle,"P6\n800 480\n255\n");
         pixels=0;
         while(pixels<800*480)begin
@@ -63,11 +71,17 @@ module tb_rgb_visualizer;
             de_prev=de;
         end
         if(rows!=479||row_pixels!=800)$fatal(1,"Frame row count %0d",rows);
-        $fclose(file_handle);$display("PASS RGB/XY raster, stable pixels and PLL-loss recovery");$finish;
+        if(quiet_case && max_display_height<30)$fatal(1,"Quiet waveform remained invisible: %d",max_display_height);
+        $fclose(file_handle);$display("PASS RGB/XY raster, stable pixels and PLL-loss recovery, quiet=%0d height=%0d",quiet_case,max_display_height);$finish;
     end
     // Bank ownership is checked at every audio write, not just by image shape.
-    always @(posedge clk)if(dut.capture_reset_n&&tick&&!dut.capture_pending)
-        if(dut.write_bank==dut.display_bank)$fatal(1,"Audio overwrote displayed waveform bank");
+    always @(posedge clk)if(dut.capture_reset_n&&dut.u_wave.state==4)
+        begin
+            if(dut.u_wave.write_bank==dut.u_wave.display_bank)$fatal(1,"Audio overwrote displayed waveform bank");
+            current_height=$signed({1'b0,dut.u_wave.point_y})-128;
+            if(current_height<0)current_height=-current_height;
+            if(current_height>max_display_height)max_display_height=current_height;
+        end
     always @(posedge clk)if(dut.capture_reset_n && (dut.u_xy.state==0 || dut.u_xy.drawing))
         if(dut.u_xy.write_bank==dut.u_xy.display_bank)$fatal(1,"Audio overwrote displayed XY bank");
     initial begin

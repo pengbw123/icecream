@@ -3,7 +3,7 @@
     .type _start, @function
 
 _start:
-    li sp, 0x10004000
+    li sp, 0x10020000
 
     la a0, _sbss
     la a1, _ebss

@@ -100,7 +100,9 @@ module fm_poly_synth #(
     localparam [3:0] ENGINE_EVENT_SCALE_FINISH = 4'd15;
 
     reg [31:0] midi_phase_increment [0:127];
-    reg [15:0] sine_quarter [0:511];
+    // Each word stores one Q15 quarter-wave sample plus its forward delta.
+    // This keeps interpolation in the same single compact ROM block.
+    reg [23:0] sine_quarter_delta [0:511];
     reg [16:0] pitch_ratio_table [0:511];
     reg [16:0] dx7_level_gain [0:4095];
     reg [23:0] dx7_eg_block_step [0:63];
@@ -114,7 +116,8 @@ module fm_poly_synth #(
     reg signed [8:0] dx7_lfo_sine [0:255];
     initial begin
         $readmemh("src/generated/midi_phase_inc.mem", midi_phase_increment);
-        $readmemh("src/generated/additive_sine_quarter_512.mem", sine_quarter);
+        $readmemh("src/generated/dx7_sine_quarter_delta_512.mem",
+                  sine_quarter_delta);
         $readmemb("src/generated/pitch_ratio_q16.mem", pitch_ratio_table);
         $readmemb("src/generated/dx7_level_gain_q16.mem", dx7_level_gain);
         $readmemh("src/generated/dx7_eg_block_step_q14.mem", dx7_eg_block_step);
@@ -526,6 +529,7 @@ module fm_poly_synth #(
     wire [8:0] issue_quarter_index = issue_phase_modulated[29:21];
     wire [8:0] issue_sine_address = issue_quadrant[0]
         ? (9'd511 - issue_quarter_index) : issue_quarter_index;
+    wire [10:0] issue_sine_fraction = issue_phase_modulated[20:10];
 
     wire [4:0] issue_eg_patch_index = operator_read_operator * 4 + render_env_stage;
     wire signed [17:0] issue_env_target_integer_wide =
@@ -572,6 +576,8 @@ module fm_poly_synth #(
     reg [2:0] e0_operator;
     reg [7:0] e0_flags;
     reg [8:0] e0_sine_address;
+    reg [10:0] e0_sine_fraction;
+    reg       e0_sine_reverse;
     reg       e0_sine_negative;
     reg       e0_block_start;
     reg [15:0] e0_ams_attenuation;
@@ -630,6 +636,8 @@ module fm_poly_synth #(
     reg [2:0] a0_operator;
     reg [7:0] a0_flags;
     reg [8:0] a0_sine_address;
+    reg [10:0] a0_sine_fraction;
+    reg       a0_sine_reverse;
     reg       a0_sine_negative;
     reg [31:0] a0_phase_next;
     reg [31:0] a0_increment;
@@ -647,6 +655,8 @@ module fm_poly_synth #(
     reg [2:0] b0_operator;
     reg [7:0] b0_flags;
     reg [8:0] b0_sine_address;
+    reg [10:0] b0_sine_fraction;
+    reg       b0_sine_reverse;
     reg       b0_sine_negative;
     reg [11:0] b0_env_integer;
     reg [15:0] b0_ams_attenuation;
@@ -665,6 +675,8 @@ module fm_poly_synth #(
     reg [2:0] p0_operator;
     reg [7:0] p0_flags;
     reg [8:0] p0_sine_address;
+    reg [10:0] p0_sine_fraction;
+    reg       p0_sine_reverse;
     reg       p0_sine_negative;
     reg [11:0] p0_gain_index;
     reg [47:0] p0_gain_state;
@@ -675,7 +687,11 @@ module fm_poly_synth #(
     reg [VOICE_BITS-1:0] p1_voice;
     reg [2:0] p1_operator;
     reg [7:0] p1_flags;
-    reg signed [16:0] p1_sine;
+    reg [15:0] p1_sine_base;
+    reg [7:0] p1_sine_delta;
+    reg [10:0] p1_sine_fraction;
+    reg       p1_sine_reverse;
+    reg       p1_sine_negative;
     reg [16:0] p1_envelope;
     reg [47:0] p1_gain_state;
     reg        p1_block_start;
@@ -716,6 +732,19 @@ module fm_poly_synth #(
     reg signed [16:0] p2_sine;
     reg signed [17:0] p2_gain;
     reg        p2_enabled;
+
+    wire [18:0] p1_sine_delta_product =
+        p1_sine_delta * p1_sine_fraction;
+    wire [7:0] p1_sine_delta_step = p1_sine_delta_product[18:11];
+    wire [16:0] p1_sine_rising_value =
+        {1'b0, p1_sine_base} + {9'd0, p1_sine_delta_step};
+    wire [16:0] p1_sine_falling_value =
+        {1'b0, p1_sine_base} + {9'd0, p1_sine_delta} -
+        {9'd0, p1_sine_delta_step};
+    wire [16:0] p1_sine_magnitude = p1_sine_reverse
+        ? p1_sine_falling_value : p1_sine_rising_value;
+    wire signed [16:0] p1_sine_interpolated = p1_sine_negative
+        ? -$signed(p1_sine_magnitude) : $signed(p1_sine_magnitude);
 
     reg        p3_valid;
     reg [VOICE_BITS-1:0] p3_voice;
@@ -912,7 +941,8 @@ module fm_poly_synth #(
             p2_valid <= 1'b0;
             p3_valid <= 1'b0;
             a0_voice <= 0; a0_operator <= 0; a0_flags <= 0;
-            a0_sine_address <= 0; a0_sine_negative <= 0;
+            a0_sine_address <= 0; a0_sine_fraction <= 0;
+            a0_sine_reverse <= 0; a0_sine_negative <= 0;
             a0_ams_attenuation <= 0;
             a0_phase_next <= 0; a0_increment <= 0;
             a0_env_next <= 0; a0_level_offset <= 0;
@@ -920,15 +950,20 @@ module fm_poly_synth #(
             a0_gain_state <= 0; a0_block_start <= 1'b0;
             a0_enabled <= 0;
             b0_voice <= 0; b0_operator <= 0; b0_flags <= 0;
-            b0_sine_address <= 0; b0_sine_negative <= 0;
+            b0_sine_address <= 0; b0_sine_fraction <= 0;
+            b0_sine_reverse <= 0; b0_sine_negative <= 0;
             b0_env_integer <= 0; b0_ams_attenuation <= 0;
             b0_gain_state <= 0; b0_block_start <= 1'b0;
             b0_enabled <= 0;
             p0_voice <= 0; p0_operator <= 0; p0_flags <= 0;
-            p0_sine_address <= 0; p0_sine_negative <= 0;
+            p0_sine_address <= 0; p0_sine_fraction <= 0;
+            p0_sine_reverse <= 0; p0_sine_negative <= 0;
             p0_gain_index <= 0; p0_gain_state <= 0;
             p0_block_start <= 1'b0; p0_enabled <= 0;
-            p1_voice <= 0; p1_operator <= 0; p1_flags <= 0; p1_sine <= 0;
+            p1_voice <= 0; p1_operator <= 0; p1_flags <= 0;
+            p1_sine_base <= 0; p1_sine_delta <= 0;
+            p1_sine_fraction <= 0; p1_sine_reverse <= 0;
+            p1_sine_negative <= 0;
             p1_envelope <= 0; p1_gain_state <= 0;
             p1_block_start <= 1'b0; p1_enabled <= 0;
             p2_voice <= 0; p2_operator <= 0; p2_flags <= 0; p2_sine <= 0;
@@ -937,7 +972,8 @@ module fm_poly_synth #(
             p3_sample_product <= 0; p3_envelope <= 0; p3_enabled <= 0;
             e0_valid <= 1'b0;
             e0_voice <= 0; e0_operator <= 0; e0_flags <= 0;
-            e0_sine_address <= 0; e0_sine_negative <= 0;
+            e0_sine_address <= 0; e0_sine_fraction <= 0;
+            e0_sine_reverse <= 0; e0_sine_negative <= 0;
             e0_block_start <= 1'b0; e0_ams_attenuation <= 0;
             e0_gain_state <= 0; e0_enabled <= 0;
             e0_phase <= 0; e0_increment <= 0; e0_frequency <= 0;
@@ -1096,9 +1132,11 @@ module fm_poly_synth #(
             p1_voice <= p0_voice;
             p1_operator <= p0_operator;
             p1_flags <= p0_flags;
-            p1_sine <= p0_sine_negative
-                ? -$signed({1'b0, sine_quarter[p0_sine_address]})
-                :  $signed({1'b0, sine_quarter[p0_sine_address]});
+            p1_sine_base <= sine_quarter_delta[p0_sine_address][23:8];
+            p1_sine_delta <= sine_quarter_delta[p0_sine_address][7:0];
+            p1_sine_fraction <= p0_sine_fraction;
+            p1_sine_reverse <= p0_sine_reverse;
+            p1_sine_negative <= p0_sine_negative;
             p1_envelope <= dx7_level_gain[p0_gain_index];
             p1_gain_state <= p0_gain_state;
             p1_block_start <= p0_block_start;
@@ -1107,7 +1145,7 @@ module fm_poly_synth #(
             p2_voice <= p1_voice;
             p2_operator <= p1_operator;
             p2_flags <= p1_flags;
-            p2_sine <= p1_sine;
+            p2_sine <= p1_sine_interpolated;
             p2_gain <= p1_gain_next;
             p2_enabled <= p1_enabled;
             p3_valid <= p2_valid;
@@ -1149,6 +1187,8 @@ module fm_poly_synth #(
                 p0_operator <= b0_operator;
                 p0_flags <= b0_flags;
                 p0_sine_address <= b0_sine_address;
+                p0_sine_fraction <= b0_sine_fraction;
+                p0_sine_reverse <= b0_sine_reverse;
                 p0_sine_negative <= b0_sine_negative;
                 p0_gain_index <= b0_gain_level_index;
                 p0_gain_state <= b0_gain_state;
@@ -1161,6 +1201,8 @@ module fm_poly_synth #(
                 b0_operator <= a0_operator;
                 b0_flags <= a0_flags;
                 b0_sine_address <= a0_sine_address;
+                b0_sine_fraction <= a0_sine_fraction;
+                b0_sine_reverse <= a0_sine_reverse;
                 b0_sine_negative <= a0_sine_negative;
                 b0_env_integer <= a0_env_next[25:14];
                 b0_ams_attenuation <= a0_ams_attenuation;
@@ -1183,6 +1225,8 @@ module fm_poly_synth #(
                 a0_operator <= e0_operator;
                 a0_flags <= e0_flags;
                 a0_sine_address <= e0_sine_address;
+                a0_sine_fraction <= e0_sine_fraction;
+                a0_sine_reverse <= e0_sine_reverse;
                 a0_sine_negative <= e0_sine_negative;
                 a0_ams_attenuation <= e0_ams_attenuation;
                 a0_gain_state <= e0_gain_state;
@@ -1209,6 +1253,8 @@ module fm_poly_synth #(
                 e0_operator <= operator_read_operator;
                 e0_flags <= operator_read_flags;
                 e0_sine_address <= issue_sine_address;
+                e0_sine_fraction <= issue_sine_fraction;
+                e0_sine_reverse <= issue_quadrant[0];
                 e0_sine_negative <= issue_quadrant[1];
                 e0_block_start <=
                     (voice_eg_block_position[operator_read_voice] == 6'd1);

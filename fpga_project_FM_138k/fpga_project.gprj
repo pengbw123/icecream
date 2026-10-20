@@ -19,6 +19,10 @@
         <File path="src/video_pll.v" type="file.verilog" enable="1"/>
         <File path="src/rgb_visualizer.v" type="file.verilog" enable="1"/>
         <File path="src/audio_xy_scope.v" type="file.verilog" enable="1"/>
+        <File path="src/audio_wave_scope.v" type="file.verilog" enable="1"/>
+        <File path="src/rtl_performance_text.v" type="file.verilog" enable="1"/>
+        <File path="src/visual_auto_gain.v" type="file.verilog" enable="1"/>
+        <File path="src/rtl_menu_text.v" type="file.verilog" enable="1"/>
         <File path="src/gt9147_reset.v" type="file.verilog" enable="1"/>
         <File path="src/touch_ui_controller.v" type="file.verilog" enable="1"/>
         <File path="src/ui_firmware/firmware.hex" type="file.other" enable="1"/>

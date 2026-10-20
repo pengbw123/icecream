@@ -6,7 +6,8 @@ module uart_rx #(
     input  wire       reset_n,
     input  wire       rx,
     output reg  [7:0] data,
-    output reg        valid
+    output reg        valid,
+    output wire       busy
 );
 
     localparam [2:0] RX_IDLE  = 3'd0;
@@ -19,6 +20,7 @@ module uart_rx #(
     reg [2:0] bit_index;
     reg [7:0] shift_reg;
     reg [1:0] rx_sync;
+    assign busy=(state!=RX_IDLE)||!rx_sync[1];
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin

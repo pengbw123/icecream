@@ -14,6 +14,7 @@ static u16 x_res=800,y_res=480;
 static int octave;
 static int present;
 static int visual_mode;
+static int display_auto_gain=1;
 static int xy_delay=24;
 static int slot_note[16];
 static u16 control_down;
@@ -52,7 +53,7 @@ static void emit(u8 status,u8 d1,u8 d2){u32 t=now();while(!(UI[2]&1u))
 static void release_all(void){int i,j,n;for(i=0;i<16;i++)if(slot_note[i]>=0){
     n=slot_note[i];emit(0x80,(u8)n,0);
     for(j=i;j<16;j++)if(slot_note[j]==n)slot_note[j]=-1;}control_down=0;}
-static void publish(void){UI[5]=((u32)xy_delay<<16)|((u32)visual_mode<<12)|((u32)(octave&15)<<8)|(present?1u:0u);}
+static void publish(void){UI[5]=(display_auto_gain?0u:0x80000000u)|((u32)xy_delay<<16)|((u32)visual_mode<<12)|((u32)(octave&15)<<8)|(present?1u:0u);}
 static int detect(void){u8 id[4],res[4],cfg[7];int a,r;
     bus_recover();for(r=0;r<3;r++)for(a=0;a<2;a++){
         gt_addr=a?0x5d:0x14;
@@ -78,6 +79,7 @@ static void control(int x,int y){u32 st=UI[4];int value;
     else if(y>=344&&y<384){visual_mode=x<720?0:1;publish();}
     else if(y>=400&&y<440){xy_delay+=x<720?-1:1;
         if(xy_delay<1)xy_delay=1;if(xy_delay>96)xy_delay=96;publish();}
+    else if(y>=448&&y<480){display_auto_gain=!display_auto_gain;publish();}
 }
 static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
     int next[16],px[16],py[16];u16 seen=0;u32 raw_x,raw_y,old_mask[4],new_mask[4];

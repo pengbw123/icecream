@@ -6,6 +6,7 @@ module top #(
     // 1: keep the DX7 core, MIDI and I2S; bypass the non-DX7 effects/LCD.
     // 0: restore the original chorus/reverb, output meter and SPI display.
     parameter integer FM_AUDIO_ONLY = 1,
+    parameter integer PRO_FX_ENABLED = 0,
     // USB key velocity calibration endpoints: 0x00 -> 0, 0x5A -> 127.
     // Compile-time knobs; pads (channel 10) and UART are not rescaled.
     parameter [6:0] USB_KEY_VELOCITY_MIN = 7'h00,
@@ -15,6 +16,10 @@ module top #(
     input  wire clk,
     input  wire key_s2,
     input  wire uart_rx_pin,
+    input wire ui_command_valid,input wire [7:0] ui_command,input wire [63:0] ui_payload,
+    output wire ui_command_ready,
+    input wire fx_write,input wire [3:0] fx_index,input wire [31:0] fx_value,
+    input wire [3:0] fx_read_index,output wire [31:0] fx_read_value,
     output wire uart_tx_pin,
     inout  wire usb_host_dp,
     inout  wire usb_host_dn,
@@ -243,6 +248,8 @@ module top #(
 
     fm_uart_control u_fm_uart_control (
         .clk(clk), .reset_n(audio_reset_n), .uart_rx_pin(uart_rx_pin),
+        .local_command_valid(ui_command_valid),.local_command(ui_command),
+        .local_payload(ui_payload),.local_command_ready(ui_command_ready),
         .preset_select_valid(preset_select_valid),
         .preset_select(preset_select),
         .midi_event_data(uart_midi_event_data),
@@ -372,17 +379,26 @@ module top #(
     );
 
     wire signed [15:0] output_sample;
-    generate if (FM_AUDIO_ONLY) begin : gen_audio_only
+    generate if(PRO_FX_ENABLED)begin:gen_pro_fx
+        pro_audio_effects u_fx(.clk(clk),.reset_n(audio_reset_n),.sample_tick(sample_tick),
+            .dry_sample(synth_sample),.config_write(fx_write),.config_index(fx_index),.config_value(fx_value),
+            .read_index(fx_read_index),.read_value(fx_read_value),
+            .midi_event(synth_midi_event_data),.midi_valid(synth_midi_event_valid&&synth_midi_event_ready),
+            .sample_out(output_sample));
+        assign lcd_resetn=0;assign lcd_clk=0;assign lcd_cs=1;assign lcd_dc=0;assign lcd_data=0;
+    end else if (FM_AUDIO_ONLY) begin : gen_audio_only
         // Direct digital path for tone-matching against Dexed.  The FM mixer
         // already has a soft knee; bypassing the second limiter avoids
         // changing attack timbre before I2S.
         assign output_sample = synth_sample;
+        assign fx_read_value=0;
         assign lcd_resetn = 1'b0;
         assign lcd_clk = 1'b0;
         assign lcd_cs = 1'b1;
         assign lcd_dc = 1'b0;
         assign lcd_data = 1'b0;
     end else begin : gen_full_features
+        assign fx_read_value=0;
         wire signed [15:0] effected_sample;
         wire [7:0] peak_level;
         wire clip_active;

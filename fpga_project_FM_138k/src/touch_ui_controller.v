@@ -16,7 +16,13 @@ module touch_ui_controller (
     output wire signed [3:0] keyboard_octave,
     output wire [6:0] master_volume,
     output wire visual_mode,
-    output wire [6:0] xy_delay_samples
+    output wire [6:0] xy_delay_samples,
+    output wire display_auto_gain,
+    output reg command_valid,output reg [7:0] command,output reg [63:0] command_payload,input wire command_ready,
+    output wire text_write,output wire [10:0] text_address,output wire [15:0] text_data,
+    output wire [3:0] menu_page,output reg [23:0] background_color,wave_color,xy_color,
+    output wire fx_write,output wire [3:0] fx_index,output wire [31:0] fx_value,input wire [31:0] fx_read_value,
+    output reg [31:0] numeric_display
 );
     wire reset_ready,int_o,int_t;
     gt9147_reset u_gt_reset(.clk(clk),.reset_n(reset_n),.tp_int_o(int_o),
@@ -50,6 +56,14 @@ module touch_ui_controller (
     assign master_volume=volume;
     assign visual_mode=ui_state[12];
     assign xy_delay_samples=ui_state[22:16];
+    // Bit 31 disables display gain. Zero-initialized/legacy firmware defaults
+    // to useful quiet-signal visibility without depending on touch detection.
+    assign display_auto_gain=!ui_state[31];
+    assign menu_page=ui_state[27:24];
+    assign text_write=ui_select&&write_en&&address[5:2]==6;
+    assign text_address=write_data[10:0];assign text_data={4'd0,write_data[27:24],write_data[23:16]};
+    wire fx_select=address[31:8]==24'h250000;
+    assign fx_write=fx_select&&write_en;assign fx_index=address[5:2];assign fx_value=write_data;
     RV32I #(.FIRMWARE_FILE("src/ui_firmware/firmware.hex")) u_cpu (
         .CLK(clk),.RST_X(reset_n),.w_mic_addr(address),.w_data(read_data),
         .w_mic_wdata(write_data),.w_mic_req(request),.w_mic_ctrl(),.w_stall(1'b0)
@@ -59,7 +73,7 @@ module touch_ui_controller (
         .m_addr(address[5:2]),.m_data_i(write_data),.m_data_o(uart_data),
         .m_read(read_en),.m_write(write_en),.uart_rx(1'b1),.uart_tx(uart_tx)
     );
-    assign read_data=uart_select ? uart_data : ui_select ? ui_data : 32'd0;
+    assign read_data=uart_select ? uart_data : fx_select?fx_read_value:ui_select ? ui_data : 32'd0;
     always @* begin
         case(address[5:2])
             0:ui_data={23'd0,reset_ready,6'd0,pins_sync};
@@ -68,14 +82,18 @@ module touch_ui_controller (
             3:ui_data=midi_event_data;
             4:ui_data={10'd0,active_voices,algorithm,preset_index,volume};
             5:ui_data=ui_state;
+            9:ui_data={31'd0,command_ready&&!command_valid};
             default:ui_data=0;
         endcase
     end
     always @(posedge clk or negedge reset_n) begin
         if(!reset_n)begin
             i2c_drive<=0;midi_event_data<=0;midi_event_valid<=0;ui_state<=0;volume<=96;
+            command_valid<=0;command<=0;command_payload<=0;
+            background_color<=24'h080D18;wave_color<=24'h40EAD0;xy_color<=24'hFFB95A;numeric_display<=0;
         end else begin
             if(midi_event_valid&&midi_event_ready)midi_event_valid<=0;
+            if(command_valid&&command_ready)command_valid<=0;
             if(monitor_event_valid && monitor_event[23:20]==4'hB && monitor_event[14:8]==20)
                 volume<=monitor_event[6:0];
             if(ui_select&&write_en)begin
@@ -85,6 +103,13 @@ module touch_ui_controller (
                         midi_event_data<=write_data;midi_event_valid<=1;
                     end
                     5:ui_state<=write_data;
+                    7:command_payload[31:0]<=write_data;
+                    8:command_payload[63:32]<=write_data;
+                    9:if(!command_valid||command_ready)begin command<=write_data[7:0];command_valid<=1;end
+                    10:background_color<=write_data[23:0];
+                    11:wave_color<=write_data[23:0];
+                    12:xy_color<=write_data[23:0];
+                    13:numeric_display<=write_data;
                     default:;
                 endcase
             end

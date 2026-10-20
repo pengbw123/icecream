@@ -174,7 +174,7 @@ endmodule
 
 // local memory size and location
 `define UC_TADDR        4'h1
-`define D_UC_LM_BITS    14 // 2^14 = 16KB
+`define D_UC_LM_BITS    17 // 138K UI: 128 KiB data/address space
 `define D_UC_LM_SIZE    (1<<(`D_UC_LM_BITS))
 
 // Simple RV32I CPU / microcontroller
@@ -409,7 +409,7 @@ module m_lm_mc #(
     // data image.  Both ports are now ordinary, fully timed 48 MHz memories.
     // Verbose descriptor dumps are omitted in the production firmware so its
     // load image fits an 8 KiB instruction ROM (four 18-Kbit BSRAMs).
-    localparam integer INSTRUCTION_WORDS = 2048;
+    localparam integer INSTRUCTION_WORDS = 16384; // 64 KiB code/constant image
     reg [31:0] instruction_mem[0:INSTRUCTION_WORDS-1];
     reg [31:0] data_mem[0:(`D_UC_LM_SIZE/4)-1];
 
@@ -420,7 +420,7 @@ module m_lm_mc #(
     end
 
     always @(posedge CLK) begin
-        r_odata1 <= instruction_mem[w_addr1[10:0]];
+        r_odata1 <= instruction_mem[w_addr1[13:0]];
     end
 
     always @(posedge CLK) begin

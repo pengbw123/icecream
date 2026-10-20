@@ -10,6 +10,10 @@ module fm_uart_control (
     input  wire        clk,
     input  wire        reset_n,
     input  wire        uart_rx_pin,
+    input wire local_command_valid,
+    input wire [7:0] local_command,
+    input wire [63:0] local_payload,
+    output wire local_command_ready,
     input  wire        preset_select_valid,
     input  wire [4:0]  preset_select,
 
@@ -91,8 +95,12 @@ module fm_uart_control (
     localparam [3:0] READ_D7  = 4'd10;
     localparam [3:0] READ_SUM = 4'd11;
 
-    wire [7:0] rx_byte;
-    wire       rx_valid;
+    wire [7:0] uart_byte;
+    wire uart_valid,uart_busy;
+    reg local_pending;
+    wire [7:0] rx_byte=local_pending?checksum:uart_byte;
+    wire rx_valid=local_pending|uart_valid;
+    assign local_command_ready=parser_state==WAIT_A5 && preset_load_state==0 && !uart_busy && !uart_valid && !local_pending;
     reg  [3:0] parser_state;
     reg  [7:0] command;
     reg  [63:0] payload;
@@ -128,12 +136,13 @@ module fm_uart_control (
 
     uart_rx #(.CLKS_PER_BIT(434)) u_uart_rx (
         .clk(clk), .reset_n(reset_n), .rx(uart_rx_pin),
-        .data(rx_byte), .valid(rx_valid)
+        .data(uart_byte), .valid(uart_valid), .busy(uart_busy)
     );
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             parser_state <= WAIT_A5;
+            local_pending <= 0;
             command <= 8'd0;
             payload <= 64'd0;
             checksum <= 8'd0;
@@ -203,6 +212,11 @@ module fm_uart_control (
             preset_pitch_index <= 3'd0;
             preset_read_wait <= 1'b0;
         end else begin
+            local_pending<=0;
+            if(local_command_valid && local_command_ready)begin
+                command<=local_command;payload<=local_payload;
+                checksum<=0;parser_state<=READ_SUM;local_pending<=1;
+            end
             fm_global_write_valid <= 1'b0;
             fm_operator_write_valid <= 1'b0;
             fm_envelope_write_valid <= 1'b0;
