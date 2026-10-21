@@ -11,7 +11,9 @@
 | 字符层 | `rtl_char_display.v` | 128×32 格 ×16 bit，4 块 BSRAM，16 色可写调色板 |
 | 包络曲线 | `ui_eg_curve.v` | 256×256 面板，256 个高度样本查表画填充/亮边/网格 |
 | 算法位图 | `ui_algo_map.v` | 512×256 2bpp 画布（32 KiB BSRAM） |
-| 效果器 | `audio_fx.v` | 32×16 位配置寄存器 + 失真/滤波链；参数表在 `src/generated/fx_*.mem` |
+| 效果器 | `audio_fx.v` | 32×16 位配置寄存器；DIST/FILTER/CHORUS/PHASER 链 |
+| 合唱 | `audio_chorus.v` | 2048 样本延迟线 + LFO，freq/depth/mix |
+| 移相 | `audio_phaser.v` | 4 级全通 + LFO，freq/depth/mix |
 | 光栅合成 | `rgb_visualizer.v` | 800×480 RGB565：波形/XY/EG/键盘 + 字符层/曲线/位图叠加 |
 | FM 引擎 | `fm_poly_synth.v` 等 | 与 UI 解耦，只收命令/MIDI |
 

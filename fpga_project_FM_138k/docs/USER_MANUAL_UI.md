@@ -127,7 +127,7 @@ LFO 是自动来回摆的低频振荡器，用来做颤音/哇音。
   没有类型的效果器显示 --。
 - 三个参数行：DIST = GAIN/TONE/LEVEL；FILTER = CUTOFF/Q；其余为 FREQ/DEPTH/MIX、
   DECAY/RATE/MIX、DECAY/MIX。
-- 目前（阶段 3b）DIST 与 FILTER 真正生效；其余四个已占位，后续步骤接上。
+- 目前（阶段 3c）DIST、FILTER、CHORUS、PHASER 已生效；DELAY/REVERB 占位，下一步接上。
 
 ## 7. 名字/用户槽页（7 NAME）
 

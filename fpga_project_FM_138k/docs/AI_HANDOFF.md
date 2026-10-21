@@ -8,9 +8,9 @@
 - 仓库根：`D:\a_My_projects\Gowin_publish`，工程目录：`fpga_project_FM_138k/`。
 - 板卡：ACG720（GW5AT-LV138PG484AC1/I0，Arora V），Gowin V1.9.12.03；顶层 `top_138k`。
 - 构建：`build_cli.tcl` → `impl/pnr/fm_138k_rgb.fs`；烧录用 Gowin Programmer。
-- 当前可烧录：`impl/pnr/fm_138k_rgb.fs`（阶段 3b，2026-10-21 15:43）。旧位流在
+- 当前可烧录：`impl/pnr/fm_138k_rgb.fs`（阶段 3c，2026-10-21 16:11）。旧位流在
   `impl/pnr/backup/`，IDE 目录里的旧 `fpga_project.fs` 不要烧。
-- 标签：`phase0-done`…`phase2d-done`、`phase2e-done`、`phase3a-done`、`phase3b-done`。回退：`git reset --hard <tag>`。
+- 标签：`phase0-done`…`phase2d-done`、`phase2e-done`、`phase3a-done`、`phase3b-done`、`phase3c-done`。回退：`git reset --hard <tag>`。
 - **进度账本**：`docs/PRO_MENU_PROGRESS.md`。
 - **改 UI 固件先读**：`docs/UI_FIRMWARE_GUIDE.md`。
 - **用户操作说明**：`docs/USER_MANUAL_UI.md`（零基础版）。
@@ -50,13 +50,13 @@
 3. 预览：`tmp/render_menu.py` / `render_eg.py` / `render_algo.py`（字符流+图形日志离线合成）。
 4. 综合：`gw_sh build_cli.tcl`；烧录 `impl/pnr/fm_138k_rgb.fs`。
 
-## 5. 最近一次已知良好数据（阶段 3b）
+## 5. 最近一次已知良好数据（阶段 3c）
 
 - 回归：16 项全过（含 EG 曲线、算法画布、菜单、用户槽）。
-- PnR：Logic 20209、Register 12099、BSRAM 167/340、DSP 29/298、PLL 1/12；
-  50 MHz Fmax 56.844 MHz，像素域 39.543 MHz，两域 TNS 0。
+- PnR：Logic 21262、Register 12444、BSRAM 169/340、DSP 35/298、PLL 1/12；
+  50 MHz Fmax 59.331 MHz，像素域 42.718 MHz，两域 TNS 0。
 - 固件：33 108 B（含 6 FX 页）。
-- 效果器：第 2 步完成（DISTORTION + FILTER + FX 页）；CHORUS/PHASER/DELAY/REVERB 仍是占位。
+- 效果器：DISTORTION/FILTER/CHORUS/PHASER 已生效；DELAY/REVERB 仍是占位。
 
 ## 6. 关键协议/寄存器
 
@@ -80,6 +80,8 @@
   长上传期间触摸采样可能变慢。
 - 用户槽 SAVE 要读约 123 个参数（约 0.2 s 停顿，正常），存 RAM，掉电丢。
 - 固件镜像 ≤64 KiB；`__divsi3/__udivsi3/__umodsi3/__mulsi3` 在 `main.c` 顶部，别删。
+- **Gowin 工程文件**：新增 RTL 文件必须同时加入 `fpga_project.gprj`，否则 IDE 的 hierarchy
+  会展不开（模块变黑盒）。提交前运行 `python tools/check_project_files.py` 校验。
 - **文档编码**：本机 PowerShell 的 `Set-Content` 会写 ANSI/GBK，改中文文档会毁掉 UTF-8
   编码（已多次发生）。请只用编辑器的 UTF-8 或本仓库的 write/edit 工具改 `docs/*.md`。
 

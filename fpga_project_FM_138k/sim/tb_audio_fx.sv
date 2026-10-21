@@ -45,6 +45,9 @@ module tb_audio_fx;
         end
     endtask
 
+    integer n;
+    reg signed [15:0] max_out;
+
     task expect_reg(input [5:0] a, input [15:0] v, input [127:0] name);
         begin
             read_addr = a;
@@ -110,7 +113,42 @@ module tb_audio_fx;
         if (last_out > 16'sd300 && last_out < -16'sd300)
             $fatal(1, "HP did not block DC: %0d", last_out);
 
-        $display("PASS audio_fx registers, bypass, distortion and filter");
+        // ---- chorus: an impulse must reappear as a delayed echo ----
+        wr(6'd1, 16'd0);         // filter off
+        wr(6'd9, 16'd1);         // chorus on
+        wr(6'd10, 16'd50);       // LFO speed
+        wr(6'd11, 16'd99);       // maximum sweep
+        wr(6'd12, 16'd99);       // full wet
+        max_out = 0;
+        for (n = 0; n < 3000; n = n + 1) begin
+            run_sample((n == 0) ? 16'sd20000 : 16'sd0);
+            if (last_out > max_out) max_out = last_out;
+            if (-last_out > max_out) max_out = -last_out;
+        end
+        if (max_out < 16'sd200)
+            $fatal(1, "chorus produced no delayed echo (max %0d)", max_out);
+
+        // ---- phaser: an impulse produces an all-pass response ----
+        wr(6'd9, 16'd0);         // chorus off
+        wr(6'd13, 16'd1);        // phaser on
+        wr(6'd14, 16'd99);
+        wr(6'd15, 16'd99);
+        wr(6'd16, 16'd99);
+        max_out = 0;
+        for (n = 0; n < 200; n = n + 1) begin
+            run_sample((n == 0) ? 16'sd20000 : 16'sd0);
+            if (last_out > max_out) max_out = last_out;
+            if (-last_out > max_out) max_out = -last_out;
+        end
+        if (max_out < 16'sd100)
+            $fatal(1, "phaser produced no response (max %0d)", max_out);
+
+        // ---- bypass must stay bit-exact even with effects enabled ----
+        wr(6'd0, 16'h0003);      // bypass
+        run_sample(16'sd12345);
+        if (last_out !== 16'sd12345) $fatal(1, "bypass mismatch %0d", last_out);
+
+        $display("PASS audio_fx registers, bypass, distortion, filter, chorus and phaser");
         $finish;
     end
 endmodule

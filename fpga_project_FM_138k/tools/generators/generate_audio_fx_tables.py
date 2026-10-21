@@ -52,4 +52,13 @@ gain_tab = [clamp(1 + round(i * 31.0 / (N - 1)), 1, 32) for i in range(N)]
 (GEN / 'fx_tone_coeff.mem').write_text('\n'.join(hx16(v) for v in tone_tab) + '\n')
 (GEN / 'fx_level_gain.mem').write_text('\n'.join(hx16(v) for v in level_tab) + '\n')
 (GEN / 'fx_dist_gain.mem').write_text('\n'.join(hx8(v) for v in gain_tab) + '\n')
+
+# LFO phase increments: inc = round(freq * 2^32 / fs)
+def lfo_inc(freq):
+    return int(round(freq * 4294967296.0 / FS)) & 0xFFFFFFFF
+
+chorus_hz = [0.05 * (6.0 / 0.05) ** (i / (N - 1)) for i in range(N)]
+phaser_hz = [0.05 * (3.0 / 0.05) ** (i / (N - 1)) for i in range(N)]
+(GEN / 'fx_chorus_inc.mem').write_text('\n'.join(f'{lfo_inc(f):08X}' for f in chorus_hz) + '\n')
+(GEN / 'fx_phaser_inc.mem').write_text('\n'.join(f'{lfo_inc(f):08X}' for f in phaser_hz) + '\n')
 print('generated fx tables:', [p.name for p in GEN.glob('fx_*.mem')])

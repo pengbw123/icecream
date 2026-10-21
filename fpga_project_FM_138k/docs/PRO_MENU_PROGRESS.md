@@ -98,6 +98,21 @@ Pitch EG（0x65）、ALGORITHM 移调、OSC ENABLE、NAME 页 10 字符 + 8 个�
   50 MHz Fmax 56.844 MHz、像素域 39.543 MHz（TNS 见报告）。
 - 当前效果链：DISTORTION → FILTER → 输出；其余 4 个效果器仍是占位（第 3/4 步）。
 
+## 阶段 3c（FX 第 3 步：CHORUS + PHASER）
+
+- 新增 `audio_chorus.v`：复用原 `audio_effects.v` 的 2048 样本延迟线、三角波 LFO、
+  干湿混合结构，改为 freq/depth/mix 参数驱动（LFO 0.05..6 Hz，扫幅 0..396 样本）。
+- 新增 `audio_phaser.v`：4 级一阶全通链，LFO 0.05..3 Hz 调制系数，depth 控制摆幅，mix 干湿。
+- `audio_fx.v` 链改为：DISTORTION → FILTER → CHORUS → PHASER → 输出；子模块按
+  `sample_tick` 流水（每个效果约 1 个采样延迟）。全部效果关闭时**直接干声**，无额外延迟。
+- Gowin IDE 工程文件补入 `audio_fx.v`、`audio_chorus.v`、`audio_phaser.v`、
+  `rtl_char_display.v`、`ui_eg_curve.v`、`ui_algo_map.v`（缺文件会导致 IDE hierarchy 展不开）；
+  新增 `tools/check_project_files.py` 做提交前校验。
+- 测试：`tb_audio_fx` 增加合唱脉冲回声、移相器响应、带效果时 bypass 位精确；
+  全量回归通过。
+- PnR：Logic 21262、Register 12444、BSRAM 169/340、DSP 35/298；
+  50 MHz Fmax 59.331 MHz、像素域 42.718 MHz。
+
 ## 下一步
 
 1. 按钮圆角/按下高亮（可选；按下变色已有，圆角需要画布层或小位图）。

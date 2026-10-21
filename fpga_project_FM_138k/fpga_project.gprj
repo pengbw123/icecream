@@ -6,6 +6,14 @@
     <Device name="GW5AT-138B" pn="GW5AT-LV138PG484AC1/I0">gw5at138b-012</Device>
     <FileList>
         <File path="src/audio_effects.v" type="file.verilog" enable="1"/>
+<File path="src/audio_fx.v" type="file.verilog" enable="1"/>
+<File path="src/audio_chorus.v" type="file.verilog" enable="1"/>
+<File path="src/audio_phaser.v" type="file.verilog" enable="1"/>
+<File path="src/pro_audio_effects.v" type="file.verilog" enable="1"/>
+<File path="src/rtl_char_display.v" type="file.verilog" enable="1"/>
+<File path="src/ui_eg_curve.v" type="file.verilog" enable="1"/>
+<File path="src/ui_algo_map.v" type="file.verilog" enable="1"/>
+
         <File path="src/audio_output_stage.v" type="file.verilog" enable="1"/>
         <File path="src/fm_poly_synth.v" type="file.verilog" enable="1"/>
         <File path="src/fm_status_lcd.v" type="file.verilog" enable="1"/>

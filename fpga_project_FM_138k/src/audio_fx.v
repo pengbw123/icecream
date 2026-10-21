@@ -97,7 +97,7 @@ module audio_fx (
                      S_FSEL=5'd11, S_OUT=5'd12, S_DFIN=5'd13;
 
     reg [4:0] state;
-    reg signed [15:0] dry_q, d_out, chain_q, tone_state, clipped;
+    reg signed [15:0] dry_q, d_out, chain_q, df_out, tone_state, clipped;
     reg signed [31:0] driven, prod;
     reg signed [23:0] lp, bp, lp_tmp, hp_tmp, bp_new;
     reg signed [39:0] prod1, prod2, prod3;
@@ -119,14 +119,13 @@ module audio_fx (
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             state <= S_IDLE;
-            dry_q <= 16'sd0; d_out <= 16'sd0; chain_q <= 16'sd0;
+            dry_q <= 16'sd0; d_out <= 16'sd0; chain_q <= 16'sd0; df_out <= 16'sd0;
             tone_state <= 16'sd0; clipped <= 16'sd0;
             driven <= 32'sd0; prod <= 32'sd0;
             lp <= 24'sd0; bp <= 24'sd0; lp_tmp <= 24'sd0; hp_tmp <= 24'sd0;
             bp_new <= 24'sd0; prod1 <= 40'sd0; prod2 <= 40'sd0; prod3 <= 40'sd0;
             dist_en <= 1'b0; filt_en <= 1'b0; ftype <= 2'd0; dgain <= 8'd1;
             tcoef <= 16'sd0; lgain <= 16'sd0; fcoef <= 16'sd0; qcoef <= 16'sd0;
-            sample_out <= 16'sd0;
         end else begin
             case (state)
                 S_IDLE: if (sample_tick) begin
@@ -204,12 +203,30 @@ module audio_fx (
                     state <= S_OUT;
                 end
                 S_OUT: begin
-                    sample_out <= (!global_on || bypass) ? dry_q : chain_q;
+                    df_out <= chain_q;      // DISTORTION/FILTER stage result
                     state <= S_IDLE;
                 end
                 default: state <= S_IDLE;
             endcase
         end
+    end
+    wire signed [15:0] chorus_out, phaser_out;
+    audio_chorus u_chorus(.clk(clk),.reset_n(reset_n),.sample_tick(sample_tick),
+        .in_sample(df_out),.enable(cfg[9][0]),
+        .freq(cfg[10][6:0]),.depth(cfg[11][6:0]),.mix(cfg[12][6:0]),
+        .out_sample(chorus_out));
+    audio_phaser u_phaser(.clk(clk),.reset_n(reset_n),.sample_tick(sample_tick),
+        .in_sample(chorus_out),.enable(cfg[13][0]),
+        .freq(cfg[14][6:0]),.depth(cfg[15][6:0]),.mix(cfg[16][6:0]),
+        .out_sample(phaser_out));
+
+    // No effect enabled -> exact dry (no pipeline latency).  Bypass and
+    // master-off are also bit-exact.  The real chain has 2-3 samples latency.
+    wire any_enabled = cfg[1][0]|cfg[5][0]|cfg[9][0]|cfg[13][0]|
+                       cfg[17][0]|cfg[21][0];
+    always @(posedge clk or negedge reset_n) begin
+        if (!reset_n) sample_out <= 16'sd0;
+        else sample_out <= (!global_on || bypass || !any_enabled) ? dry_sample : phaser_out;
     end
 endmodule
 
