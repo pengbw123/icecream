@@ -315,7 +315,7 @@ module rgb_visualizer #(
         .enable(text_enable&&(page_frame==4'd3)&&eg2_enable),
         .wclk(clk),.we(eg2_we),.waddr(eg2_addr),.wdata(eg2_data),.ink(eg2_ink),.cls(eg2_cls));
     wire algo_ink;wire [1:0] algo_cls;
-    wire [23:0] algo_color=(algo_cls==2'd1)?wc_frame:(algo_cls==2'd2)?24'h1E1E22:24'hF2F2F2;
+    wire [23:0] algo_color=(algo_cls==2'd1)?24'h36D07A:(algo_cls==2'd2)?24'h3A7BFF:24'hF2F2F2;
     ui_algo_map u_amap(.pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
         .enable(text_enable&&(page_frame==4'd1)&&algo_enable),
         .wclk(clk),.we(algo_we),.waddr(algo_addr),.wdata(algo_data),

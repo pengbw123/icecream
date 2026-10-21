@@ -496,11 +496,15 @@ static void map_px(u16 x,u16 y,u8 c){
     map_buf[b]=(u8)((map_buf[b]&(u8)~(3u<<sh))|(u8)(c<<sh));
 }
 static void map_hline(u16 x0,u16 x1,u16 y,u8 c){
-    u16 x;if(x0>x1){u16 t=x0;x0=x1;x1=t;}
+    u16 x;if(y>=256u)return;
+    if(x0>511u)x0=511u;if(x1>511u)x1=511u;
+    if(x0>x1){u16 t=x0;x0=x1;x1=t;}
     for(x=x0;x<=x1;x++)map_px(x,y,c);
 }
 static void map_vline(u16 x,u16 y0,u16 y1,u8 c){
-    u16 y;if(y0>y1){u16 t=y0;y0=y1;y1=t;}
+    u16 y;if(x>511u)return;
+    if(y0>255u)y0=255u;if(y1>255u)y1=255u;
+    if(y0>y1){u16 t=y0;y0=y1;y1=t;}
     for(y=y0;y<=y1;y++)map_px(x,y,c);
 }
 static void map_frame(u16 x0,u16 y0,u16 x1,u16 y1,u8 c){
@@ -508,7 +512,12 @@ static void map_frame(u16 x0,u16 y0,u16 x1,u16 y1,u8 c){
     map_vline(x0,y0,y1,c);map_vline(x1,y0,y1,c);
 }
 static void map_fill(u16 x0,u16 y0,u16 x1,u16 y1,u8 c){
-    u16 x,y;for(y=y0;y<=y1;y++)for(x=x0;x<=x1;x++)map_px(x,y,c);
+    u16 x,y;
+    if(x0>511u)x0=511u;if(x1>511u)x1=511u;
+    if(y0>255u)y0=255u;if(y1>255u)y1=255u;
+    if(x0>x1){u16 t=x0;x0=x1;x1=t;}
+    if(y0>y1){u16 t=y0;y0=y1;y1=t;}
+    for(y=y0;y<=y1;y++)for(x=x0;x<=x1;x++)map_px(x,y,c);
 }
 static void map_arrow_r(u16 x,u16 y,u8 c){
     map_px(x,y,c);
@@ -520,29 +529,88 @@ static void map_arrow_l(u16 x,u16 y,u8 c){
     map_px((u16)(x+1u),(u16)(y-1u),c);map_px((u16)(x+1u),(u16)(y+1u),c);
     map_px((u16)(x+2u),(u16)(y-2u),c);map_px((u16)(x+2u),(u16)(y+2u),c);
 }
+static u16 algo_ax[6],algo_ay[6],algo_out_x;
+static u8 algo_carrier[6],algo_ncarrier;
+
+/* Dexed-style operator diagram: carriers green on the bottom row, modulators
+   blue above them, lines show modulation, the bottom row feeds an OUT rail.
+   The bus contributions are simulated in OP6..OP1 order to recover the real
+   modulation graph from the 48-bit routing flags. */
 static void build_algo_map(void){
-    u8 i;
+    u8 f[6],b1[6],b2[6],n1=0,n2=0,dep[6],es[32],ed[32],ne=0,i,k,pass,d;
+    u8 car[6],nc=0,order[6];
     map_clear();
-    map_vline(232,4,250,1);
-    map_vline(280,4,250,1);
-    map_vline(472,4,250,1);
+    for(i=0;i<6;i++){f[i]=(u8)((g_flags[i>>1]>>((i&1u)*8u))&0xFFu);dep[i]=0;}
     for(i=0;i<6;i++){
-        u16 y0=(u16)(6u+i*41u),y1=(u16)(y0+33u),cy=(u16)(y0+16u);
-        u8 f=(u8)((g_flags[i>>1]>>((i&1u)*8u))&0xFFu);
-        u8 out=(u8)(f&3u),in=(u8)((f>>4)&3u),fb=(u8)((f>>6)==3u);
-        map_frame(16,y0,176,y1,1);
-        if(out==0u){map_hline(177,471,cy,1);map_arrow_r(471,cy,1);}
-        else if(out==1u){map_hline(177,231,cy,1);map_arrow_r(231,cy,1);}
-        else if(out==2u){map_hline(177,279,cy,1);map_arrow_r(279,cy,1);}
-        if(in==1u){map_hline(177,232,cy,1);map_arrow_l(177,cy,1);}
-        else if(in==2u){map_hline(177,280,cy,1);map_arrow_l(177,cy,1);}
-        if(fb){
-            map_hline(8,16,cy,1);
-            map_vline(8,(u16)(cy-8u),cy,1);
-            map_hline(8,15,(u16)(cy-8u),1);
-            map_arrow_r(15,(u16)(cy-8u),1);
-        }
+        u8 in=(f[i]>>4)&3u,dest=f[i]&3u,add=(f[i]>>2)&1u;
+        if(in==1u){for(k=0;k<n1;k++){if(ne<32u){es[ne]=b1[k];ed[ne]=i;ne++;}}}
+        else if(in==2u){for(k=0;k<n2;k++){if(ne<32u){es[ne]=b2[k];ed[ne]=i;ne++;}}}
+        if(dest==1u){if(add){if(n1<6u)b1[n1++]=i;}else{n1=0;b1[n1++]=i;}}
+        else if(dest==2u){if(add){if(n2<6u)b2[n2++]=i;}else{n2=0;b2[n2++]=i;}}
     }
+    for(pass=0;pass<8u;pass++)
+        for(k=0;k<ne;k++)
+            if(dep[es[k]]<dep[ed[k]]+1u)dep[es[k]]=(u8)(dep[ed[k]]+1u);
+    /* A modulator whose bus is overwritten before any reader has no edge;
+       still give it a row so it always gets a valid position. */
+    for(i=0;i<6;i++)if((f[i]&3u)!=0u&&dep[i]==0u)dep[i]=1;
+    for(i=6;i>0;i--){u8 op=(u8)(i-1u);if((f[op]&3u)==0u)car[nc++]=op;}
+    algo_ncarrier=nc;
+    if(nc==1u){algo_ax[car[0]]=256;}
+    else{
+        u16 gap=(u16)((512u-60u)/(nc-1u));if(gap>92u)gap=92u;
+        u16 x0=(u16)(256u-(gap*(nc-1u))/2u);
+        for(i=0;i<nc;i++)algo_ax[car[i]]=(u16)(x0+i*gap);
+    }
+    for(i=0;i<nc;i++){algo_carrier[i]=car[i];algo_ay[car[i]]=206;}
+    for(d=1;d<=3u;d++){
+        u8 n=0;
+        for(i=0;i<6;i++)if(dep[i]==d)order[n++]=i;
+        if(!n)continue;
+        for(i=0;i<n;i++){
+            u8 op=order[i];u16 sx=0;u8 cnt=0;
+            for(k=0;k<ne;k++)if(es[k]==op&&dep[ed[k]]<d){sx+=algo_ax[ed[k]];cnt++;}
+            algo_ax[op]=cnt?(u16)(sx/cnt):256;
+            algo_ay[op]=(u8)(206u-d*44u);
+        }
+        for(i=0;i<n;i++)for(k=(u8)(i+1u);k<n;k++){
+            u8 a=order[i],b=order[k];
+            if(algo_ax[a]>algo_ax[b]||
+               (algo_ax[a]==algo_ax[b]&&(6u-a)>(6u-b))){order[i]=b;order[k]=a;}
+        }
+        {int minx=26;for(i=0;i<n;i++){u8 op=order[i];
+            if(algo_ax[op]<minx)algo_ax[op]=(u16)minx;minx=algo_ax[op]+62;}}
+        {int lo=999,hi=-999,sh=0;
+         for(i=0;i<n;i++){if(algo_ax[order[i]]<lo)lo=algo_ax[order[i]];
+                          if(algo_ax[order[i]]>hi)hi=algo_ax[order[i]];}
+         if(hi>486)sh=486-hi;if(lo+sh<26)sh=26-lo;
+         for(i=0;i<n;i++)algo_ax[order[i]]=(u16)(algo_ax[order[i]]+sh);}
+    }
+    for(i=0;i<6;i++){
+        u16 cx=algo_ax[i],cy=algo_ay[i],c=((f[i]&3u)==0u)?1u:2u;
+        map_fill((u16)(cx-22u),(u16)(cy-14u),(u16)(cx+22u),(u16)(cy+14u),c);
+        map_frame((u16)(cx-22u),(u16)(cy-14u),(u16)(cx+22u),(u16)(cy+14u),3);
+    }
+    for(k=0;k<ne;k++){
+        u8 s=es[k],tt=ed[k];
+        u16 sx=algo_ax[s],sy=algo_ay[s],tx=algo_ax[tt],ty=algo_ay[tt];
+        u16 mid=(u16)((sy+ty)/2u);
+        map_vline(sx,(u16)(sy+14u),mid,3);
+        map_hline(sx,tx,mid,3);
+        map_vline(tx,mid,(u16)(ty-14u),3);
+    }
+    for(i=0;i<6;i++)if(((f[i]>>6)&3u)==3u){
+        u16 cx=algo_ax[i],cy=algo_ay[i];
+        /* large right-angle feedback loop: right, up, back into the box */
+        map_hline((u16)(cx+22u),(u16)(cx+46u),(u16)(cy+12u),3);
+        map_vline((u16)(cx+46u),(u16)(cy+12u),(u16)(cy-16u),3);
+        map_hline((u16)(cx+24u),(u16)(cx+46u),(u16)(cy-16u),3);
+        map_arrow_l((u16)(cx+24u),(u16)(cy-16u),3);
+    }
+    {u8 minx=255,maxx=0;
+     for(i=0;i<nc;i++){u16 cx=algo_ax[car[i]];map_vline(cx,220,238,3);
+         if(cx<minx)minx=cx;if(cx>maxx)maxx=cx;}
+     if(nc){map_hline(minx,maxx,238,3);algo_out_x=maxx;}}
 }
 static void upload_algo_map(void){
     u32 i;
@@ -634,7 +702,6 @@ static void draw_fx(void){
 }
 static void draw_algo(void){
     u8 i;
-    static const u8 label_rows[6]={11u,13u,16u,19u,21u,24u};
     text(2,4,"ALGORITHM",3,0);
     prow(6,"ALGORITHM",u2d((u32)g_algo+1u),(sel_row==0));
     prow(7,"FEEDBACK",u1d(g_fb),(sel_row==1));
@@ -642,11 +709,15 @@ static void draw_algo(void){
     prow(9,"TRANSPOSE",u2d(g_trans),(sel_row==3));
     if(algo_map_dirty){build_algo_map();upload_algo_map();algo_map_dirty=0;}
     for(i=0;i<6;i++){
-        u8 r0=label_rows[i];
-        c_at(29,r0,'O',1,0);c_at(30,r0,'P',1,0);
-        c_at(31,r0,(u8)('0'+(6-i)),1,0);
+        u16 x=(u16)(144u+algo_ax[i]),y=(u16)(160u+algo_ay[i]);
+        u8 col=(u8)((x>4u)?((x-4u)/8u):0u),r0=(u8)((y>8u)?((y-8u)/16u):0u);
+        char s[2];s[0]=(char)('0'+(6-i));s[1]=0;
+        if(col<99u&&r0<26u)text(col,r0,s,1,0);
     }
-    text(2,26,"B1=MOD BUS1  B2=MOD BUS2  OUT=CARRIER",2,0);
+    {u16 x=(u16)(144u+algo_out_x+10u);
+     if(x>780u)x=780u;
+     text((u8)(x/8u),24,"OUT",1,0);}
+    text(2,26,"GREEN=CARRIER  BLUE=MODULATOR",2,0);
 }
 static void draw_osc(void){
     u8 i,row,j;
