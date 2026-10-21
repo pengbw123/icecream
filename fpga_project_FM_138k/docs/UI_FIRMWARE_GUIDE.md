@@ -14,6 +14,9 @@
 | 效果器 | `audio_fx.v` | 32×16 位配置寄存器；DIST/FILTER/CHORUS/PHASER 链 |
 | 合唱 | `audio_chorus.v` | 2048 样本延迟线 + LFO，freq/depth/mix |
 | 移相 | `audio_phaser.v` | 4 级全通 + LFO，freq/depth/mix |
+| 延迟 | `audio_delay.v` | 40..670 ms 延迟线，decay/rate/mix |
+| 混响 | `audio_reverb.v` | 3 梳状 + 全通，type/decay/mix |
+| EG 六面板 | `ui_eg_multi.v` | 6×128 样本包络面板（3×2） |
 | 光栅合成 | `rgb_visualizer.v` | 800×480 RGB565：波形/XY/EG/键盘 + 字符层/曲线/位图叠加 |
 | FM 引擎 | `fm_poly_synth.v` 等 | 与 UI 解耦，只收命令/MIDI |
 
@@ -40,7 +43,9 @@ attr bit0 反显、bit1 下划线（末两行）、bit2 填充。
 | 15 | 回读就绪 bit0 | 写 0 清零 |
 | 16 | — | 调色板 `{index[27:24], color[23:0]}` |
 | 17 | — | 字符层使能 bit0 |
-| 18/19 | — | 包络曲线样本地址/高度（写 19 触发 RAM 写） |
+| 18/19 | — | 旧单曲线面板（保留，当前 138K 不再使用） |
+| 25/26 | — | 六算子包络面板基址 / 32 位字（自动 +4 字节） |
+| 27 | — | 六算子包络面板使能 bit0 |
 | 20/21 | — | 算法图旧逐字节上传口（保留） |
 | 22 | — | 算法图使能 bit0 |
 | 23/24 | — | 算法图上传基址 / 32 位字（RTL 自动写 4 字节并 +4） |
@@ -86,7 +91,7 @@ attr bit0 反显、bit1 下划线（末两行）、bit2 填充。
   加行号与加减；确认 `editable_rows()`/`content_top()`。
 - 加页：`tab_names[]` 固定 8 页；`draw_page()` 分支、`menu_press()` 触摸、页号写进 publish()。
 - 改主题：`theme_pal[3][16]` 与 `theme_bg/theme_wave/theme_xy`，`apply_theme()` 一次写完。
-- 布局：`VALUE_COL`（统一第 22 列）、`draw_bottom()`（第 27–29 行控制条）、
+- 布局：`VALUE_COL`（统一第 22 列）、`draw_bottom()`（第 27–29 行控制条，7 格按钮 + 细滑条）、
   `get_sel()/slider_apply()`（选中行取值与滑条映射）；行点击只选中，编辑走底部控制条。
 - 改布局：`c_at/text/text_r/fill_cells/btn_cells/btn_tall`；坐标是 8×16 字符格；
   **必须同步触摸判定**。

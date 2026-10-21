@@ -470,7 +470,7 @@ static void draw_header(void){
 #define VALUE_COL 22
 static void prow(u8 row,const char*label,const char*val,int selected){
     if(selected){
-        fill_cells(2,(u8)(VALUE_COL+16u),row,3,1);
+        fill_cells(2,(u8)(VALUE_COL+2u),row,3,1);
         text(2,row,label,3,1);text_r(VALUE_COL,row,val,3,1);
     }else{
         text(2,row,label,1,0);text_r(VALUE_COL,row,val,1,0);
@@ -901,6 +901,77 @@ static void eg_rebuild(void){
         UI[18]=i;UI[19]=(u8)h;
     }
 }
+static u8 eg6_rate[6][4],eg6_lev[6][4];
+static u8 eg6_buf[768];
+static void load_all_eg(void){
+    u8 op,s;
+    for(op=0;op<6;op++){
+        u16 a=(u16)(0x040u+(u16)op*0x20u);
+        for(s=0;s<4;s++){
+            eg6_rate[op][s]=rate_from_qrate((u8)(rd((u16)(a+9u+s))&0x3Fu));
+            eg6_lev[op][s]=level_from_internal(rd((u16)(a+13u+s)));
+        }
+    }
+}
+static void build_eg6_panel(u8 op){
+    u16 i;u32 wt[4];u16 bx[5],lv[5];u32 total=0;
+    for(i=0;i<4;i++){
+        u32 s=99u-eg6_rate[op][i];
+        wt[i]=4u+(s*s)/10u;
+        lv[i+1]=(u16)(((u32)eg6_lev[op][i]*255u)/99u);
+    }
+    lv[0]=0;
+    for(i=0;i<4;i++){if(wt[i]<4u)wt[i]=4u;total+=wt[i];}
+    bx[0]=0;
+    for(i=0;i<4;i++){
+        u32 v=(u32)bx[i]+(((u32)wt[i]*128u)/total);
+        if(v<=bx[i])v=(u32)bx[i]+2u;
+        if(v>128u)v=128u;
+        bx[i+1]=(u16)v;
+    }
+    bx[4]=128;
+    for(i=0;i<128;i++){
+        u8 s=0;u32 tt,h,w;
+        while(s<3&&i>=bx[s+1])s++;
+        w=(u32)bx[s+1]-bx[s];if(w==0u)w=1u;
+        tt=(u32)(i-bx[s]);
+        if(lv[s+1]>=lv[s])
+            h=(u32)lv[s]+(((u32)(lv[s+1]-lv[s])*(u32)tt)/w);
+        else
+            h=(u32)lv[s]-(((u32)(lv[s]-lv[s+1])*(u32)tt)/w);
+        if(h>255u)h=255u;
+        eg6_buf[(u16)op*128u+i]=(u8)h;
+    }
+}
+static void build_all_eg(void){u8 op;for(op=0;op<6;op++)build_eg6_panel(op);}
+static void upload_eg6(void){
+    u16 i;u32 w;
+    UI[25]=0;
+    for(i=0;i<192u;i++){
+        u16 b=(u16)(i*4u);
+        w=(u32)eg6_buf[b]|((u32)eg6_buf[b+1]<<8)|
+          ((u32)eg6_buf[b+2]<<16)|((u32)eg6_buf[b+3]<<24);
+        UI[26]=w;
+    }
+    UI[27]=1;
+}
+static void upload_eg6_panel(u8 op){
+    u16 i;u32 w;
+    UI[25]=(u32)op*128u;
+    for(i=0;i<32u;i++){
+        u16 b=(u16)(op*128u+i*4u);
+        w=(u32)eg6_buf[b]|((u32)eg6_buf[b+1]<<8)|
+          ((u32)eg6_buf[b+2]<<16)|((u32)eg6_buf[b+3]<<24);
+        UI[26]=w;
+    }
+}
+static void sync_eg6(void){
+    u8 i;
+    if(eg_mode)return;
+    for(i=0;i<4;i++){eg6_rate[sel_op][i]=o_rate[i];eg6_lev[sel_op][i]=o_lev[i];}
+    build_eg6_panel(sel_op);
+    upload_eg6_panel(sel_op);
+}
 static void draw_eg(void){
     u8 i,j,row=6;
     for(i=0;i<6;i++){
@@ -910,36 +981,22 @@ static void draw_eg(void){
         c_at((u8)(base+2u),4,(u8)('0'+(i+1)),pal,1);
     }
     text(66,4,eg_mode?"PITCH EG":"AMP EG",3,0);
-    if(eg_mode==0u){
-        for(i=0;i<4;i++){
-            char lbl[7];u8 n=0;
-            lbl[n++]='R';lbl[n++]='A';lbl[n++]='T';lbl[n++]='E';lbl[n++]=' ';
-            lbl[n++]=(char)('1'+i);lbl[n]=0;
-            prow_eg(row,lbl,u2d(o_rate[i]),(sel_row==i));row++;
-        }
-        row=11;
-        for(i=0;i<4;i++){
-            char lbl[8];u8 n=0;
-            lbl[n++]='L';lbl[n++]='E';lbl[n++]='V';lbl[n++]='E';lbl[n++]='L';lbl[n++]=' ';
-            lbl[n++]=(char)('1'+i);lbl[n]=0;
-            prow_eg(row,lbl,u2d(o_lev[i]),(sel_row==4+i));row++;
-        }
-        text(66,22,"AMP EG LEVEL",2,0);
-    }else{
-        for(i=0;i<4;i++){
-            char lbl[8];u8 n=0;
-            lbl[n++]='P';lbl[n++]='R';lbl[n++]='A';lbl[n++]='T';lbl[n++]='E';lbl[n++]=' ';
-            lbl[n++]=(char)('1'+i);lbl[n]=0;
-            prow_eg(row,lbl,u2d(p_rate[i]),(sel_row==i));row++;
-        }
-        row=11;
-        for(i=0;i<4;i++){
-            char lbl[10];u8 n=0;
-            lbl[n++]='T';lbl[n++]='A';lbl[n++]='R';lbl[n++]='G';lbl[n++]='E';lbl[n++]='T';
-            lbl[n++]=' ';lbl[n++]=(char)('1'+i);lbl[n]=0;
-            prow_eg(row,lbl,u2d(p_lev[i]),(sel_row==4+i));row++;
-        }
-        text(66,22,"PITCH EG LEVEL",2,0);
+    for(i=0;i<4;i++){
+        char lbl[10];u8 n=0;
+        lbl[n++]='R';lbl[n++]='A';lbl[n++]='T';lbl[n++]='E';lbl[n++]=' ';
+        lbl[n++]=(char)('1'+i);lbl[n]=0;
+        if(sel_row==i)fill_cells(2,24,(u8)(row+i),3,1);
+        text(2,(u8)(row+i),lbl,(sel_row==i)?3:1,0);
+        text_r(22,(u8)(row+i),u2d(eg_mode?p_rate[i]:o_rate[i]),(sel_row==i)?3:1,0);
+    }
+    for(i=0;i<4;i++){
+        char lbl[10];u8 n=0;
+        if(eg_mode){lbl[n++]='T';lbl[n++]='A';lbl[n++]='R';lbl[n++]='G';lbl[n++]='E';lbl[n++]='T';}
+        else{lbl[n++]='L';lbl[n++]='E';lbl[n++]='V';lbl[n++]='E';lbl[n++]='L';}
+        lbl[n++]=' ';lbl[n++]=(char)('1'+i);lbl[n]=0;
+        if(sel_row==4+i)fill_cells(50,72,(u8)(row+i),3,1);
+        text(50,(u8)(row+i),lbl,(sel_row==4+i)?3:1,0);
+        text_r(72,(u8)(row+i),u2d(eg_mode?p_lev[i]:o_lev[i]),(sel_row==4+i)?3:1,0);
     }
 }
 static void draw_lfo(void){
@@ -1074,34 +1131,27 @@ static void slider_apply(int x){
 static void draw_bottom(void){
     u8 c;int cur,lo,hi,cyc,norm,knob;
     if(page<1||page>5)return;
-    for(c=2;c<=12;c++){
-        c_at(c,27,0,2,1);c_at(c,28,0,2,1);c_at(c,29,0,2,1);
-    }
-    c_at(4,28,'-',1,1);c_at(5,28,'-',1,1);c_at(6,28,'-',1,1);c_at(7,28,'-',1,1);c_at(8,28,'-',1,1);
-    for(c=87;c<=97;c++){
-        c_at(c,27,0,2,1);c_at(c,28,0,2,1);c_at(c,29,0,2,1);
-    }
-    c_at(91,28,'-',1,1);c_at(92,28,'-',1,1);c_at(93,28,'-',1,1);
-    c_at(92,27,'|',1,1);c_at(92,29,'|',1,1);
-    for(c=14;c<=84;c++){
-        c_at(c,27,0,7,1);c_at(c,28,0,6,1);c_at(c,29,0,7,1);
-    }
+    for(c=0;c<100;c++){c_at(c,27,0,12,4);c_at(c,28,0,12,4);c_at(c,29,0,12,4);}
+    for(c=2;c<=8;c++){c_at(c,27,0,6,1);c_at(c,28,0,6,1);c_at(c,29,0,6,1);}
+    c_at(5,28,'-',1,1);
+    for(c=91;c<=97;c++){c_at(c,27,0,6,1);c_at(c,28,0,6,1);c_at(c,29,0,6,1);}
+    c_at(94,27,'|',1,1);c_at(94,28,'+',1,1);c_at(94,29,'|',1,1);
+    for(c=11;c<=89;c++)c_at(c,28,0,7,1);
+    text(11,27,"VALUE",2,0);
+    text(11,29,"DRAG SLIDE   HOLD -/+",2,0);
     if(!get_sel(&cur,&lo,&hi,&cyc)){
-        text(14,27,"NO SELECTION",2,0);
+        text(30,27,"NO SELECTION",2,0);
         return;
     }
     if(cyc>0)norm=(cyc>1)?(cur*99/(cyc-1)):0;
     else norm=(hi>lo)?((cur-lo)*99/(hi-lo)):0;
     if(norm<0)norm=0;if(norm>99)norm=99;
-    knob=(u8)(14+norm*70/99);
-    for(c=14;c<=knob;c++)c_at(c,28,0,3,1);
+    knob=(u8)(11+norm*78/99);
+    for(c=11;c<=knob;c++)c_at(c,28,0,3,1);
     c_at(knob,28,'|',1,1);
-    text(14,27,"SLIDE",2,0);
-    text_r(84,27,u2d((u32)(cur>99?99:cur)),3,0);
-    text(14,29,"HOLD -/+ = REPEAT",2,0);
+    text_r(89,27,u2d((u32)(cur>99?99:cur)),3,0);
 }
 static void draw_page(void){
-    if(page==3)eg_rebuild();
     if(page==PAGE_PERF){clear_all();draw_perf();return;}
     draw_header();
     if(page==PAGE_ALGO)draw_algo();
@@ -1121,7 +1171,7 @@ static void page_enter(u8 p){
     page=p;sel_row=0;last_adj=0;
     if(p==PAGE_ALGO){load_globals();load_flags();algo_map_dirty=1;}
     else if(p==PAGE_OSC){load_op(sel_op);load_flags();}
-    else if(p==3)load_op(sel_op);
+    else if(p==3){load_op(sel_op);load_all_eg();build_all_eg();upload_eg6();}
     else if(p==4)load_globals();
     else if(p==5)load_fx();
     else if(p==6)name_from_preset((u8)((UI[4]>>7)&31u));
@@ -1226,7 +1276,7 @@ static int content_top(void){
 }
 static void adj(u8 row,int d){
     if(page==PAGE_ALGO){adj_algo(row,d);load_flags();}
-    else if(page==3){if(eg_mode)adj_pitch(row,d);else adj_eg(row,d);}
+    else if(page==3){if(eg_mode)adj_pitch(row,d);else adj_eg(row,d);sync_eg6();}
     else if(page==4)adj_lfo(row,d);
     else if(page==5)adj_fx(row,d);
     else adj_op(row,d);
@@ -1264,6 +1314,12 @@ static int menu_press(int x,int y){
     if((page==PAGE_OSC||page==3)&&y>=64&&y<80){
         int i;for(i=0;i<6;i++){int x0=16+i*72;
             if(x>=x0&&x<x0+64){sel_op=(u8)(5-i);load_op(sel_op);sel_row=0;draw_page();return 1;}}
+        return 1;
+    }
+    if(page==3&&y>=96&&y<160){
+        int r=(y-96)/16;
+        sel_row=(u8)(x<400?r:r+4);
+        draw_page();
         return 1;
     }
     {int top=content_top();

@@ -91,7 +91,7 @@ module tb_audio_fx;
         repeat (40) run_sample(16'sd30000);
         if (last_out > 16'sd32767 || last_out < -16'sd32768)
             $fatal(1, "distortion overflow %0d", last_out);
-        if (last_out < 16'sd32000)
+        if (last_out < 16'sd24000)
             $fatal(1, "distortion did not clamp a hot input (%0d)", last_out);
 
         // ---- low-pass filter passes DC, kills alternating Nyquist input ----
@@ -148,7 +148,39 @@ module tb_audio_fx;
         run_sample(16'sd12345);
         if (last_out !== 16'sd12345) $fatal(1, "bypass mismatch %0d", last_out);
 
-        $display("PASS audio_fx registers, bypass, distortion, filter, chorus and phaser");
+        // ---- delay: an impulse must come back as a delayed echo ----
+        wr(6'd0, 16'h0001);      // master on, no bypass
+        wr(6'd9, 16'd0);         // chorus off
+        wr(6'd13, 16'd0);        // phaser off
+        wr(6'd17, 16'd1);        // delay on
+        wr(6'd18, 16'd60);       // feedback
+        wr(6'd19, 16'd0);        // shortest time (~40 ms)
+        wr(6'd20, 16'd99);       // full wet
+        max_out = 0;
+        for (n = 0; n < 6000; n = n + 1) begin
+            run_sample((n == 0) ? 16'sd20000 : 16'sd0);
+            if (last_out > max_out) max_out = last_out;
+            if (-last_out > max_out) max_out = -last_out;
+        end
+        if (max_out < 16'sd200)
+            $fatal(1, "delay produced no echo (max %0d)", max_out);
+
+        // ---- reverb: an impulse must produce a decaying tail ----
+        wr(6'd17, 16'd0);        // delay off
+        wr(6'd21, 16'd1);        // reverb on
+        wr(6'd22, 16'd0);        // room
+        wr(6'd23, 16'd80);       // long decay
+        wr(6'd24, 16'd99);       // full wet
+        max_out = 0;
+        for (n = 0; n < 3000; n = n + 1) begin
+            run_sample((n == 0) ? 16'sd20000 : 16'sd0);
+            if (last_out > max_out) max_out = last_out;
+            if (-last_out > max_out) max_out = -last_out;
+        end
+        if (max_out < 16'sd100)
+            $fatal(1, "reverb produced no tail (max %0d)", max_out);
+
+        $display("PASS audio_fx registers, bypass, distortion, filter, chorus, phaser, delay and reverb");
         $finish;
     end
 endmodule

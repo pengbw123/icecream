@@ -61,4 +61,12 @@ chorus_hz = [0.05 * (6.0 / 0.05) ** (i / (N - 1)) for i in range(N)]
 phaser_hz = [0.05 * (3.0 / 0.05) ** (i / (N - 1)) for i in range(N)]
 (GEN / 'fx_chorus_inc.mem').write_text('\n'.join(f'{lfo_inc(f):08X}' for f in chorus_hz) + '\n')
 (GEN / 'fx_phaser_inc.mem').write_text('\n'.join(f'{lfo_inc(f):08X}' for f in phaser_hz) + '\n')
+
+# Delay time: 40 ms .. 670 ms (32768-sample line), feedback and reverb decay.
+delay_len = [round((40.0 + i * (670.0 - 40.0) / (N - 1)) * FS / 1000.0) for i in range(N)]
+delay_fb = [round((0.30 + i * 0.60 / (N - 1)) * 32768.0) for i in range(N)]
+reverb_fb = [round((0.30 + i * 0.65 / (N - 1)) * 32768.0) for i in range(N)]
+(GEN / 'fx_delay_len.mem').write_text('\n'.join(f'{v & 0xFFFF:04X}' for v in delay_len) + '\n')
+(GEN / 'fx_delay_fb.mem').write_text('\n'.join(f'{v & 0xFFFF:04X}' for v in delay_fb) + '\n')
+(GEN / 'fx_reverb_fb.mem').write_text('\n'.join(f'{v & 0xFFFF:04X}' for v in reverb_fb) + '\n')
 print('generated fx tables:', [p.name for p in GEN.glob('fx_*.mem')])

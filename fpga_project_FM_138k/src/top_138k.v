@@ -51,6 +51,7 @@ module top_138k (
     wire [23:0] palette_data;
     wire text_enable;
     wire eg_we;wire [7:0] eg_addr;wire [8:0] eg_data;
+wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire algo_we;wire [14:0] algo_addr;wire [7:0] algo_data;wire algo_enable;
     wire ui_command_valid,ui_command_ready;
     wire [7:0] ui_command;
@@ -70,6 +71,7 @@ module top_138k (
         .text_write(text_write),.text_address(text_address),.text_data(text_data),
         .palette_write(palette_write),.palette_index(palette_index),.palette_data(palette_data),
         .text_enable(text_enable),.eg_we(eg_we),.eg_addr(eg_addr),.eg_data(eg_data),
+        .eg2_we(eg2_we),.eg2_addr(eg2_addr),.eg2_data(eg2_data),.eg2_enable(eg2_enable),
         .algo_we(algo_we),.algo_addr(algo_addr),.algo_data(algo_data),.algo_enable(algo_enable),
         .command_valid(ui_command_valid),.command(ui_command),.command_payload(ui_command_payload),.command_ready(ui_command_ready),
         .patch_read_data(readback_data),.patch_read_valid(readback_valid),
@@ -110,6 +112,7 @@ module top_138k (
         .text_write(text_write),.text_address(text_address),.text_data(text_data),
         .palette_write(palette_write),.palette_index(palette_index),.palette_data(palette_data),
         .text_enable(text_enable),.eg_we(eg_we),.eg_addr(eg_addr),.eg_data(eg_data),
+        .eg2_we(eg2_we),.eg2_addr(eg2_addr),.eg2_data(eg2_data),.eg2_enable(eg2_enable),
         .algo_we(algo_we),.algo_addr(algo_addr),.algo_data(algo_data),.algo_enable(algo_enable),
         .lcd_pclk(lcd_pclk),.lcd_de(lcd_de),.lcd_hsync(lcd_hsync),.lcd_vsync(lcd_vsync),
         .lcd_bl(lcd_bl),.lcd_r(lcd_r),.lcd_g(lcd_g),.lcd_b(lcd_b),.pll_locked(video_lock)

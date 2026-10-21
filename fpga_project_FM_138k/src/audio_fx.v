@@ -210,7 +210,7 @@ module audio_fx (
             endcase
         end
     end
-    wire signed [15:0] chorus_out, phaser_out;
+    wire signed [15:0] chorus_out, phaser_out, delay_out, reverb_out;
     audio_chorus u_chorus(.clk(clk),.reset_n(reset_n),.sample_tick(sample_tick),
         .in_sample(df_out),.enable(cfg[9][0]),
         .freq(cfg[10][6:0]),.depth(cfg[11][6:0]),.mix(cfg[12][6:0]),
@@ -220,13 +220,37 @@ module audio_fx (
         .freq(cfg[14][6:0]),.depth(cfg[15][6:0]),.mix(cfg[16][6:0]),
         .out_sample(phaser_out));
 
+    audio_delay u_delay(.clk(clk),.reset_n(reset_n),.sample_tick(sample_tick),
+        .in_sample(phaser_out),.enable(cfg[17][0]),
+        .decay(cfg[18][6:0]),.rate(cfg[19][6:0]),.mix(cfg[20][6:0]),
+        .out_sample(delay_out));
+    audio_reverb u_reverb(.clk(clk),.reset_n(reset_n),.sample_tick(sample_tick),
+        .in_sample(delay_out),.enable(cfg[21][0]),.rtype(cfg[22][1:0]),
+        .decay(cfg[23][6:0]),.mix(cfg[24][6:0]),
+        .out_sample(reverb_out));
+
+    // Final soft limiter: keep the sum of six effects from hard clipping.
+    function signed [15:0] limit16;
+        input signed [15:0] v;
+        reg signed [31:0] a;
+        begin
+            a = v;
+            if (a > 32'sd24576) a = 32'sd24576 + ((a - 32'sd24576) >>> 2);
+            else if (a < -32'sd24576) a = -32'sd24576 + ((a + 32'sd24576) >>> 2);
+            if (a > 32'sd32767) a = 32'sd32767;
+            if (a < -32'sd32768) a = -32'sd32768;
+            limit16 = a[15:0];
+        end
+    endfunction
+
     // No effect enabled -> exact dry (no pipeline latency).  Bypass and
     // master-off are also bit-exact.  The real chain has 2-3 samples latency.
     wire any_enabled = cfg[1][0]|cfg[5][0]|cfg[9][0]|cfg[13][0]|
                        cfg[17][0]|cfg[21][0];
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) sample_out <= 16'sd0;
-        else sample_out <= (!global_on || bypass || !any_enabled) ? dry_sample : phaser_out;
+        else sample_out <= (!global_on || bypass || !any_enabled)
+                           ? dry_sample : limit16(reverb_out);
     end
 endmodule
 

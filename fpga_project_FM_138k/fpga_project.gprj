@@ -9,9 +9,12 @@
 <File path="src/audio_fx.v" type="file.verilog" enable="1"/>
 <File path="src/audio_chorus.v" type="file.verilog" enable="1"/>
 <File path="src/audio_phaser.v" type="file.verilog" enable="1"/>
+<File path="src/audio_delay.v" type="file.verilog" enable="1"/>
+<File path="src/audio_reverb.v" type="file.verilog" enable="1"/>
 <File path="src/pro_audio_effects.v" type="file.verilog" enable="1"/>
 <File path="src/rtl_char_display.v" type="file.verilog" enable="1"/>
 <File path="src/ui_eg_curve.v" type="file.verilog" enable="1"/>
+<File path="src/ui_eg_multi.v" type="file.verilog" enable="1"/>
 <File path="src/ui_algo_map.v" type="file.verilog" enable="1"/>
 
         <File path="src/audio_output_stage.v" type="file.verilog" enable="1"/>

@@ -45,6 +45,7 @@ module tb_rgb_visualizer;
         .background_color(24'h080D18),.wave_color(24'h40EAD0),.xy_color(24'hFFB95A),
         .text_write(1'b0),.text_address(12'd0),.text_data(16'd0),
         .palette_write(1'b0),.palette_index(4'd0),.palette_data(24'd0),.text_enable(1'b0),.eg_we(1'b0),.eg_addr(8'd0),.eg_data(9'd0),
+        .eg2_we(1'b0),.eg2_addr(10'd0),.eg2_data(8'd0),.eg2_enable(1'b0),
         .algo_we(1'b0),.algo_addr(15'd0),.algo_data(8'd0),.algo_enable(1'b0),
         .lcd_pclk(pclk),.lcd_de(de),.lcd_hsync(hs),.lcd_vsync(vs),.lcd_bl(bl),
         .lcd_r(r),.lcd_g(g),.lcd_b(b),.pll_locked(lock));

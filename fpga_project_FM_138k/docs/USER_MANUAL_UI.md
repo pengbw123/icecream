@@ -99,8 +99,10 @@ FM 的声音 = 用一些算子去"调制"另一些算子的频率，再叠加输
 
 按下琴键后音量走 4 段：起音（R1→L1）→ 衰减（R2→L2）→ 按住（R3→L3）→ 松开（R4→L4）。
 
-**右侧曲线图**：
-- 横轴时间、纵轴电平；亮色填充区是包络电平，顶端亮线是曲线，网格是刻度。
+**页面布局**：
+- 左列 `RATE 1..4`，右列 `LEVEL 1..4`（PITCH 模式下右列是 `TARGET 1..4`）。
+- 下方 **6 张包络图**，对应 OP1～OP6（左上到右下：OP1/OP2/OP3 在上排，OP4/OP5/OP6 在下排）；
+  方框是面板、网格是刻度、亮线是曲线、暗红色区域是包络电平。
 - RATE 越大该段越短、线越陡；RATE 越小越平缓（四段宽度按 RATE 非线性分配）。
 - PITCH 模式里 `TARGET 1..4` 是四段目标音高，`50` = 原音高，小于 50 向下滑、大于 50 向上滑。
 
@@ -128,7 +130,7 @@ LFO 是自动来回摆的低频振荡器，用来做颤音/哇音。
   没有类型的效果器显示 --。
 - 三个参数行：DIST = GAIN/TONE/LEVEL；FILTER = CUTOFF/Q；其余为 FREQ/DEPTH/MIX、
   DECAY/RATE/MIX、DECAY/MIX。
-- 目前（阶段 3c）DIST、FILTER、CHORUS、PHASER 已生效；DELAY/REVERB 占位，下一步接上。
+- 六个效果器全部生效：DIST、FILTER、CHORUS、PHASER、DELAY、REVERB；链尾有软限幅。
 
 ## 7. 名字/用户槽页（7 NAME）
 

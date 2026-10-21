@@ -34,10 +34,12 @@ module tb_touch_ui;
             if(pr_wait==1)pr_valid<=1;
         end
     end
-    integer cell_fd,eg_fd,algo_fd;
+    integer cell_fd,eg_fd,algo_fd,eg6_fd;
+    reg [9:0] eg6_base;
     initial cell_fd=$fopen("tmp/menu_cells.txt","w");
     initial eg_fd=$fopen("tmp/eg_curve.txt","w");
     initial algo_fd=$fopen("tmp/algo_map.txt","w");
+    initial eg6_fd=$fopen("tmp/eg6_panels.txt","w");
     always @(posedge clk)begin
         if(dut.text_write)
             $fwrite(cell_fd,"%0d %0d %0d\n",dut.text_address,dut.text_data,$time);
@@ -45,6 +47,22 @@ module tb_touch_ui;
             $fwrite(eg_fd,"%0d %0d %0d\n",dut.eg_addr,dut.eg_data,$time);
         if(dut.algo_we)
             $fwrite(algo_fd,"%0d %0d %0d\n",dut.algo_addr,dut.algo_data,$time);
+    end
+    // Mirror the six-panel EG upload (UI[25] base + UI[26] word burst).
+    always @(posedge clk)begin
+        if(dut.write_en && dut.address[31:8]==24'h230000)begin
+            case(dut.address[7:2])
+                6'd25:eg6_base<=dut.write_data[9:0];
+                6'd26:begin
+                    $fwrite(eg6_fd,"%0d %0d %0d\n",eg6_base,dut.write_data[7:0],$time);
+                    $fwrite(eg6_fd,"%0d %0d %0d\n",eg6_base+1,dut.write_data[15:8],$time);
+                    $fwrite(eg6_fd,"%0d %0d %0d\n",eg6_base+2,dut.write_data[23:16],$time);
+                    $fwrite(eg6_fd,"%0d %0d %0d\n",eg6_base+3,dut.write_data[31:24],$time);
+                    eg6_base<=eg6_base+10'd4;
+                end
+                default:;
+            endcase
+        end
     end
     always @(posedge clk)begin
         if(dut.command_valid)case(dut.command)
@@ -304,10 +322,10 @@ module tb_touch_ui;
         touch_kind=32;wait(menu_page==4'd5);#5000000;
         touch_kind=0;#8000000;
         $display("M13 fx page at %t",$time);
-        $fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);
+        $fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);$fclose(eg6_fd);
         $display("PASS real UI firmware, I2C, menu pages, EG/LFO/pitch, name/slots, FX page");$finish;
     end
-    initial begin #900000000;$fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
+    initial begin #900000000;$fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);$fclose(eg6_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
 endmodule
 
 

@@ -22,6 +22,7 @@ module rgb_visualizer #(
     input wire palette_write,input wire [3:0] palette_index,input wire [23:0] palette_data,
     input wire text_enable,
     input wire eg_we,input wire [7:0] eg_addr,input wire [8:0] eg_data,
+    input wire eg2_we,input wire [9:0] eg2_addr,input wire [7:0] eg2_data,input wire eg2_enable,
     input wire algo_we,input wire [14:0] algo_addr,input wire [7:0] algo_data,
     input wire algo_enable,
     input wire display_auto_gain,
@@ -307,11 +308,12 @@ module rgb_visualizer #(
     reg [7:0] character_pipe;
     reg [2:0] font_x_pipe,font_y_pipe;
     reg font_enable_pipe,de_pipe,hs_pipe,vs_pipe;
-    wire eg_ink;wire [1:0] eg_cls;
-    wire [23:0] eg_color=(eg_cls==2'd1)?wc_frame:(eg_cls==2'd2)?24'hF2F2F2:24'h2A2A30;
-    ui_eg_curve u_eg(.pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
-        .enable(text_enable&&(page_frame==4'd3)),
-        .wclk(clk),.we(eg_we),.waddr(eg_addr),.wdata(eg_data),.ink(eg_ink),.cls(eg_cls));
+    wire eg2_ink;wire [2:0] eg2_cls;
+    wire [23:0] eg2_color=(eg2_cls==3'd1)?wc_frame:(eg2_cls==3'd2)?24'hF2F2F2:
+                          (eg2_cls==3'd3)?24'h5A1E1E:24'h2A2A30;
+    ui_eg_multi u_eg2(.pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
+        .enable(text_enable&&(page_frame==4'd3)&&eg2_enable),
+        .wclk(clk),.we(eg2_we),.waddr(eg2_addr),.wdata(eg2_data),.ink(eg2_ink),.cls(eg2_cls));
     wire algo_ink;wire [1:0] algo_cls;
     wire [23:0] algo_color=(algo_cls==2'd1)?wc_frame:(algo_cls==2'd2)?24'h1E1E22:24'hF2F2F2;
     ui_algo_map u_amap(.pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
@@ -319,7 +321,7 @@ module rgb_visualizer #(
         .wclk(clk),.we(algo_we),.waddr(algo_addr),.wdata(algo_data),
         .ink(algo_ink),.cls(algo_cls));
     wire [23:0] final_rgb=menu_ink?menu_color:
-        (algo_ink?algo_color:(eg_ink?eg_color:background_pipe));
+        (algo_ink?algo_color:(eg2_ink?eg2_color:background_pipe));
     always @(posedge pclk) begin
         if (!video_reset_n) begin
             lcd_de<=0;lcd_hsync<=0;lcd_vsync<=0;lcd_r<=0;lcd_g<=0;lcd_b<=0;

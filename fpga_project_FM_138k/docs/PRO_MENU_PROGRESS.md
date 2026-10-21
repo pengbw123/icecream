@@ -130,6 +130,30 @@ Pitch EG（0x65）、ALGORITHM 移调、OSC ENABLE、NAME 页 10 字符 + 8 个�
 - 固件 34 444 B；全量回归 17 项通过；PnR 数字不变（Logic 21262/BSRAM 169/DSP 35，
   Fmax 59.331 MHz / 42.718 MHz，TNS 0）。
 
+## 阶段 4（DELAY + REVERB + 软限幅）
+
+- 新增 `audio_delay.v`：循环延迟线 40..670 ms（32768 样本），DECAY 控制反馈 0.30..0.90，
+  RATE 控制时间，MIX 干湿；用写计数屏蔽上电未写入的历史，避免上电噪声。
+- 新增 `audio_reverb.v`：复用 `audio_effects.v` 的三梳状 + 一全通结构，TYPE 切换
+  ROOM/HALL/PLATE 三组梳状长度，DECAY 控制反馈，MIX 干湿。
+- `audio_fx.v` 链路补全：DIST → FILTER → CHORUS → PHASER → DELAY → REVERB → 软限幅
+  （24576 软拐点）；全部效果关闭时仍直接干声。
+- 测试：`tb_audio_fx` 增加延迟脉冲回声、混响尾音断言；全量回归通过。
+- PnR：Logic 21946、Register 12898、BSRAM 222/340、DSP 42/298；
+  50 MHz Fmax 53.718 MHz，像素域 43.533 MHz。
+
+## 阶段 3e（UI 外观 + EG 六算子包络图）
+
+- 底部控制条重做：紧凑 7 格宽的大 `-`/`+`（白字深灰底），中间细滑条 + 右侧 VALUE 数值，
+  去掉原来大块灰色按钮和虚线字形。
+- 选中反色条缩短：只覆盖标签和数值到第 24 列（原来到第 38 列，右侧留空过长）。
+- EG 页改为两列：左列 RATE 1..4，右列 LEVEL 1..4（PITCH 模式为 TARGET 1..4）。
+- 新增 `ui_eg_multi.v`：6 块 128 样本包络面板（3×2 排列，768 字节 RAM），
+  显示框线/网格/填充/曲线；固件进 EG 页时读回 6 个算子的 EG 并一次性上传，
+  编辑某个算子时只重传该面板。寄存器：UI[25] 基址、UI[26] 32 位字（自动 +4）、UI[27] 使能。
+- 新增 `tb_eg_multi` 单元测试；`tb_touch_ui` 覆盖两列选择与算子面板刷新。
+- 固件 34 792 B。
+
 ## 下一步
 
 1. 按钮圆角/按下高亮（可选；按下变色已有，圆角需要画布层或小位图）。
