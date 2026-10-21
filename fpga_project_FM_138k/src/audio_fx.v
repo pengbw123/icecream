@@ -98,9 +98,12 @@ module audio_fx (
 
     reg [4:0] state;
     reg signed [15:0] dry_q, d_out, chain_q, df_out, tone_state, clipped;
+    wire signed [31:0] clip_diff =
+        {{16{clipped[15]}}, clipped} - {{16{tone_state[15]}}, tone_state};
     reg signed [31:0] driven, prod;
     reg signed [23:0] lp, bp, lp_tmp, hp_tmp, bp_new;
     reg signed [39:0] prod1, prod2, prod3;
+    reg signed [47:0] prod_tone;
 
     reg        dist_en, filt_en;
     reg [1:0]  ftype;
@@ -124,6 +127,7 @@ module audio_fx (
             driven <= 32'sd0; prod <= 32'sd0;
             lp <= 24'sd0; bp <= 24'sd0; lp_tmp <= 24'sd0; hp_tmp <= 24'sd0;
             bp_new <= 24'sd0; prod1 <= 40'sd0; prod2 <= 40'sd0; prod3 <= 40'sd0;
+            prod_tone <= 48'sd0;
             dist_en <= 1'b0; filt_en <= 1'b0; ftype <= 2'd0; dgain <= 8'd1;
             tcoef <= 16'sd0; lgain <= 16'sd0; fcoef <= 16'sd0; qcoef <= 16'sd0;
         end else begin
@@ -154,11 +158,11 @@ module audio_fx (
                     end
                 end
                 S_TONE_B: begin
-                    prod <= $signed(tcoef) * $signed(clipped - tone_state);
+                    prod_tone <= $signed(tcoef) * clip_diff;
                     state <= S_LEVEL;
                 end
                 S_LEVEL: begin
-                    tone_state <= sat16($signed(tone_state) + (prod >>> 15));
+                    tone_state <= sat16($signed(tone_state) + (prod_tone >>> 15));
                     state <= S_LEVEL2;
                 end
                 S_LEVEL2: begin

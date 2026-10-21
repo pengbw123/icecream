@@ -35,7 +35,8 @@ module audio_reverb (
     reg [3:0]  st;
     reg signed [15:0] in_q, t1, t2, t3, tap_ap;
     reg signed [15:0] ap_in_prev, ap_out, ap_wdat, wd1, wd2, wd3;
-    reg signed [31:0] prod1, prod2, prod3, sum12, sum3, mix_prod;
+    reg signed [31:0] prod1, prod2, prod3, sum12, sum3;
+    reg signed [47:0] mix_prod;
     reg signed [15:0] dc_state;
     reg signed [15:0] fb_q, mix_q;
 
@@ -49,7 +50,8 @@ module audio_reverb (
     wire [6:0] decay_i = (decay > 7'd99) ? 7'd99 : decay;
     wire [6:0] mix_i   = (mix   > 7'd99) ? 7'd99 : mix;
     wire signed [31:0] ap_y = $signed(tap_ap) - ($signed(ap_in_prev) >>> 1);
-    wire signed [15:0] wet_hp = $signed(ap_out) - dc_state;
+    wire signed [31:0] wet_hp = $signed({ap_out[15], ap_out}) -
+                                  $signed({dc_state[15], dc_state});
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
@@ -119,7 +121,7 @@ module audio_reverb (
                     /* DC blocker (~30 Hz) on the wet path. */
                     dc_state <= sat16($signed(dc_state) +
                                       (($signed(ap_out) - $signed(dc_state)) >>> 8));
-                    mix_prod <= ($signed(wet_hp) - $signed(in_q)) * $signed(mix_q);
+                    mix_prod <= (wet_hp - $signed({in_q[15], in_q})) * $signed(mix_q);
                     st<=4'd12;
                 end
                 default: begin

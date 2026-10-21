@@ -34,7 +34,7 @@ module audio_phaser (
     reg signed [15:0] x1 [0:3];
     reg signed [15:0] y1 [0:3];
     reg signed [15:0] a_q15;
-    reg signed [31:0] prod1, prod2;
+    reg signed [39:0] prod1, prod2;
 
     wire [6:0] freq_i  = (freq  > 7'd99) ? 7'd99 : freq;
     wire [6:0] depth_i = (depth > 7'd99) ? 7'd99 : depth;
@@ -50,7 +50,7 @@ module audio_phaser (
         if (!reset_n) begin
             lfo_phase <= 32'd0; st <= 4'd0; stage <= 2'd0;
             in_q <= 16'sd0; cur <= 16'sd0; a_q15 <= 16'sd0;
-            prod1 <= 32'sd0; prod2 <= 32'sd0; out_sample <= 16'sd0;
+            prod1 <= 40'sd0; prod2 <= 40'sd0; out_sample <= 16'sd0;
             x1[0] <= 0; x1[1] <= 0; x1[2] <= 0; x1[3] <= 0;
             y1[0] <= 0; y1[1] <= 0; y1[2] <= 0; y1[3] <= 0;
         end else begin
@@ -82,7 +82,8 @@ module audio_phaser (
                     else begin stage <= stage + 1'b1; st <= 4'd2; end
                 end
                 4'd5: begin
-                    prod1 <= $signed(cur - in_q) * $signed(mix_tab[mix_i]);
+                    prod1 <= ($signed({cur[15], cur}) - $signed({in_q[15], in_q})) *
+                             $signed(mix_tab[mix_i]);
                     st <= 4'd6;
                 end
                 default: begin

@@ -77,7 +77,8 @@ module audio_chorus (
                     st <= 3'd4;
                 end
                 3'd4: begin
-                    prod <= $signed(tap - in_q) * $signed(mix_tab[mix_i]);
+                    prod <= ($signed({tap[15], tap}) - $signed({in_q[15], in_q})) *
+                            $signed(mix_tab[mix_i]);
                     st <= 3'd5;
                 end
                 default: begin

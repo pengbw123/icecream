@@ -83,7 +83,8 @@ module audio_delay (
                 end
                 6'd4: begin
                     wdat <= sat16($signed(in_q) + (prod >>> 15));
-                    prod <= $signed(tap_g - in_q) * $signed(mix_q);
+                    prod <= ($signed({tap_g[15], tap_g}) - $signed({in_q[15], in_q})) *
+                            $signed(mix_q);
                     st <= 6'd5;
                 end
                 6'd5: begin
