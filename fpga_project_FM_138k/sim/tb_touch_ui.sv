@@ -80,7 +80,7 @@ module tb_touch_ui;
             if(touch_kind==11)begin px=8;py=8;end
             if(touch_kind==12)begin px=104;py=8;end
             if(touch_kind==13)begin px=200;py=104;end
-            if(touch_kind==14)begin px=530;py=104;end
+            if(touch_kind==14)begin px=750;py=450;end
             if(touch_kind==15)begin px=200;py=8;end
             if(touch_kind==17)begin px=720;py=8;end
             if(touch_kind==18)begin px=400;py=200;end
@@ -92,15 +92,15 @@ module tb_touch_ui;
             if(touch_kind==24)begin px=280;py=168;end
             if(touch_kind==25)begin px=440;py=168;end
             if(touch_kind==26)begin px=200;py=312;end
-            if(touch_kind==27)begin px=530;py=312;end
+            if(touch_kind==27)begin px=750;py=450;end
             if(touch_kind==28)begin px=200;py=152;end
-            if(touch_kind==29)begin px=530;py=152;end
-            if(touch_kind==30)begin px=380;py=104;end
-            if(touch_kind==31)begin px=440;py=104;end
+            if(touch_kind==29)begin px=750;py=450;end
+            if(touch_kind==30)begin px=50;py=450;end
+            if(touch_kind==31)begin px=750;py=450;end
             if(touch_kind==32)begin px=530;py=8;end
             if(touch_kind==33)begin px=30;py=72;end
             if(touch_kind==34)begin px=200;py=120;end
-            if(touch_kind==35)begin px=530;py=120;end
+            if(touch_kind==35)begin px=750;py=450;end
             if(touch_kind==16)begin px=30;py=72;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";

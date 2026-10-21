@@ -33,6 +33,12 @@ int __divsi3(int a,int b){u32 q;int neg=0;u32 ua,ub;
     q=__udivsi3(ua,ub);return neg?-(int)q:(int)q;}
 u32 __umodsi3(u32 n,u32 d){u32 r=0;int i;if(!d)return 0;
     for(i=31;i>=0;i--){r=(r<<1)|((n>>i)&1u);if(r>=d)r-=d;}return r;}
+int __modsi3(int a,int b){unsigned ua,ub,r;
+    if(!b)return 0;
+    ua=(a<0)?(unsigned)(-a):(unsigned)a;
+    ub=(b<0)?(unsigned)(-b):(unsigned)b;
+    r=__umodsi3(ua,ub);
+    return (a<0)?-(int)r:(int)r;}
 /* Shift-add multiply: the RV32I core has no M extension and the C compiler
    emits libcalls for some non-power-of-two products used by the EG scaling. */
 u32 __mulsi3(u32 a,u32 b){u32 r=0;while(b){if(b&1u)r+=a;a<<=1;b>>=1;}return r;}
@@ -453,45 +459,25 @@ static void draw_perf(void){
     draw_perf_controls();
 }
 static void draw_header(void){
-    u8 i;
     clear_all();
     draw_tabs();
-    text(2,28,"TAP ROW   -/+ STEP   DRAG SLIDE",2,0);
-    text_r(98,28,"V1.1",2,0);
-    for(i=0;i<100;i++)c_at(i,27,0,12,4);
+    text_r(98,29,"V1.1",2,0);
+    if(page<1||page>5)text(2,29,"TAP ROW   BOTTOM -/+   SLIDE",2,0);
 }
-static void buttons(u8 row){
-    u8 c;
-    for(c=56;c<=62;c++)c_at(c,row,0,2,1);
-    c_at(59,row,'-',2,1);
-    for(c=64;c<=70;c++)c_at(c,row,0,2,1);
-    c_at(67,row,'+',2,1);
-}
-/* EG page uses a narrower value column so the curve panel can be wider. */
-static void buttons_eg(u8 row){
-    u8 c;
-    for(c=44;c<=50;c++)c_at(c,row,0,2,1);
-    c_at(46,row,'-',2,1);
-    for(c=52;c<=58;c++)c_at(c,row,0,2,1);
-    c_at(55,row,'+',2,1);
-}
-static void prow_eg(u8 row,const char*label,const char*val,int selected){
-    if(selected){
-        fill_cells(2,40,row,3,1);
-        text(2,row,label,3,1);text_r(40,row,val,3,1);
-        buttons_eg(row);
-    }else{
-        text(2,row,label,1,0);text_r(40,row,val,1,0);
-    }
-}
+/* One value column and one selection bar for every parameter page.  The old
+   per-row 56x16 px +/- cells were removed: they were easy to miss and easy to
+   hit on the neighbouring row.  Editing now happens on the big bottom bar. */
+#define VALUE_COL 22
 static void prow(u8 row,const char*label,const char*val,int selected){
     if(selected){
-        fill_cells(2,52,row,3,1);
-        text(2,row,label,3,1);text_r(52,row,val,3,1);
-        buttons(row);
+        fill_cells(2,(u8)(VALUE_COL+16u),row,3,1);
+        text(2,row,label,3,1);text_r(VALUE_COL,row,val,3,1);
     }else{
-        text(2,row,label,1,0);text_r(52,row,val,1,0);
+        text(2,row,label,1,0);text_r(VALUE_COL,row,val,1,0);
     }
+}
+static void prow_eg(u8 row,const char*label,const char*val,int selected){
+    prow(row,label,val,selected);
 }
 static void draw_placeholder(void){
     text(2,4,"PAGE NOT READY",3,0);
@@ -997,6 +983,123 @@ static void draw_theme(void){
     text(2,11,"WAVE, XY, LEVEL AND KEYS",2,0);
     text(2,24,"UI 1.1  PHASE 1",2,0);
 }
+static void adj(u8 row,int d);
+
+/* Current raw value and range of the selected row, used by the bottom slider.
+   cyc > 0 means a cyclic/toggle row (ON/OFF, wave, curve, type). */
+static int get_sel(int *cur,int *lo,int *hi,int *cyc){
+    *cyc=0;*lo=0;*hi=99;*cur=0;
+    if(page==PAGE_ALGO){
+        if(sel_row==0){*cur=g_algo;*hi=31;}
+        else if(sel_row==1){*cur=g_fb;*hi=7;}
+        else if(sel_row==2){*cur=g_sync;*hi=1;*cyc=2;}
+        else if(sel_row==3){*cur=g_trans;*hi=48;}
+        else return 0;
+        return 1;
+    }
+    if(page==PAGE_OSC){
+        switch(sel_row){
+            case 0:*cur=o_fx;*cyc=2;break;
+            case 1:*cur=o_coarse;*hi=o_fx?3:31;break;
+            case 2:*cur=o_fine;break;
+            case 3:*cur=o_det;*hi=14;break;
+            case 4:*cur=o_lvl;break;
+            case 5:*cur=o_rs;*hi=7;break;
+            case 6:*cur=o_vel;*hi=7;break;
+            case 7:*cur=o_ams;*hi=3;break;
+            case 8:*cur=o_bp;break;
+            case 9:*cur=o_ld;break;
+            case 10:*cur=o_rd;break;
+            case 11:*cur=o_lc;*cyc=4;break;
+            case 12:*cur=o_rc;*cyc=4;break;
+            case 13:*cur=o_en;*cyc=2;break;
+            default:return 0;
+        }
+        return 1;
+    }
+    if(page==3){
+        if(eg_mode){if(sel_row<4)*cur=p_rate[sel_row];else *cur=p_lev[sel_row-4];}
+        else {if(sel_row<4)*cur=o_rate[sel_row];else *cur=o_lev[sel_row-4];}
+        return sel_row<8;
+    }
+    if(page==4){
+        switch(sel_row){
+            case 0:*cur=g_wave;*cyc=6;break;
+            case 1:*cur=g_speed;break;
+            case 2:*cur=g_delay;break;
+            case 3:*cur=g_pmd;break;
+            case 4:*cur=g_amd;break;
+            case 5:*cur=g_pms;*hi=7;break;
+            case 6:*cur=g_lsync;*cyc=2;break;
+            case 7:*cur=g_sync;*cyc=2;break;
+            default:return 0;
+        }
+        return 1;
+    }
+    if(page==5){
+        u8 sel=fx_sel%6u;
+        if(sel_row==0){*cur=(u8)(fx_regs[0]&1u);*cyc=2;}
+        else if(sel_row==1){*cur=(u8)(fx_regs[fx_en_reg[sel]]&1u);*cyc=2;}
+        else if(sel_row==2){
+            u8 tr=fx_type_reg[sel];
+            if(tr==0xFFu)return 0;
+            *cur=(u8)(fx_regs[tr]%3u);*cyc=3;
+        }else if(sel_row<6){
+            u8 pr=fx_p_reg[sel][sel_row-3u];
+            if(pr==0xFFu)return 0;
+            *cur=(u8)(fx_regs[pr]&0x7Fu);
+        }else return 0;
+        return 1;
+    }
+    return 0;
+}
+
+static void slider_apply(int x){
+    int cur,lo,hi,cyc,t,target,d,n;
+    if(!get_sel(&cur,&lo,&hi,&cyc))return;
+    t=(x-112)*99/(672-112);
+    if(t<0)t=0;if(t>99)t=99;
+    if(cyc>0){
+        target=(t*cyc)/100;if(target>=cyc)target=cyc-1;
+        n=cyc;d=((target-cur)%n+n)%n;if(d>n/2)d-=n;
+    }else{
+        target=lo+(t*(hi-lo)+49)/99;
+        d=target-cur;
+    }
+    if(d)adj(sel_row,d);
+}
+
+/* Big bottom bar, rows 27..29: minus, slider, plus.  Only drawn on parameter
+   pages; PERFORM/NAME/UTIL keep their own controls. */
+static void draw_bottom(void){
+    u8 c;int cur,lo,hi,cyc,norm,knob;
+    if(page<1||page>5)return;
+    for(c=2;c<=12;c++){
+        c_at(c,27,0,2,1);c_at(c,28,0,2,1);c_at(c,29,0,2,1);
+    }
+    c_at(4,28,'-',1,1);c_at(5,28,'-',1,1);c_at(6,28,'-',1,1);c_at(7,28,'-',1,1);c_at(8,28,'-',1,1);
+    for(c=87;c<=97;c++){
+        c_at(c,27,0,2,1);c_at(c,28,0,2,1);c_at(c,29,0,2,1);
+    }
+    c_at(91,28,'-',1,1);c_at(92,28,'-',1,1);c_at(93,28,'-',1,1);
+    c_at(92,27,'|',1,1);c_at(92,29,'|',1,1);
+    for(c=14;c<=84;c++){
+        c_at(c,27,0,7,1);c_at(c,28,0,6,1);c_at(c,29,0,7,1);
+    }
+    if(!get_sel(&cur,&lo,&hi,&cyc)){
+        text(14,27,"NO SELECTION",2,0);
+        return;
+    }
+    if(cyc>0)norm=(cyc>1)?(cur*99/(cyc-1)):0;
+    else norm=(hi>lo)?((cur-lo)*99/(hi-lo)):0;
+    if(norm<0)norm=0;if(norm>99)norm=99;
+    knob=(u8)(14+norm*70/99);
+    for(c=14;c<=knob;c++)c_at(c,28,0,3,1);
+    c_at(knob,28,'|',1,1);
+    text(14,27,"SLIDE",2,0);
+    text_r(84,27,u2d((u32)(cur>99?99:cur)),3,0);
+    text(14,29,"HOLD -/+ = REPEAT",2,0);
+}
 static void draw_page(void){
     if(page==3)eg_rebuild();
     if(page==PAGE_PERF){clear_all();draw_perf();return;}
@@ -1009,6 +1112,7 @@ static void draw_page(void){
     else if(page==6)draw_name();
     else if(page==7)draw_theme();
     else draw_placeholder();
+    draw_bottom();
 }
 static void page_enter(u8 p){
     if(p==page&&p!=PAGE_PERF)return;
@@ -1164,19 +1268,8 @@ static int menu_press(int x,int y){
     }
     {int top=content_top();
      if(y>=top&&(int)((y-top)/16)<editable_rows()){
-        u8 row=(u8)((y-top)/16);
-        u32 t=now();
-        if(page==3){
-            if(x>=352&&x<408){
-                if(last_adj==0u||(u32)(t-last_adj)>120000u){last_adj=t;adj(row,-1);}
-            } else if(x>=416&&x<472){
-                if(last_adj==0u||(u32)(t-last_adj)>120000u){last_adj=t;adj(row,1);}
-            } else {sel_row=row;draw_page();}
-        } else if(x>=448&&x<504){
-            if(last_adj==0u||(u32)(t-last_adj)>120000u){last_adj=t;adj(row,-1);}
-        } else if(x>=512&&x<568){
-            if(last_adj==0u||(u32)(t-last_adj)>120000u){last_adj=t;adj(row,1);}
-        } else {sel_row=row;draw_page();}
+        sel_row=(u8)((y-top)/16);
+        draw_page();
         return 1;
     }}
     return 0;
@@ -1252,37 +1345,28 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
                 else if(px[id]>=640&&px[id]<800)perf_control(px[id],py[id],(u8)id);
             }else{
                 held_id=0xFF;held_kind=0;
-                if(menu_press(px[id],py[id])){
-                    int top=content_top();
-                    if(py[id]>=top&&py[id]<top+editable_rows()*16){
-                        u8 row=(u8)((py[id]-top)/16);
-                        held_id=(u8)id;held_x=px[id];held_t=now();held_count=0;
-                        held_row=row;
-                        if(page==3){
-                            if(px[id]>=352&&px[id]<408)held_kind=1;
-                            else if(px[id]>=416&&px[id]<472)held_kind=2;
-                            else held_kind=3;
-                        } else {
-                            if(px[id]>=448&&px[id]<504)held_kind=1;
-                            else if(px[id]>=512&&px[id]<568)held_kind=2;
-                            else held_kind=3;
-                        }
-                    }
+                if((page>=1&&page<=5)&&py[id]>=432){
+                    /* Bottom bar: big minus / slider / big plus. */
+                    held_id=(u8)id;held_row=sel_row;held_x=px[id];
+                    held_t=now();held_count=0;
+                    if(px[id]<104){held_kind=1;adj(sel_row,-1);}
+                    else if(px[id]>=696){held_kind=2;adj(sel_row,1);}
+                    else {held_kind=3;slider_apply(px[id]);}
+                }else{
+                    /* Row tap only selects; no per-row +/- anymore. */
+                    menu_press(px[id],py[id]);
                 }
             }
-        }else if(held_id==(u8)id&&held_kind!=0&&
+        }else if(held_id==(u8)id&&held_kind!=0&&held_kind!=3&&
                  (px[id]>held_x+160||px[id]+160<held_x)){
             /* A release frame can be missed while a page redraw is running.
                A large coordinate jump therefore means "new touch"; forget the
                latched row/button so the next frame is processed as a press. */
             held_id=0xFF;held_kind=0;control_down&=(u16)~(1u<<id);
         }else if(page!=PAGE_PERF&&held_id==(u8)id&&held_kind==3){
-            int guard=0;
-            if(held_kind==3){
-                while(px[id]-held_x>=8&&guard<6){adj(held_row,1);held_x+=8;guard++;}
-                guard=0;
-                while(held_x-px[id]>=8&&guard<6){adj(held_row,-1);held_x-=8;guard++;}
-            }
+            /* Dragging the slider continuously updates the selected row. */
+            slider_apply(px[id]);
+            held_x=px[id];
         }
     }else control_down&=(u16)~(1u<<id);
     if(held_id!=0xFF&&!(seen&(1u<<held_id))){held_id=0xFF;held_kind=0;}

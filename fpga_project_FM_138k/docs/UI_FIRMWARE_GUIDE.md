@@ -86,6 +86,8 @@ attr bit0 反显、bit1 下划线（末两行）、bit2 填充。
   加行号与加减；确认 `editable_rows()`/`content_top()`。
 - 加页：`tab_names[]` 固定 8 页；`draw_page()` 分支、`menu_press()` 触摸、页号写进 publish()。
 - 改主题：`theme_pal[3][16]` 与 `theme_bg/theme_wave/theme_xy`，`apply_theme()` 一次写完。
+- 布局：`VALUE_COL`（统一第 22 列）、`draw_bottom()`（第 27–29 行控制条）、
+  `get_sel()/slider_apply()`（选中行取值与滑条映射）；行点击只选中，编辑走底部控制条。
 - 改布局：`c_at/text/text_r/fill_cells/btn_cells/btn_tall`；坐标是 8×16 字符格；
   **必须同步触摸判定**。
 - FX 页：`draw_fx()`、`load_fx()`（0x69 0x200+）、`fx_write()`（0x70）；寄存器表见 main.c 顶部数组。
