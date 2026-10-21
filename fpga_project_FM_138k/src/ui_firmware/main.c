@@ -498,37 +498,91 @@ static void draw_placeholder(void){
     text(2,6,"PHASE 2 ADDS THIS EDITOR",2,0);
     text(2,8,"TABS 1-3 AND 8 ARE ACTIVE",2,0);
 }
+/* ALGORITHM routing diagram: firmware rasterises a 512x256 2bpp canvas and
+   uploads it through UI[20]/UI[21]; RTL only displays the bitmap. */
+static u8 map_buf[32768];
+static u8 algo_map_dirty;
+static void map_clear(void){u32 i;for(i=0;i<32768u;i++)map_buf[i]=0;}
+static void map_px(u16 x,u16 y,u8 c){
+    u32 idx;u16 b;u8 sh;
+    if(x>=512u||y>=256u)return;
+    idx=(((u32)y)<<9)+x; b=(u16)(idx>>2); sh=(u8)((idx&3u)<<1);
+    map_buf[b]=(u8)((map_buf[b]&(u8)~(3u<<sh))|(u8)(c<<sh));
+}
+static void map_hline(u16 x0,u16 x1,u16 y,u8 c){
+    u16 x;if(x0>x1){u16 t=x0;x0=x1;x1=t;}
+    for(x=x0;x<=x1;x++)map_px(x,y,c);
+}
+static void map_vline(u16 x,u16 y0,u16 y1,u8 c){
+    u16 y;if(y0>y1){u16 t=y0;y0=y1;y1=t;}
+    for(y=y0;y<=y1;y++)map_px(x,y,c);
+}
+static void map_frame(u16 x0,u16 y0,u16 x1,u16 y1,u8 c){
+    map_hline(x0,x1,y0,c);map_hline(x0,x1,y1,c);
+    map_vline(x0,y0,y1,c);map_vline(x1,y0,y1,c);
+}
+static void map_fill(u16 x0,u16 y0,u16 x1,u16 y1,u8 c){
+    u16 x,y;for(y=y0;y<=y1;y++)for(x=x0;x<=x1;x++)map_px(x,y,c);
+}
+static void map_arrow_r(u16 x,u16 y,u8 c){
+    map_px(x,y,c);
+    map_px((u16)(x-1u),(u16)(y-1u),c);map_px((u16)(x-1u),(u16)(y+1u),c);
+    map_px((u16)(x-2u),(u16)(y-2u),c);map_px((u16)(x-2u),(u16)(y+2u),c);
+}
+static void map_arrow_l(u16 x,u16 y,u8 c){
+    map_px(x,y,c);
+    map_px((u16)(x+1u),(u16)(y-1u),c);map_px((u16)(x+1u),(u16)(y+1u),c);
+    map_px((u16)(x+2u),(u16)(y-2u),c);map_px((u16)(x+2u),(u16)(y+2u),c);
+}
+static void build_algo_map(void){
+    u8 i;
+    map_clear();
+    map_vline(232,4,250,1);
+    map_vline(280,4,250,1);
+    map_vline(472,4,250,1);
+    for(i=0;i<6;i++){
+        u16 y0=(u16)(6u+i*41u),y1=(u16)(y0+33u),cy=(u16)(y0+16u);
+        u8 f=(u8)((g_flags[i>>1]>>((i&1u)*8u))&0xFFu);
+        u8 out=(u8)(f&3u),in=(u8)((f>>4)&3u),fb=(u8)((f>>6)==3u);
+        map_frame(16,y0,176,y1,1);
+        if(out==0u){map_hline(177,471,cy,1);map_arrow_r(471,cy,1);}
+        else if(out==1u){map_hline(177,231,cy,1);map_arrow_r(231,cy,1);}
+        else if(out==2u){map_hline(177,279,cy,1);map_arrow_r(279,cy,1);}
+        if(in==1u){map_hline(177,232,cy,1);map_arrow_l(177,cy,1);}
+        else if(in==2u){map_hline(177,280,cy,1);map_arrow_l(177,cy,1);}
+        if(fb){
+            map_hline(8,16,cy,1);
+            map_vline(8,(u16)(cy-8u),cy,1);
+            map_hline(8,15,(u16)(cy-8u),1);
+            map_arrow_r(15,(u16)(cy-8u),1);
+        }
+    }
+}
+static void upload_algo_map(void){
+    u32 i;
+    UI[23]=0u;
+    for(i=0;i<8192u;i++){
+        u32 w=(u32)map_buf[i*4u]|((u32)map_buf[i*4u+1u]<<8)|
+              ((u32)map_buf[i*4u+2u]<<16)|((u32)map_buf[i*4u+3u]<<24);
+        UI[24]=w;
+    }
+    UI[22]=1u;
+}
 static void draw_algo(void){
-    u8 i,j,row;u32 f;u16 w0,w1,w2;u8 fl[6];
+    u8 i;
+    static const u8 label_rows[6]={11u,13u,16u,19u,21u,24u};
     text(2,4,"ALGORITHM",3,0);
     prow(6,"ALGORITHM",u2d((u32)g_algo+1u),(sel_row==0));
     prow(7,"FEEDBACK",u1d(g_fb),(sel_row==1));
     prow(8,"OSC SYNC",g_sync?"ON":"OFF",(sel_row==2));
     prow(9,"TRANSPOSE",u2d(g_trans),(sel_row==3));
-    text(2,10,"ROUTING MAP (LIVE FROM FPGA)",2,0);
-    w0=rd(0x0009u);w1=rd(0x000Au);w2=rd(0x000Bu);
-    fl[0]=(u8)(w0&0xFFu);fl[1]=(u8)((w0>>8)&0xFFu);
-    fl[2]=(u8)(w1&0xFFu);fl[3]=(u8)((w1>>8)&0xFFu);
-    fl[4]=(u8)(w2&0xFFu);fl[5]=(u8)((w2>>8)&0xFFu);
+    if(algo_map_dirty){build_algo_map();upload_algo_map();algo_map_dirty=0;}
     for(i=0;i<6;i++){
-        u8 c0=(i&1u)?52u:2u;
-        u8 r0=(u8)(12u+(i/2u)*5u);
-        u8 out=(u8)(fl[i]&3u),in=(u8)((fl[i]>>4)&3u),fb=(u8)((fl[i]>>6)==3u);
-        for(row=r0;row<=(u8)(r0+3u);row++)
-            for(j=0;j<42;j++)c_at((u8)(c0+j),row,0,5,4);
-        for(j=1;j<41;j++){c_at((u8)(c0+j),r0,'-',2,0);c_at((u8)(c0+j),(u8)(r0+3u),'-',2,0);}
-        c_at(c0,r0,'+',2,0);c_at((u8)(c0+41u),r0,'+',2,0);
-        c_at(c0,(u8)(r0+3u),'+',2,0);c_at((u8)(c0+41u),(u8)(r0+3u),'+',2,0);
-        for(row=(u8)(r0+1u);row<=(u8)(r0+2u);row++){c_at(c0,row,'|',2,0);c_at((u8)(c0+41u),row,'|',2,0);}
-        text((u8)(c0+2u),(u8)(r0+1u),"OP",3,0);
-        c_at((u8)(c0+4u),(u8)(r0+1u),(u8)('0'+(6-i)),3,0);
-        text((u8)(c0+7u),(u8)(r0+1u),"OUT",2,0);
-        text((u8)(c0+11u),(u8)(r0+1u),out==0u?"CAR":(out==1u?"BUS1":"BUS2"),1,0);
-        text((u8)(c0+2u),(u8)(r0+2u),"IN",2,0);
-        text((u8)(c0+5u),(u8)(r0+2u),in==0u?"--":(in==1u?"BUS1":"BUS2"),1,0);
-        if(fb)text((u8)(c0+20u),(u8)(r0+2u),"FB",4,0);
+        u8 r0=label_rows[i];
+        c_at(29,r0,'O',1,0);c_at(30,r0,'P',1,0);
+        c_at(31,r0,(u8)('0'+(6-i)),1,0);
     }
-    text(2,25,"CAR=CARRIER  BUS=MODULATION BUS  FB=FEEDBACK",2,0);
+    text(2,26,"B1=MOD BUS1  B2=MOD BUS2  OUT=CARRIER",2,0);
 }
 static void draw_osc(void){
     u8 i,row,j;
@@ -891,7 +945,7 @@ static void page_enter(u8 p){
     
     release_all();
     page=p;sel_row=0;last_adj=0;
-    if(p==PAGE_ALGO)load_globals();
+    if(p==PAGE_ALGO){load_globals();load_flags();algo_map_dirty=1;}
     else if(p==PAGE_OSC){load_op(sel_op);load_flags();}
     else if(p==3)load_op(sel_op);
     else if(p==4)load_globals();
@@ -912,6 +966,7 @@ static void adj_algo(u8 row,int d){
     else if(row==1){v=(int)g_fb+d;if(v<0)v=0;if(v>7)v=7;g_fb=(u8)v;send_global();}
     else if(row==2){g_sync=(u8)(g_sync?0:1);send_global();}
     else {v=(int)g_trans+d;if(v<0)v=0;if(v>48)v=48;g_trans=(u8)v;send_global();}
+    if(row<3u){load_flags();algo_map_dirty=1;}
     draw_page();
 }
 static void adj_op(u8 row,int d){
@@ -1124,11 +1179,19 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
                     }
                 }
             }
+        }else if(held_id==(u8)id&&held_kind!=0&&
+                 (px[id]>held_x+160||px[id]+160<held_x)){
+            /* A release frame can be missed while a page redraw is running.
+               A large coordinate jump therefore means "new touch"; forget the
+               latched row/button so the next frame is processed as a press. */
+            held_id=0xFF;held_kind=0;control_down&=(u16)~(1u<<id);
         }else if(page!=PAGE_PERF&&held_id==(u8)id&&held_kind==3){
             int guard=0;
-            while(px[id]-held_x>=8&&guard<6){adj(held_row,1);held_x+=8;guard++;}
-            guard=0;
-            while(held_x-px[id]>=8&&guard<6){adj(held_row,-1);held_x-=8;guard++;}
+            if(held_kind==3){
+                while(px[id]-held_x>=8&&guard<6){adj(held_row,1);held_x+=8;guard++;}
+                guard=0;
+                while(held_x-px[id]>=8&&guard<6){adj(held_row,-1);held_x-=8;guard++;}
+            }
         }
     }else control_down&=(u16)~(1u<<id);
     if(held_id!=0xFF&&!(seen&(1u<<held_id))){held_id=0xFF;held_kind=0;}
@@ -1177,7 +1240,8 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
                 name_from_preset(pr);
                 if(page==PAGE_PERF)draw_status();
                 else if(page>=1&&page<=4){
-                    if(page==PAGE_ALGO||page==4)load_globals();
+                    if(page==PAGE_ALGO){load_globals();load_flags();algo_map_dirty=1;}
+                    else if(page==4)load_globals();
                     else {load_op(sel_op);if(page==3&&eg_mode)load_pitch();}
                     draw_page();
                 }

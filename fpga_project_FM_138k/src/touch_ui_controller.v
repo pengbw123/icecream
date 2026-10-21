@@ -22,6 +22,7 @@ module touch_ui_controller (
     output wire text_write,output wire [11:0] text_address,output wire [15:0] text_data,
     output wire palette_write,output wire [3:0] palette_index,output wire [23:0] palette_data,
     output wire [3:0] menu_page,output reg [23:0] background_color,wave_color,xy_color,output reg text_enable,output reg eg_we,output reg [7:0] eg_addr,output reg [8:0] eg_data,
+    output reg algo_we,output reg [14:0] algo_addr,output reg [7:0] algo_data,output reg algo_enable,
     output wire fx_write,output wire [3:0] fx_index,output wire [31:0] fx_value,input wire [31:0] fx_read_value,
     output reg [31:0] numeric_display,
     // 0x69 readback results from the synth (registers 14/15).
@@ -55,6 +56,10 @@ module touch_ui_controller (
     reg [31:0] ui_data,ui_state;
     reg [15:0] readback_value;
     reg readback_ready;
+    reg [14:0] algo_base;
+    reg [31:0] algo_word;
+    reg [1:0]  algo_byte;
+    reg        algo_burst;
     reg [6:0] volume;
     assign touch_present=ui_state[0];
     assign keyboard_octave=ui_state[11:8];
@@ -102,6 +107,8 @@ module touch_ui_controller (
         if(!reset_n)begin
             i2c_drive<=0;midi_event_data<=0;midi_event_valid<=0;ui_state<=0;volume<=96;
             command_valid<=0;command<=0;command_payload<=0;text_enable<=1'b0;eg_we<=1'b0;eg_addr<=8'd0;eg_data<=9'd0;
+            algo_we<=1'b0;algo_addr<=15'd0;algo_data<=8'd0;algo_enable<=1'b0;
+    algo_base<=15'd0;algo_word<=32'd0;algo_byte<=2'd0;algo_burst<=1'b0;
             readback_value<=16'd0;readback_ready<=1'b0;
             background_color<=24'h080D18;wave_color<=24'h40EAD0;xy_color<=24'hFFB95A;numeric_display<=0;
         end else begin
@@ -112,7 +119,14 @@ module touch_ui_controller (
             if(command_valid&&command_ready)command_valid<=0;
             if(monitor_event_valid && monitor_event[23:20]==4'hB && monitor_event[14:8]==20)
                 volume<=monitor_event[6:0];
-            eg_we<=1'b0;
+            eg_we<=1'b0;algo_we<=1'b0;
+            if(algo_burst)begin
+                algo_addr<=algo_base+{13'd0,algo_byte};
+                algo_data<=algo_word[{algo_byte,3'b000} +: 8];
+                algo_we<=1'b1;
+                if(algo_byte==2'd3)begin algo_burst<=1'b0;algo_base<=algo_base+15'd4;end
+                else algo_byte<=algo_byte+2'd1;
+            end
             if(ui_select&&write_en)begin
                 case(address[7:2])
                     0:i2c_drive<=write_data[1:0];
@@ -131,6 +145,11 @@ module touch_ui_controller (
                     17:text_enable<=write_data[0];
                     18:eg_addr<=write_data[7:0];
                     19:begin eg_data<=write_data[8:0];eg_we<=1'b1;end
+                    20:algo_addr<=write_data[14:0];
+                    21:begin algo_data<=write_data[7:0];algo_we<=1'b1;end
+                    22:algo_enable<=write_data[0];
+                    23:begin algo_base<=write_data[14:0];algo_burst<=1'b0;end
+                    24:begin algo_word<=write_data;algo_byte<=2'd0;algo_burst<=1'b1;end
                     default:;
                 endcase
             end

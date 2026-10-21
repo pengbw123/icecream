@@ -22,6 +22,8 @@ module rgb_visualizer #(
     input wire palette_write,input wire [3:0] palette_index,input wire [23:0] palette_data,
     input wire text_enable,
     input wire eg_we,input wire [7:0] eg_addr,input wire [8:0] eg_data,
+    input wire algo_we,input wire [14:0] algo_addr,input wire [7:0] algo_data,
+    input wire algo_enable,
     input wire display_auto_gain,
     output wire lcd_pclk,
     output reg lcd_de,lcd_hsync,lcd_vsync,
@@ -310,7 +312,14 @@ module rgb_visualizer #(
     ui_eg_curve u_eg(.pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
         .enable(text_enable&&(page_frame==4'd3)),
         .wclk(clk),.we(eg_we),.waddr(eg_addr),.wdata(eg_data),.ink(eg_ink),.cls(eg_cls));
-    wire [23:0] final_rgb=menu_ink?menu_color:(eg_ink?eg_color:background_pipe);
+    wire algo_ink;wire [1:0] algo_cls;
+    wire [23:0] algo_color=(algo_cls==2'd1)?wc_frame:(algo_cls==2'd2)?24'h1E1E22:24'hF2F2F2;
+    ui_algo_map u_amap(.pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
+        .enable(text_enable&&(page_frame==4'd1)&&algo_enable),
+        .wclk(clk),.we(algo_we),.waddr(algo_addr),.wdata(algo_data),
+        .ink(algo_ink),.cls(algo_cls));
+    wire [23:0] final_rgb=menu_ink?menu_color:
+        (algo_ink?algo_color:(eg_ink?eg_color:background_pipe));
     always @(posedge pclk) begin
         if (!video_reset_n) begin
             lcd_de<=0;lcd_hsync<=0;lcd_vsync<=0;lcd_r<=0;lcd_g<=0;lcd_b<=0;

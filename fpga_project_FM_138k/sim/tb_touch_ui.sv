@@ -34,14 +34,17 @@ module tb_touch_ui;
             if(pr_wait==1)pr_valid<=1;
         end
     end
-    integer cell_fd,eg_fd;
+    integer cell_fd,eg_fd,algo_fd;
     initial cell_fd=$fopen("tmp/menu_cells.txt","w");
     initial eg_fd=$fopen("tmp/eg_curve.txt","w");
+    initial algo_fd=$fopen("tmp/algo_map.txt","w");
     always @(posedge clk)begin
         if(dut.text_write)
             $fwrite(cell_fd,"%0d %0d %0d\n",dut.text_address,dut.text_data,$time);
         if(dut.eg_we)
             $fwrite(eg_fd,"%0d %0d %0d\n",dut.eg_addr,dut.eg_data,$time);
+        if(dut.algo_we)
+            $fwrite(algo_fd,"%0d %0d %0d\n",dut.algo_addr,dut.algo_data,$time);
     end
     always @(posedge clk)begin
         if(dut.command_valid)case(dut.command)
@@ -195,7 +198,7 @@ module tb_touch_ui;
         if(!dut.text_enable)$fatal(1,"Character layer was never enabled");
         if(text_cells<200)$fatal(1,"Performance chrome was not drawn");
         $display("M1 perf chrome at %t",$time);
-        touch_kind=12;wait(menu_page==4'd1);#5000000;
+        touch_kind=12;wait(menu_page==4'd1);#30000000;
         if(cmd_69<5)$fatal(1,"ALGO tab did not read patch parameters");
         $display("M2 algo at %t",$time);
         touch_kind=0;#8000000;
@@ -205,6 +208,7 @@ module tb_touch_ui;
         touch_kind=0;#8000000;
         if(cmd_60<1)$fatal(1,"Algorithm edit did not send command 0x60");
         $display("M3 algo edit at %t",$time);
+        touch_kind=0;#30000000;
         touch_kind=11;wait(menu_page==4'd0);#8000000;
         touch_kind=11;#20000000;
         if(menu_page!==4'd0)$fatal(1,"PERF tab re-entered the menu while held");
@@ -241,7 +245,7 @@ module tb_touch_ui;
         touch_kind=0;#8000000;
         if(cmd_60<2)$fatal(1,"LFO edit did not send command 0x60");
         $display("M8 lfo edit at %t",$time);
-        touch_kind=12;wait(menu_page==4'd1);#5000000;
+        touch_kind=12;wait(menu_page==4'd1);#30000000;
         touch_kind=0;#8000000;
         touch_kind=28;#5000000;
         touch_kind=0;#8000000;
@@ -281,11 +285,13 @@ module tb_touch_ui;
         if(cmd_64<1)$fatal(1,"User-slot load did not restore key scaling");
         if(cmd_65<5)$fatal(1,"User-slot load did not restore the pitch EG");
         $display("M12 name/slot at %t",$time);
-        $fclose(cell_fd);$fclose(eg_fd);
+        $fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);
         $display("PASS real UI firmware, I2C, menu pages, EG/LFO/pitch, name and user slots");$finish;
     end
-    initial begin #900000000;$fclose(cell_fd);$fclose(eg_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
+    initial begin #900000000;$fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
 endmodule
+
+
 
 
 
