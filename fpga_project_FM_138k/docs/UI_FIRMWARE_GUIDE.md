@@ -11,6 +11,7 @@
 | 字符层 | `rtl_char_display.v` | 128×32 格 ×16 bit，4 块 BSRAM，16 色可写调色板 |
 | 包络曲线 | `ui_eg_curve.v` | 256×256 面板，256 个高度样本查表画填充/亮边/网格 |
 | 算法位图 | `ui_algo_map.v` | 512×256 2bpp 画布（32 KiB BSRAM） |
+| 效果器骨架 | `audio_fx.v` | 32×16 位 FX 配置寄存器；当前干声直通，后续接 6 效果器链 |
 | 光栅合成 | `rgb_visualizer.v` | 800×480 RGB565：波形/XY/EG/键盘 + 字符层/曲线/位图叠加 |
 | FM 引擎 | `fm_poly_synth.v` 等 | 与 UI 解耦，只收命令/MIDI |
 
@@ -58,7 +59,8 @@ attr bit0 反显、bit1 下划线（末两行）、bit2 填充。
 | 0x65 | Pitch EG | stage, coefficient[23:8], target[46:24]（23 位 Q8.15） |
 | 0x66 | All Notes Off | — |
 | 0x67 | 路由 flags | flags[47:0] |
-| 0x69 | 回读 | address[9:0]；结果 UI[14]，UI[15] 就绪 |
+| 0x69 | 回读 | address[9:0]；结果 UI[14]，UI[15] 就绪；0x200+addr 读 FX 寄存器 |
+| 0x70 | FX 写 | payload[5:0]=FX 寄存器地址（0..31），payload[23:8]=16 位值 |
 
 固件封装 `cmd(op,lo,hi)`、`rd(addr)`；`rd()` 等 UI[15]，读完写 0。
 

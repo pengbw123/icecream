@@ -61,6 +61,11 @@ module tb_fm_readback;
     wire [15:0] patch_read_data;
     wire [15:0] readback_data;
     wire readback_valid;
+    wire [5:0]  fx_cfg_addr;
+    wire [15:0] fx_cfg_value;
+    wire        fx_cfg_write;
+    wire [5:0]  fx_read_index;
+    wire [15:0] fx_read_value;
     wire packet_received, packet_error;
     wire [4:0] current_preset;
 
@@ -112,6 +117,9 @@ module tb_fm_readback;
         .fm_note_gain_value(fm_note_gain_value), .fm_patch_commit(fm_patch_commit),
         .patch_read_address(patch_read_address), .patch_read_data(patch_read_data),
         .readback_data(readback_data), .readback_valid(readback_valid),
+        .fx_cfg_addr(fx_cfg_addr), .fx_cfg_value(fx_cfg_value),
+        .fx_cfg_write(fx_cfg_write), .fx_read_index(fx_read_index),
+        .fx_read_value(fx_read_value),
         .packet_received(packet_received), .packet_error(packet_error),
         .current_preset(current_preset)
     );
@@ -167,6 +175,13 @@ module tb_fm_readback;
         .active_voice_count(active_voice_count),
         .operator_envelope_levels(operator_envelope_levels)
     );
+
+    // New FX register file / readback path (command 0x70, 0x69 0x200+addr).
+    audio_fx u_fx(.clk(clk), .reset_n(reset_n), .sample_tick(1'b0),
+        .dry_sample(16'sd0), .cfg_write(fx_cfg_write),
+        .cfg_addr(fx_cfg_addr), .cfg_value(fx_cfg_value),
+        .read_addr(fx_read_index), .read_value(fx_read_value),
+        .sample_out());
 
     localparam CLKS_PER_BIT = 434;
     reg [47:0] expected_flags [0:31];
@@ -332,6 +347,21 @@ module tb_fm_readback;
         read_param(10'h00A); check(preset_flags[3][31:16], "preset flags mid");
         read_param(10'h00B); check(preset_flags[3][47:32], "preset flags high");
 
+        // 7. FX configuration write (0x70) and readback (0x69 0x200+addr).
+        send_packet(8'h70, 64'd3 | (64'h1234 << 8));
+        repeat (6) @(posedge clk);
+        read_param(10'h203); check(16'h1234, "fx reg 3");
+        send_packet(8'h70, 64'd0 | (64'h0002 << 8));
+        repeat (6) @(posedge clk);
+        read_param(10'h200); check(16'h0002, "fx global");
+        send_packet(8'h70, 64'd99 | (64'h0001 << 8));
+        repeat (6) @(posedge clk);
+        if (!saw_fx_error) begin
+            $display("FAIL out-of-range FX address did not raise packet_error");
+            errors = errors + 1;
+        end else
+            $display("ok   out-of-range FX address rejected");
+
         if (errors == 0) $display("PASS 0x69 readback, algorithm install, race and preset load");
         else $display("FAIL %0d checks", errors);
         $finish;
@@ -341,6 +371,10 @@ module tb_fm_readback;
     reg saw_68_error = 0;
     always @(posedge clk) begin
         if (packet_error) saw_68_error <= 1;
+    end
+    reg saw_fx_error = 0;
+    always @(posedge clk) begin
+        if (packet_error && u_ctl.command == 8'h70) saw_fx_error <= 1;
     end
     initial begin
         #40000000; // 40 ms guard: each UART packet is ~0.95 ms at 115200

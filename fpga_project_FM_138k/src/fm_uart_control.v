@@ -84,6 +84,14 @@ module fm_uart_control (
     output reg  [15:0] readback_data,
     output reg         readback_valid,
 
+    // Post-mix effects configuration (command 0x70) and readback
+    // (0x69 addresses 0x200 + cfg address).
+    output reg  [5:0]  fx_cfg_addr,
+    output reg  [15:0] fx_cfg_value,
+    output reg         fx_cfg_write,
+    output wire [5:0]  fx_read_index,
+    input  wire [15:0] fx_read_value,
+
     output reg         packet_received,
     output reg         packet_error,
     output reg  [4:0]  current_preset
@@ -115,6 +123,7 @@ module fm_uart_control (
     wire pop_uart = !local_pending && hold_valid;
     wire [7:0] rx_byte = local_pending ? checksum : hold_byte;
     wire rx_valid = local_pending | pop_uart;
+    assign fx_read_index = read_address[5:0];
     assign local_command_ready=parser_state==WAIT_A5 && preset_load_state==0 &&
         !uart_busy && !uart_valid && !local_pending && !hold_valid && read_wait==2'd0;
     reg  [3:0] parser_state;
@@ -237,6 +246,9 @@ module fm_uart_control (
             fm_patch_commit <= 1'b0;
             packet_received <= 1'b0;
             packet_error <= 1'b0;
+            fx_cfg_addr <= 6'd0;
+            fx_cfg_value <= 16'd0;
+            fx_cfg_write <= 1'b0;
             current_preset <= 5'd0;
             preset_load_state <= 6'd1;
             preset_op_index <= 3'd0;
@@ -262,7 +274,9 @@ module fm_uart_control (
             else if (read_wait == 2'b10) read_wait <= 2'b11;
             else if (read_wait == 2'b11) begin
                 read_wait <= 2'b00;
-                readback_data <= patch_read_data;
+                readback_data <= (read_address >= 10'h200 &&
+                                  read_address < 10'h220)
+                                 ? fx_read_value : patch_read_data;
                 readback_valid <= 1'b1;
             end
             if(local_command_valid && local_command_ready)begin
@@ -270,6 +284,7 @@ module fm_uart_control (
                 checksum<=0;parser_state<=READ_SUM;local_pending<=1;
             end
             fm_global_write_valid <= 1'b0;
+            fx_cfg_write <= 1'b0;
             fm_operator_write_valid <= 1'b0;
             fm_envelope_write_valid <= 1'b0;
             fm_scaling_write_valid <= 1'b0;
@@ -411,6 +426,13 @@ module fm_uart_control (
                                     // honest and report it as unsupported instead
                                     // of silently ignoring an editor's request.
                                     packet_error <= 1'b1;
+                                end
+                                8'h70: begin
+                                    if (payload[5:0] < 6'd32) begin
+                                        fx_cfg_addr <= payload[5:0];
+                                        fx_cfg_value <= payload[23:8];
+                                        fx_cfg_write <= 1'b1;
+                                    end else packet_error <= 1'b1;
                                 end
                                 8'h69: begin
                                     read_address <= payload[9:0];

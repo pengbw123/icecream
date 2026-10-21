@@ -54,6 +54,34 @@ Pitch EG（0x65）、ALGORITHM 移调、OSC ENABLE、NAME 页 10 字符 + 8 个�
 - PnR：Logic 19304、Register 11350、BSRAM 147/340；50 MHz Fmax 61.520 MHz、
   像素域 41.969 MHz，TNS 0；固件 31 192 B。
 
+## 阶段 3a（进行中，效果器第 1 步：寄存器/命令/直通）
+
+- 新增 `src/audio_fx.v`：32 个 16 位配置寄存器（6 位地址），默认值按方案写好；
+  `sample_out` 目前是精确干声直通，后续步骤替换为 6 效果器链。
+- 新增命令 **0x70** 写 FX 寄存器（payload[5:0]=addr，payload[23:8]=value），
+  回读走 0x69 地址 **0x200+addr**；越界地址报 packet_error。
+- `top.v` 新增 `FX2_ENABLED` 参数与 generate 分支；`top_138k` 改为
+  `FM_AUDIO_ONLY=0, FX2_ENABLED=1`（旧的 pro_audio_effects / audio_effects 分支保留）。
+- 测试：新增 `tb_audio_fx`（寄存器默认/读写/直通）；`tb_fm_readback` 增加 0x70→0x69
+  环路与越界检查；全量回归 17 项。
+- 注意：加入新分支后 50 MHz 域最差路径是原有的
+  `e0_env_current -> operator_envelope_levels`，slack 仅 0.094 ns（TNS 0）；后续加效果器
+  逻辑时要盯住时序，必要时给包络电平输出加一级流水。
+
+## 阶段 3a（进行中，效果器第 1 步：寄存器/命令/直通）
+
+- 新增 `src/audio_fx.v`：32 个 16 位配置寄存器（6 位地址），默认值按方案写好；
+  `sample_out` 目前是精确干声直通，后续步骤替换为 6 效果器链。
+- 新增命令 **0x70** 写 FX 寄存器（payload[5:0]=addr，payload[23:8]=value），
+  回读走 0x69 地址 **0x200+addr**；越界地址报 packet_error。
+- `top.v` 新增 `FX2_ENABLED` 参数与 generate 分支；`top_138k` 改为
+  `FM_AUDIO_ONLY=0, FX2_ENABLED=1`（旧 pro_audio_effects / audio_effects 分支保留）。
+- 测试：新增 `tb_audio_fx`（寄存器默认/读写/直通）；`tb_fm_readback` 增加 0x70→0x69
+  环路与越界检查；全量回归 17 项。
+- 注意：新分支后 50 MHz 域最差路径是原有的
+  `e0_env_current -> operator_envelope_levels`，slack 仅 0.094 ns（TNS 0）；后续加效果器
+  逻辑时要盯时序，必要时给包络电平输出加一级流水。
+
 ## 下一步
 
 1. 按钮圆角/按下高亮（可选；按下变色已有，圆角需要画布层或小位图）。

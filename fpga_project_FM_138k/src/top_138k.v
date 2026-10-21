@@ -75,7 +75,7 @@ module top_138k (
         .patch_read_data(readback_data),.patch_read_valid(readback_valid),
         .fx_write(),.fx_index(),.fx_value(),.fx_read_value(32'd0),.numeric_display()
     );
-    top #(.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(1)) u_audio (
+    top #(.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1)) u_audio (
         .clk(clk),.key_s2(~reset_n),.uart_rx_pin(uart_rx_pin),
         .ui_command_valid(ui_command_valid),.ui_command(ui_command),.ui_payload(ui_command_payload),
         .ui_command_ready(ui_command_ready),

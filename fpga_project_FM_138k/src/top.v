@@ -7,6 +7,8 @@ module top #(
     // 0: restore the original chorus/reverb, output meter and SPI display.
     parameter integer FM_AUDIO_ONLY = 1,
     parameter integer PRO_FX_ENABLED = 0,
+    // 1: use the new parameterised post-mix FX chain (audio_fx.v).
+    parameter integer FX2_ENABLED = 0,
     // USB key velocity calibration endpoints: 0x00 -> 0, 0x5A -> 127.
     // Compile-time knobs; pads (channel 10) and UART are not rescaled.
     parameter [6:0] USB_KEY_VELOCITY_MIN = 7'h00,
@@ -308,6 +310,9 @@ module top #(
         .patch_read_address(fm_patch_read_address),
         .patch_read_data(fm_patch_read_data),
         .readback_data(readback_data), .readback_valid(readback_valid),
+        .fx_cfg_addr(fx_cfg_addr),.fx_cfg_value(fx_cfg_value),
+        .fx_cfg_write(fx_cfg_write),.fx_read_index(fx2_read_index),
+        .fx_read_value(fx2_read_value),
         .packet_received(uart_packet_received), .packet_error(uart_packet_error),
         .current_preset(current_preset)
     );
@@ -389,7 +394,20 @@ module top #(
     );
 
     wire signed [15:0] output_sample;
-    generate if(PRO_FX_ENABLED)begin:gen_pro_fx
+    wire [5:0]  fx_cfg_addr;
+    wire [15:0] fx_cfg_value;
+    wire        fx_cfg_write;
+    wire [5:0]  fx2_read_index;
+    wire [15:0] fx2_read_value;
+    generate if(FX2_ENABLED)begin:gen_fx2
+        audio_fx u_fx2(.clk(clk),.reset_n(audio_reset_n),.sample_tick(sample_tick),
+            .dry_sample(synth_sample),.cfg_write(fx_cfg_write),
+            .cfg_addr(fx_cfg_addr),.cfg_value(fx_cfg_value),
+            .read_addr(fx2_read_index),.read_value(fx2_read_value),
+            .sample_out(output_sample));
+        assign fx_read_value = 32'd0;
+        assign lcd_resetn=0;assign lcd_clk=0;assign lcd_cs=1;assign lcd_dc=0;assign lcd_data=0;
+    end else if(PRO_FX_ENABLED)begin:gen_pro_fx
         pro_audio_effects u_fx(.clk(clk),.reset_n(audio_reset_n),.sample_tick(sample_tick),
             .dry_sample(synth_sample),.config_write(fx_write),.config_index(fx_index),.config_value(fx_value),
             .read_index(fx_read_index),.read_value(fx_read_value),
