@@ -29,7 +29,19 @@ module tb_audio_fx;
     task tick_once;
         begin
             sample_tick <= 1'b1; @(posedge clk);
-            sample_tick <= 1'b0; @(posedge clk);
+            sample_tick <= 1'b0; repeat (24) @(posedge clk);
+        end
+    endtask
+
+    // Run one sample through the FSM and return the settled output.
+    reg signed [15:0] last_out;
+    task run_sample(input signed [15:0] in);
+        begin
+            dry = in;
+            sample_tick <= 1'b1; @(posedge clk);
+            sample_tick <= 1'b0;
+            repeat (24) @(posedge clk);
+            last_out = sample_out;
         end
     endtask
 
@@ -67,7 +79,41 @@ module tb_audio_fx;
         tick_once;
         if (sample_out !== dry) $fatal(1, "master-off output %04h", sample_out);
 
-        $display("PASS audio_fx registers, defaults and dry bypass");
+        // ---- distortion: soft clipping must bound a hot input ----
+        wr(6'd0, 16'h0001);      // master on
+        wr(6'd5, 16'h0001);      // distortion on
+        wr(6'd6, 16'd99);        // gain
+        wr(6'd7, 16'd99);        // tone open
+        wr(6'd8, 16'd99);        // level
+        repeat (40) run_sample(16'sd30000);
+        if (last_out > 16'sd32767 || last_out < -16'sd32768)
+            $fatal(1, "distortion overflow %0d", last_out);
+        if (last_out < 16'sd32000)
+            $fatal(1, "distortion did not clamp a hot input (%0d)", last_out);
+
+        // ---- low-pass filter passes DC, kills alternating Nyquist input ----
+        wr(6'd5, 16'd0);         // distortion off
+        wr(6'd1, 16'd1);         // filter on
+        wr(6'd2, 16'd0);         // LP
+        wr(6'd3, 16'd50);        // ~900 Hz
+        wr(6'd4, 16'd50);        // mid Q
+        repeat (400) run_sample(16'sd1000);
+        if (last_out < 16'sd800 || last_out > 16'sd1200)
+            $fatal(1, "LP DC gain wrong: %0d", last_out);
+        repeat (200) run_sample(((last_out & 1) ? 16'sd1000 : -16'sd1000));
+        if (last_out > 16'sd300 && last_out < -16'sd300)
+            $fatal(1, "LP did not attenuate high frequency: %0d", last_out);
+
+        // ---- high-pass blocks DC ----
+        wr(6'd2, 16'd2);         // HP
+        repeat (400) run_sample(16'sd1000);
+        if (last_out > 16'sd300 && last_out < -16'sd300)
+            $fatal(1, "HP did not block DC: %0d", last_out);
+
+        $display("PASS audio_fx registers, bypass, distortion and filter");
         $finish;
     end
 endmodule
+
+
+

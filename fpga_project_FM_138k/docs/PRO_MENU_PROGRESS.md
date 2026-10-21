@@ -82,6 +82,22 @@ Pitch EG（0x65）、ALGORITHM 移调、OSC ENABLE、NAME 页 10 字符 + 8 个�
   `e0_env_current -> operator_envelope_levels`，slack 仅 0.094 ns（TNS 0）；后续加效果器
   逻辑时要盯时序，必要时给包络电平输出加一级流水。
 
+## 阶段 3b（FX 第 2 步：DISTORTION + FILTER + FX 页）
+
+- `audio_fx.v` 加入 **失真**（软削波 + 一阶音色低通 + 输出电平）和 **状态变量滤波器**
+  （LP/BP/HP 三选一、cutoff/Q 查表），用 13 状态的单周期 FSM 在 1024 个时钟内完成，
+  每个状态最多一次乘法。
+- 新增 `tools/generators/generate_audio_fx_tables.py` 与 5 张 100 项参数表
+  （`fx_filter_f/q`、`fx_tone_coeff`、`fx_level_gain`、`fx_dist_gain`）。
+- 固件新增 **6 FX 页**：顶部 `DIST/FILTER/CHORUS/PHASER/DELAY/REVERB` 选择按钮；
+  下面 `FX MASTER`、`EFFECT`、`TYPE`（/滤波/混响）、三个参数行；进入页面用 0x69 0x200+
+  读回 25 个寄存器，编辑用 0x70 写。
+- 测试：`tb_audio_fx` 增加软削波、LP 通直流/衰减高频、HP 阻直流的断言；
+  `tb_touch_ui` 增加 FX 页导航与 0x70 写入检查；全量回归 17 项。
+- PnR：Logic 20209、Register 12099、BSRAM 167/340、DSP 29/298；
+  50 MHz Fmax 56.844 MHz、像素域 39.543 MHz（TNS 见报告）。
+- 当前效果链：DISTORTION → FILTER → 输出；其余 4 个效果器仍是占位（第 3/4 步）。
+
 ## 下一步
 
 1. 按钮圆角/按下高亮（可选；按下变色已有，圆角需要画布层或小位图）。

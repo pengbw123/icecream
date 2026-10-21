@@ -14,7 +14,7 @@ module tb_touch_ui;
     wire [3:0] menu_page;
     reg [15:0] pr_data=16'h0021;
     reg pr_valid=0;
-    integer cmd_69=0,cmd_60=0,cmd_61=0,cmd_62=0,cmd_63=0,cmd_64=0,cmd_65=0,text_cells=0,pal_writes=0;
+    integer cmd_69=0,cmd_60=0,cmd_61=0,cmd_62=0,cmd_63=0,cmd_64=0,cmd_65=0,cmd_70=0,text_cells=0,pal_writes=0;
     touch_ui_controller dut(.clk(clk),.reset_n(reset_n),.tp_scl(scl),.tp_sda(sda),
         .tp_int(int_pin),.tp_rst(rst_pin),.uart_tx(uart),.midi_event_data(event_word),
         .midi_event_valid(valid),.midi_event_ready(1'b1),.monitor_event(32'd0),
@@ -55,6 +55,7 @@ module tb_touch_ui;
             8'h61:cmd_61<=cmd_61+1;
             8'h64:cmd_64<=cmd_64+1;
             8'h65:cmd_65<=cmd_65+1;
+            8'h70:cmd_70<=cmd_70+1;
             default:;
         endcase
         if(dut.text_write)text_cells<=text_cells+1;
@@ -96,6 +97,10 @@ module tb_touch_ui;
             if(touch_kind==29)begin px=530;py=152;end
             if(touch_kind==30)begin px=380;py=104;end
             if(touch_kind==31)begin px=440;py=104;end
+            if(touch_kind==32)begin px=530;py=8;end
+            if(touch_kind==33)begin px=30;py=72;end
+            if(touch_kind==34)begin px=200;py=120;end
+            if(touch_kind==35)begin px=530;py=120;end
             if(touch_kind==16)begin px=30;py=72;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
@@ -285,8 +290,22 @@ module tb_touch_ui;
         if(cmd_64<1)$fatal(1,"User-slot load did not restore key scaling");
         if(cmd_65<5)$fatal(1,"User-slot load did not restore the pitch EG");
         $display("M12 name/slot at %t",$time);
+        // ---- FX page: readback and 0x70 writes ----
+        touch_kind=32;wait(menu_page==4'd5);#5000000;
+        if(cmd_69<30)$fatal(1,"FX page did not read the effect registers");
+        touch_kind=0;#8000000;
+        touch_kind=33;#5000000;
+        touch_kind=0;#8000000;
+        touch_kind=34;#5000000;
+        touch_kind=0;#8000000;
+        touch_kind=35;#5000000;
+        touch_kind=0;#8000000;
+        if(cmd_70<1)$fatal(1,"FX edit did not send command 0x70");
+        touch_kind=32;wait(menu_page==4'd5);#5000000;
+        touch_kind=0;#8000000;
+        $display("M13 fx page at %t",$time);
         $fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);
-        $display("PASS real UI firmware, I2C, menu pages, EG/LFO/pitch, name and user slots");$finish;
+        $display("PASS real UI firmware, I2C, menu pages, EG/LFO/pitch, name/slots, FX page");$finish;
     end
     initial begin #900000000;$fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
 endmodule

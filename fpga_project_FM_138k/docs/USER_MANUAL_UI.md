@@ -118,6 +118,17 @@ LFO 是自动来回摆的低频振荡器，用来做颤音/哇音。
 | `LFO SYNC` | LFO 是否随按键重新开始 |
 | `KEY SYNC` | 每个音是否从波形起点开始 |
 
+## 6.1 FX 页（6 FX）
+
+- 顶部 DIST / FILTER / CHORUS / PHASER / DELAY / REVERB 选择效果器。
+- FX MASTER：整条效果链总开关；OFF 时逐位直通，和没加效果器完全一样。
+- EFFECT：当前效果器开关。
+- TYPE：FILTER 的 LOW PASS/BAND/HIGH PASS，或 REVERB 的 ROOM/HALL/PLATE；
+  没有类型的效果器显示 --。
+- 三个参数行：DIST = GAIN/TONE/LEVEL；FILTER = CUTOFF/Q；其余为 FREQ/DEPTH/MIX、
+  DECAY/RATE/MIX、DECAY/MIX。
+- 目前（阶段 3b）DIST 与 FILTER 真正生效；其余四个已占位，后续步骤接上。
+
 ## 7. 名字/用户槽页（7 NAME）
 
 - 上排 10 个字符是当前音色名；点字符选中，用右侧 `-` / `+` 换字符。

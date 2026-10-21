@@ -11,7 +11,7 @@
 | 字符层 | `rtl_char_display.v` | 128×32 格 ×16 bit，4 块 BSRAM，16 色可写调色板 |
 | 包络曲线 | `ui_eg_curve.v` | 256×256 面板，256 个高度样本查表画填充/亮边/网格 |
 | 算法位图 | `ui_algo_map.v` | 512×256 2bpp 画布（32 KiB BSRAM） |
-| 效果器骨架 | `audio_fx.v` | 32×16 位 FX 配置寄存器；当前干声直通，后续接 6 效果器链 |
+| 效果器 | `audio_fx.v` | 32×16 位配置寄存器 + 失真/滤波链；参数表在 `src/generated/fx_*.mem` |
 | 光栅合成 | `rgb_visualizer.v` | 800×480 RGB565：波形/XY/EG/键盘 + 字符层/曲线/位图叠加 |
 | FM 引擎 | `fm_poly_synth.v` 等 | 与 UI 解耦，只收命令/MIDI |
 
@@ -86,6 +86,7 @@ attr bit0 反显、bit1 下划线（末两行）、bit2 填充。
 - 改主题：`theme_pal[3][16]` 与 `theme_bg/theme_wave/theme_xy`，`apply_theme()` 一次写完。
 - 改布局：`c_at/text/text_r/fill_cells/btn_cells/btn_tall`；坐标是 8×16 字符格；
   **必须同步触摸判定**。
+- FX 页：`draw_fx()`、`load_fx()`（0x69 0x200+）、`fx_write()`（0x70）；寄存器表见 main.c 顶部数组。
 - 算法图/包络图：`build_algo_map()`/`eg_rebuild()` 只画到内存后上传；改版式要同步
   `label_rows[]` 和触摸区。
 

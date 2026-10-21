@@ -568,6 +568,75 @@ static void upload_algo_map(void){
     }
     UI[22]=1u;
 }
+/* ------------------------------------------------------------------ */
+/* FX page (phase 3).  Registers live in audio_fx.v; command 0x70 writes   */
+/* and 0x69 addresses 0x200+addr read them back.                          */
+/* ------------------------------------------------------------------ */
+static u16 fx_regs[32];
+static u8 fx_sel;              /* selected effect 0..5 */
+
+static u8 fx_load_n(u8 reg){     /* read with clamping, 0xFFFF -> 0 */
+    u16 v=rd((u16)(0x200u+reg));
+    if(v==0xFFFFu)v=0;
+    return (u8)(v>99u?99u:(u8)v);
+}
+static void load_fx(void){
+    u8 i;
+    for(i=0;i<25;i++)fx_regs[i]=fx_load_n(i);
+}
+static void fx_write(u8 reg,u16 val){
+    if(reg<25u){fx_regs[reg]=val;cmd(0x70,(u32)reg|((u32)val<<8),0);}
+}
+static const u8 fx_en_reg[6]  ={5,1,9,13,17,21};
+static const u8 fx_type_reg[6]={0xFF,2,0xFF,0xFF,0xFF,22};
+static const u8 fx_p_reg[6][3]={
+    {6,7,8},          /* DIST: gain,tone,level */
+    {3,4,0xFF},       /* FILTER: cutoff,Q */
+    {10,11,12},       /* CHORUS */
+    {14,15,16},       /* PHASER */
+    {18,19,20},       /* DELAY */
+    {23,24,0xFF}      /* REVERB: decay,mix */
+};
+static const char*const fx_names[6]={"DIST","FILTER","CHORUS","PHASER","DELAY","REVERB"};
+static const char*const fx_p_names[6][3]={
+    {"GAIN","TONE","LEVEL"},
+    {"CUTOFF","Q",""},
+    {"FREQ","DEPTH","MIX"},
+    {"FREQ","DEPTH","MIX"},
+    {"DECAY","RATE","MIX"},
+    {"DECAY","MIX",""}
+};
+static const char*const filter_type_names[3]={"LOW PASS","BAND","HIGH PASS"};
+static const char*const reverb_type_names[3]={"ROOM","HALL","PLATE"};
+
+static void draw_fx(void){
+    u8 i,j,row=6;
+    u8 sel=fx_sel%6u;
+    for(i=0;i<6;i++){
+        u8 base=(u8)(2u+i*9u);u8 pal=(i==sel)?3u:2u;
+        for(j=0;j<8;j++)c_at((u8)(base+j),4,0,pal,1);
+        {u8 n=0;while(fx_names[i][n]&&n<7)n++;
+         for(j=0;j<n;j++)c_at((u8)(base+1u+j),4,(u8)fx_names[i][j],pal,1);}
+    }
+    text(66,4,"FX EDIT",3,0);
+    /* FX master on/off */
+    prow_eg(row,"FX MASTER",(fx_regs[0]&1u)?"ON":"OFF",(sel_row==0));row++;
+    prow_eg(row,"EFFECT",(fx_regs[fx_en_reg[sel]]&1u)?"ON":"OFF",(sel_row==1));row++;
+    if(fx_type_reg[sel]!=0xFFu){
+        u8 tv=(u8)(fx_regs[fx_type_reg[sel]]&3u);
+        if(tv>2u)tv=0;
+        prow_eg(row,"TYPE",(sel==1u)?filter_type_names[tv]:reverb_type_names[tv],(sel_row==2));
+    }else{
+        prow_eg(row,"TYPE","--",(sel_row==2));
+    }
+    row++;
+    for(j=0;j<3;j++){
+        u8 pr=fx_p_reg[sel][j];
+        if(pr==0xFFu)prow_eg(row,fx_p_names[sel][j],"--",(sel_row==3+j));
+        else prow_eg(row,fx_p_names[sel][j],u2d(fx_regs[pr]),(sel_row==3+j));
+        row++;
+    }
+}
 static void draw_algo(void){
     u8 i;
     static const u8 label_rows[6]={11u,13u,16u,19u,21u,24u};
@@ -936,6 +1005,7 @@ static void draw_page(void){
     else if(page==PAGE_OSC)draw_osc();
     else if(page==3)draw_eg();
     else if(page==4)draw_lfo();
+    else if(page==5)draw_fx();
     else if(page==6)draw_name();
     else if(page==7)draw_theme();
     else draw_placeholder();
@@ -949,6 +1019,7 @@ static void page_enter(u8 p){
     else if(p==PAGE_OSC){load_op(sel_op);load_flags();}
     else if(p==3)load_op(sel_op);
     else if(p==4)load_globals();
+    else if(p==5)load_fx();
     else if(p==6)name_from_preset((u8)((UI[4]>>7)&31u));
     
     publish();
@@ -1023,22 +1094,37 @@ static void adj_lfo(u8 row,int d){
     send_global();
     draw_page();
 }
+static void adj_fx(u8 row,int d){
+    u8 sel=fx_sel%6u;int v;
+    if(row==0){fx_write(0,(u16)(fx_regs[0]^1u));}
+    else if(row==1){fx_write(fx_en_reg[sel],(u16)(fx_regs[fx_en_reg[sel]]^1u));}
+    else if(row==2){
+        u8 tr=fx_type_reg[sel];
+        if(tr!=0xFFu){v=((int)fx_regs[tr]+d+3)%3;fx_write(tr,(u16)v);}
+    }else{
+        u8 pr=fx_p_reg[sel][row-3u];
+        if(pr!=0xFFu){v=(int)fx_regs[pr]+d;if(v<0)v=0;if(v>99)v=99;fx_write(pr,(u16)v);}
+    }
+    draw_page();
+}
 static int editable_rows(void){
     if(page==PAGE_ALGO)return 4;
     if(page==PAGE_OSC)return 14;
     if(page==3)return 8;
     if(page==4)return 8;
+    if(page==5)return 6;
     return 0;
 }
 /* First pixel row of the editable list (ALGO/OSC start below the title/OP row). */
 static int content_top(void){
-    if(page==PAGE_ALGO||page==PAGE_OSC||page==3||page==4)return 96;
+    if(page==PAGE_ALGO||page==PAGE_OSC||page==3||page==4||page==5)return 96;
     return 64;
 }
 static void adj(u8 row,int d){
     if(page==PAGE_ALGO){adj_algo(row,d);load_flags();}
     else if(page==3){if(eg_mode)adj_pitch(row,d);else adj_eg(row,d);}
     else if(page==4)adj_lfo(row,d);
+    else if(page==5)adj_fx(row,d);
     else adj_op(row,d);
 }
 static int menu_press(int x,int y){
@@ -1064,6 +1150,11 @@ static int menu_press(int x,int y){
             else if(x>=400&&x<488)slot_load();
             return 1;
         }
+        return 1;
+    }
+    if(page==5&&y>=64&&y<80){
+        int i;for(i=0;i<6;i++){int x0=16+i*72;
+            if(x>=x0&&x<x0+64){fx_sel=(u8)i;sel_row=0;draw_page();return 1;}}
         return 1;
     }
     if((page==PAGE_OSC||page==3)&&y>=64&&y<80){
