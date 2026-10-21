@@ -604,7 +604,16 @@ static void draw_fx(void){
         {u8 n=0;while(fx_names[i][n]&&n<7)n++;
          for(j=0;j<n;j++)c_at((u8)(base+1u+j),4,(u8)fx_names[i][j],pal,1);}
     }
+    /* ON/OFF under each button and a '>' between neighbours to show the
+       processing order (DIST -> FILTER -> CHORUS -> PHASER -> DELAY -> REVERB). */
+    for(i=0;i<6;i++){
+        u8 base=(u8)(2u+i*9u);
+        u8 on=(u8)(fx_regs[fx_en_reg[i]]&1u);
+        text((u8)(base+(on?3u:2u)),5,on?"ON":"OFF",on?3u:2u,0);
+        if(i<5)c_at((u8)(base+8u),4,'>',2,0);
+    }
     text(66,4,"FX EDIT",3,0);
+    text(66,5,(fx_regs[0]&1u)?"MASTER ON":"MASTER OFF",(fx_regs[0]&1u)?3u:2u,0);
     /* FX master on/off */
     prow_eg(row,"FX MASTER",(fx_regs[0]&1u)?"ON":"OFF",(sel_row==0));row++;
     prow_eg(row,"EFFECT",(fx_regs[fx_en_reg[sel]]&1u)?"ON":"OFF",(sel_row==1));row++;

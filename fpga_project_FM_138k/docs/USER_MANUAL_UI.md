@@ -131,6 +131,23 @@ LFO 是自动来回摆的低频振荡器，用来做颤音/哇音。
 - 三个参数行：DIST = GAIN/TONE/LEVEL；FILTER = CUTOFF/Q；其余为 FREQ/DEPTH/MIX、
   DECAY/RATE/MIX、DECAY/MIX。
 - 六个效果器全部生效：DIST、FILTER、CHORUS、PHASER、DELAY、REVERB；链尾有软限幅。
+- 每个按钮下面直接显示 `ON`/`OFF`；按钮之间的 `>` 表示信号处理顺序：
+  `DIST > FILTER > CHORUS > PHASER > DELAY > REVERB`；右上角是 FX MASTER 总开关状态。
+
+### 效果器在做什么（简单版）
+
+- **DIST（失真）**：先把信号放大（GAIN），再软削波产生谐波，TONE 决定削波后保留多少高频，
+  LEVEL 是输出音量。适合做脏音色/电吉他感。
+- **FILTER（滤波）**：一个可调截止频率的滤波器。LOW PASS 只留低频、BAND 只留中频、
+  HIGH PASS 只留高频；CUTOFF 是转折点（30 Hz–8 kHz），Q 越大转折点附近越"尖"（有共振）。
+- **CHORUS（合唱）**：把信号复制一份，用 LFO 让复制品的延迟在 8–16 ms 间缓慢摆动，
+  再和原声混合；FREQ 是摆动速度，DEPTH 是摆幅，MIX 是混合量。听起来像多个乐器齐奏。
+- **PHASER（移相）**：4 级全通滤波器让不同频率产生不同相位，再和原声叠加形成会移动的
+  "梳齿"（相位抵消）；FREQ 是扫描速度，DEPTH 是扫描范围，MIX 是混合量。
+- **DELAY（延迟）**：把声音延迟一段时间再放出来，并送回输入端形成回声；RATE 是延迟时间
+  （40–670 ms），DECAY 是反馈量（回声次数/长度），MIX 是干湿比。
+- **REVERB（混响）**：用多个不同长度的延迟（梳状）叠加出密集反射，再用全通扩散；
+  TYPE 切换 ROOM/HALL/PLATE 的空间尺寸/密度，DECAY 是尾音长度，MIX 是干湿比。
 
 ## 7. 名字/用户槽页（7 NAME）
 

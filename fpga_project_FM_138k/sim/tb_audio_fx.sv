@@ -46,6 +46,7 @@ module tb_audio_fx;
     endtask
 
     integer n;
+    integer sum_out, mean_out;
     reg signed [15:0] max_out;
 
     task expect_reg(input [5:0] a, input [15:0] v, input [127:0] name);
@@ -179,6 +180,22 @@ module tb_audio_fx;
         end
         if (max_out < 16'sd100)
             $fatal(1, "reverb produced no tail (max %0d)", max_out);
+
+        // A steady DC input must not make the reverb run away, saturate or
+        // shift the output away from the input level.
+        max_out = 0;
+        sum_out = 0;
+        for (n = 0; n < 4000; n = n + 1) begin
+            run_sample((n & 1) ? -16'sd1000 : 16'sd1000);
+            if (last_out > max_out) max_out = last_out;
+            if (-last_out > max_out) max_out = -last_out;
+            if (n >= 3000) sum_out = sum_out + last_out;
+        end
+        if (max_out > 16'sd16000)
+            $fatal(1, "reverb runaway (max %0d)", max_out);
+        mean_out = sum_out / 1000;
+        if (mean_out > 300 || mean_out < -300)
+            $fatal(1, "reverb DC offset (mean %0d)", mean_out);
 
         $display("PASS audio_fx registers, bypass, distortion, filter, chorus, phaser, delay and reverb");
         $finish;

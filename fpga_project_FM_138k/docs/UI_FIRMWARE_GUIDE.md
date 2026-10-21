@@ -15,7 +15,7 @@
 | 合唱 | `audio_chorus.v` | 2048 样本延迟线 + LFO，freq/depth/mix |
 | 移相 | `audio_phaser.v` | 4 级全通 + LFO，freq/depth/mix |
 | 延迟 | `audio_delay.v` | 40..670 ms 延迟线，decay/rate/mix |
-| 混响 | `audio_reverb.v` | 3 梳状 + 全通，type/decay/mix |
+| 混响 | `audio_reverb.v` | 3 梳状（各自反馈）+ 全通 + DC 阻断，type/decay/mix |
 | EG 六面板 | `ui_eg_multi.v` | 6×128 样本包络面板（3×2）；面板 p 显示算子 5-p（DX7 内部序号 0=OP6） |
 | 光栅合成 | `rgb_visualizer.v` | 800×480 RGB565：波形/XY/EG/键盘 + 字符层/曲线/位图叠加 |
 | FM 引擎 | `fm_poly_synth.v` 等 | 与 UI 解耦，只收命令/MIDI |
@@ -95,7 +95,8 @@ attr bit0 反显、bit1 下划线（末两行）、bit2 填充。
   `get_sel()/slider_apply()`（选中行取值与滑条映射）；行点击只选中，编辑走底部控制条。
 - 改布局：`c_at/text/text_r/fill_cells/btn_cells/btn_tall`；坐标是 8×16 字符格；
   **必须同步触摸判定**。
-- FX 页：`draw_fx()`、`load_fx()`（0x69 0x200+）、`fx_write()`（0x70）；寄存器表见 main.c 顶部数组。
+- FX 页：`draw_fx()`、`load_fx()`（0x69 0x200+）、`fx_write()`（0x70）；
+  按钮下 ON/OFF 状态、按钮间 `>` 顺序箭头都在 `draw_fx()` 里画。
 - 算法图/包络图：`build_algo_map()`/`eg_rebuild()` 只画到内存后上传；改版式要同步
   `label_rows[]` 和触摸区。
 
