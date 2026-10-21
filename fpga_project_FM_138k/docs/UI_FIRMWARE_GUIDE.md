@@ -10,7 +10,7 @@
 | RV32I 软核 | `usb_midi/rtl/rv32i.v` + `ui_firmware/main.c` | 触摸、页面、字符格、参数命令/回读、主题、用户槽、图形位图绘制 |
 | 字符层 | `rtl_char_display.v` | 128×32 格 ×16 bit，4 块 BSRAM，16 色可写调色板 |
 | 包络曲线 | `ui_eg_curve.v` | 256×256 面板，256 个高度样本查表画填充/亮边/网格 |
-| 算法位图 | `ui_algo_map.v` | 512×256 2bpp 画布（32 KiB BSRAM） |
+| 算法位图 | `ui_algo_map.v` | 512×256 2bpp 画布（32 KiB BSRAM）；类 1=载波绿、2=调制蓝、3=白 |
 | 效果器 | `audio_fx.v` | 32×16 位配置寄存器；完整 6 效果器链 + 软限幅 |
 | 注意 | — | 音频算术必须先扩位再相减；16 位 wet-dry 差会溢出（已修） |
 | 合唱 | `audio_chorus.v` | 2048 样本延迟线 + LFO，freq/depth/mix |
@@ -96,6 +96,8 @@ attr bit0 反显、bit1 下划线（末两行）、bit2 填充。
   `get_sel()/slider_apply()`（选中行取值与滑条映射）；行点击只选中，编辑走底部控制条。
 - 改布局：`c_at/text/text_r/fill_cells/btn_cells/btn_tall`；坐标是 8×16 字符格；
   **必须同步触摸判定**。
+- ALGO 页：`build_algo_map()` 从 flags 模拟 bus1/bus2 得到调制图并自动排版；
+  载波在最下排、绿色，调制器在上方、蓝色，最下排接 OUT 轨；
 - FX 页：`draw_fx()`、`load_fx()`（0x69 0x200+）、`fx_write()`（0x70）；
   按钮下 ON/OFF 状态、按钮间 `>` 顺序箭头都在 `draw_fx()` 里画。
 - 算法图/包络图：`build_algo_map()`/`eg_rebuild()` 只画到内存后上传；改版式要同步
