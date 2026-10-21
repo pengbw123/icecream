@@ -913,7 +913,7 @@ static void load_all_eg(void){
         }
     }
 }
-static void build_eg6_panel(u8 op){
+static void build_eg6_panel(u8 op,u8 panel){
     u16 i;u32 wt[4];u16 bx[5],lv[5];u32 total=0;
     for(i=0;i<4;i++){
         u32 s=99u-eg6_rate[op][i];
@@ -940,10 +940,10 @@ static void build_eg6_panel(u8 op){
         else
             h=(u32)lv[s]-(((u32)(lv[s]-lv[s+1])*(u32)tt)/w);
         if(h>255u)h=255u;
-        eg6_buf[(u16)op*128u+i]=(u8)h;
+        eg6_buf[(u16)panel*128u+i]=(u8)h;
     }
 }
-static void build_all_eg(void){u8 op;for(op=0;op<6;op++)build_eg6_panel(op);}
+static void build_all_eg(void){u8 p;for(p=0;p<6;p++)build_eg6_panel((u8)(5u-p),p);}
 static void upload_eg6(void){
     u16 i;u32 w;
     UI[25]=0;
@@ -955,11 +955,11 @@ static void upload_eg6(void){
     }
     UI[27]=1;
 }
-static void upload_eg6_panel(u8 op){
+static void upload_eg6_panel(u8 panel){
     u16 i;u32 w;
-    UI[25]=(u32)op*128u;
+    UI[25]=(u32)panel*128u;
     for(i=0;i<32u;i++){
-        u16 b=(u16)(op*128u+i*4u);
+        u16 b=(u16)(panel*128u+i*4u);
         w=(u32)eg6_buf[b]|((u32)eg6_buf[b+1]<<8)|
           ((u32)eg6_buf[b+2]<<16)|((u32)eg6_buf[b+3]<<24);
         UI[26]=w;
@@ -969,8 +969,8 @@ static void sync_eg6(void){
     u8 i;
     if(eg_mode)return;
     for(i=0;i<4;i++){eg6_rate[sel_op][i]=o_rate[i];eg6_lev[sel_op][i]=o_lev[i];}
-    build_eg6_panel(sel_op);
-    upload_eg6_panel(sel_op);
+    build_eg6_panel(sel_op,(u8)(5u-sel_op));
+    upload_eg6_panel((u8)(5u-sel_op));
 }
 static void draw_eg(void){
     u8 i,j,row=6;
@@ -986,8 +986,8 @@ static void draw_eg(void){
         lbl[n++]='R';lbl[n++]='A';lbl[n++]='T';lbl[n++]='E';lbl[n++]=' ';
         lbl[n++]=(char)('1'+i);lbl[n]=0;
         if(sel_row==i)fill_cells(2,24,(u8)(row+i),3,1);
-        text(2,(u8)(row+i),lbl,(sel_row==i)?3:1,0);
-        text_r(22,(u8)(row+i),u2d(eg_mode?p_rate[i]:o_rate[i]),(sel_row==i)?3:1,0);
+        text(2,(u8)(row+i),lbl,(sel_row==i)?3:1,(sel_row==i)?1:0);
+        text_r(22,(u8)(row+i),u2d(eg_mode?p_rate[i]:o_rate[i]),(sel_row==i)?3:1,(sel_row==i)?1:0);
     }
     for(i=0;i<4;i++){
         char lbl[10];u8 n=0;
@@ -995,8 +995,18 @@ static void draw_eg(void){
         else{lbl[n++]='L';lbl[n++]='E';lbl[n++]='V';lbl[n++]='E';lbl[n++]='L';}
         lbl[n++]=' ';lbl[n++]=(char)('1'+i);lbl[n]=0;
         if(sel_row==4+i)fill_cells(50,72,(u8)(row+i),3,1);
-        text(50,(u8)(row+i),lbl,(sel_row==4+i)?3:1,0);
-        text_r(72,(u8)(row+i),u2d(eg_mode?p_lev[i]:o_lev[i]),(sel_row==4+i)?3:1,0);
+        text(50,(u8)(row+i),lbl,(sel_row==4+i)?3:1,(sel_row==4+i)?1:0);
+        text_r(72,(u8)(row+i),u2d(eg_mode?p_lev[i]:o_lev[i]),(sel_row==4+i)?3:1,(sel_row==4+i)?1:0);
+    }
+    {
+        static const u8 lx[3]={3u,35u,67u};
+        u8 p;char t[4];
+        for(p=0;p<3;p++){
+            t[0]='O';t[1]='P';t[2]=(char)('1'+p);t[3]=0;
+            text(lx[p],11,t,1,0);
+            t[2]=(char)('4'+p);
+            text(lx[p],18,t,1,0);
+        }
     }
 }
 static void draw_lfo(void){
@@ -1132,10 +1142,10 @@ static void draw_bottom(void){
     u8 c;int cur,lo,hi,cyc,norm,knob;
     if(page<1||page>5)return;
     for(c=0;c<100;c++){c_at(c,27,0,12,4);c_at(c,28,0,12,4);c_at(c,29,0,12,4);}
-    for(c=2;c<=8;c++){c_at(c,27,0,6,1);c_at(c,28,0,6,1);c_at(c,29,0,6,1);}
-    c_at(5,28,'-',1,1);
-    for(c=91;c<=97;c++){c_at(c,27,0,6,1);c_at(c,28,0,6,1);c_at(c,29,0,6,1);}
-    c_at(94,27,'|',1,1);c_at(94,28,'+',1,1);c_at(94,29,'|',1,1);
+    for(c=2;c<=10;c++){c_at(c,27,0,0,1);c_at(c,28,0,0,1);c_at(c,29,0,0,1);}
+    c_at(5,28,'<',3,0);c_at(6,28,'<',3,0);
+    for(c=90;c<=98;c++){c_at(c,27,0,0,1);c_at(c,28,0,0,1);c_at(c,29,0,0,1);}
+    c_at(94,28,'>',3,0);c_at(95,28,'>',3,0);
     for(c=11;c<=89;c++)c_at(c,28,0,7,1);
     text(11,27,"VALUE",2,0);
     text(11,29,"DRAG SLIDE   HOLD -/+",2,0);

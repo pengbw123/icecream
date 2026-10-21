@@ -16,7 +16,7 @@
 | 移相 | `audio_phaser.v` | 4 级全通 + LFO，freq/depth/mix |
 | 延迟 | `audio_delay.v` | 40..670 ms 延迟线，decay/rate/mix |
 | 混响 | `audio_reverb.v` | 3 梳状 + 全通，type/decay/mix |
-| EG 六面板 | `ui_eg_multi.v` | 6×128 样本包络面板（3×2） |
+| EG 六面板 | `ui_eg_multi.v` | 6×128 样本包络面板（3×2）；面板 p 显示算子 5-p（DX7 内部序号 0=OP6） |
 | 光栅合成 | `rgb_visualizer.v` | 800×480 RGB565：波形/XY/EG/键盘 + 字符层/曲线/位图叠加 |
 | FM 引擎 | `fm_poly_synth.v` 等 | 与 UI 解耦，只收命令/MIDI |
 
@@ -91,7 +91,7 @@ attr bit0 反显、bit1 下划线（末两行）、bit2 填充。
   加行号与加减；确认 `editable_rows()`/`content_top()`。
 - 加页：`tab_names[]` 固定 8 页；`draw_page()` 分支、`menu_press()` 触摸、页号写进 publish()。
 - 改主题：`theme_pal[3][16]` 与 `theme_bg/theme_wave/theme_xy`，`apply_theme()` 一次写完。
-- 布局：`VALUE_COL`（统一第 22 列）、`draw_bottom()`（第 27–29 行控制条，7 格按钮 + 细滑条）、
+- 布局：`VALUE_COL`（统一第 22 列）、`draw_bottom()`（第 27–29 行控制条，黑色按钮 + 主题色 << >> + 细滑条）、
   `get_sel()/slider_apply()`（选中行取值与滑条映射）；行点击只选中，编辑走底部控制条。
 - 改布局：`c_at/text/text_r/fill_cells/btn_cells/btn_tall`；坐标是 8×16 字符格；
   **必须同步触摸判定**。
