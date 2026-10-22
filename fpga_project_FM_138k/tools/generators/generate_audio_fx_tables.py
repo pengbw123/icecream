@@ -5,7 +5,8 @@
   fx_tone_coeff.mem  100 x unsigned 16-bit, one-pole LP coefficient in Q1.15
   fx_level_gain.mem  100 x unsigned 16-bit, 0..1 in Q1.15
   fx_dist_drive.mem  100 x unsigned 16-bit, drive 1.0..8.0 in Q8
-  fx_dist_makeup.mem 100 x unsigned 16-bit, RMS makeup in Q1.15
+  fx_dist_makeup.mem 100 x unsigned 16-bit, 1/tanh(drive) in Q2.14
+  fx_dist_initial_gain.mem 100 x unsigned 16-bit, tanh(drive)/drive in Q1.15
   fx_tanh_lut.mem    512 x signed 16-bit, tanh(z) for z = 0..8 in Q1.15
 """
 import math
@@ -47,12 +48,15 @@ for i in range(N):
     tone_tab.append(clamp(round(a * 32768.0), 1, 32767))
 
 level_tab = [clamp(round(i / (N - 1) * 32767.0), 0, 32767) for i in range(N)]
-# Distortion: normalized tanh.  Drive 1..8, LUT covers z=0..8, makeup is
-# chosen so a 0.25 FS sine keeps the same RMS at every GAIN setting.
+# Distortion: normalized tanh. Drive 1..8, LUT covers z=0..8. The
+# normalizer is greater than unity at low drive, so it must use Q2.14.
+# Q1.15 clipped every 1/tanh(drive) entry to 0x7FFF.
 drive_tab = [clamp(round((1.0 + i * 7.0 / (N - 1)) * 256.0), 256, 2048) for i in range(N)]
 tanh_tab = [clamp(round(math.tanh(i / 511.0 * 8.0) * 32767.0), 0, 32767) for i in range(512)]
-makeup_tab = [clamp(round(32767.0 / math.tanh(v / 256.0)), 8192, 32767)
+makeup_tab = [clamp(round(16384.0 / math.tanh(v / 256.0)), 0, 32767)
               for v in drive_tab]
+initial_gain_tab = [clamp(round(32767.0 * math.tanh(v / 256.0) / (v / 256.0)), 0, 32767)
+                    for v in drive_tab]
 
 (GEN / 'fx_filter_f.mem').write_text('\n'.join(hx16(v) for v in f_tab) + '\n')
 (GEN / 'fx_filter_q.mem').write_text('\n'.join(hx16(v) for v in q_tab) + '\n')
@@ -60,6 +64,7 @@ makeup_tab = [clamp(round(32767.0 / math.tanh(v / 256.0)), 8192, 32767)
 (GEN / 'fx_level_gain.mem').write_text('\n'.join(hx16(v) for v in level_tab) + '\n')
 (GEN / 'fx_dist_drive.mem').write_text('\n'.join(hx16(v) for v in drive_tab) + '\n')
 (GEN / 'fx_dist_makeup.mem').write_text('\n'.join(hx16(v) for v in makeup_tab) + '\n')
+(GEN / 'fx_dist_initial_gain.mem').write_text('\n'.join(hx16(v) for v in initial_gain_tab) + '\n')
 (GEN / 'fx_tanh_lut.mem').write_text('\n'.join(hx16(v) for v in tanh_tab) + '\n')
 
 # LFO phase increments: inc = round(freq * 2^32 / fs)
@@ -74,7 +79,7 @@ phaser_hz = [0.05 * (3.0 / 0.05) ** (i / (N - 1)) for i in range(N)]
 # Delay time: 40 ms .. 670 ms (32768-sample line), feedback and reverb decay.
 delay_len = [round((40.0 + i * (670.0 - 40.0) / (N - 1)) * FS / 1000.0) for i in range(N)]
 delay_fb = [round((0.30 + i * 0.60 / (N - 1)) * 32768.0) for i in range(N)]
-reverb_fb = [round((0.40 + i * 0.45 / (N - 1)) * 32768.0) for i in range(N)]
+reverb_fb = [round((0.50 + i * 0.40 / (N - 1)) * 32768.0) for i in range(N)]
 (GEN / 'fx_delay_len.mem').write_text('\n'.join(f'{v & 0xFFFF:04X}' for v in delay_len) + '\n')
 (GEN / 'fx_delay_fb.mem').write_text('\n'.join(f'{v & 0xFFFF:04X}' for v in delay_fb) + '\n')
 (GEN / 'fx_reverb_fb.mem').write_text('\n'.join(f'{v & 0xFFFF:04X}' for v in reverb_fb) + '\n')

@@ -664,7 +664,7 @@ static const u8 fx_p_reg[6][3]={
     {3,4,0xFF},       /* FILTER: cutoff,Q */
     {23,24,0xFF},     /* REVERB: decay,mix */
     {18,19,20},       /* DELAY: decay,rate,mix */
-    {6,7,8},          /* DIST: gain,tone,level */
+    {6,7,8},          /* DIST: gain,tone,wet mix */
     {10,11,12},       /* CHORUS */
     {14,15,16}        /* PHASER */
 };
@@ -673,7 +673,7 @@ static const char*const fx_p_names[6][3]={
     {"CUTOFF","Q",""},
     {"DECAY","MIX",""},
     {"DECAY","RATE","MIX"},
-    {"GAIN","TONE","LEVEL"},
+    {"GAIN","TONE","MIX"},
     {"FREQ","DEPTH","MIX"},
     {"FREQ","DEPTH","MIX"}
 };

@@ -45,9 +45,12 @@ module tb_audio_fx;
         end
     endtask
 
-    integer n;
-    integer sum_out, mean_out, sum20, sum99;
+    integer n, shape_changes, amplitude;
+    integer sum_out, mean_out, sum20, sum99, sum_dry;
     reg signed [15:0] max_out;
+    reg signed [15:0] previous_shape;
+    reg [23:0] previous_smooth;
+    reg signed [15:0] high_level_out;
 
     task expect_reg(input [5:0] a, input [15:0] v, input [127:0] name);
         begin
@@ -109,6 +112,110 @@ module tb_audio_fx;
         $display("distortion gain RMS sums: %0d vs %0d", sum20, sum99);
         if (sum20 < sum99 / 2 || sum99 < sum20 / 2)
             $fatal(1, "distortion gain changed loudness: %0d vs %0d", sum20, sum99);
+
+        // Peak-normalized tanh used to make ordinary signals much too loud.
+        // Match input and output RMS across several input amplitudes.
+        wr(6'd6, 16'd50);
+        for (amplitude = 2000; amplitude <= 32000; amplitude = amplitude * 2) begin
+            for (n = 0; n < 2048; n = n + 1)
+                run_sample($rtoi(amplitude * $sin(6.283185307179586 * n / 127.0)));
+            sum_dry = 0;
+            sum_out = 0;
+            for (n = 0; n < 2048; n = n + 1) begin
+                run_sample($rtoi(amplitude * $sin(6.283185307179586 * n / 127.0)));
+                sum_dry = sum_dry + ((dry * dry) >>> 16);
+                sum_out = sum_out + ((last_out * last_out) >>> 16);
+            end
+            if (sum_out * 4 < sum_dry * 3 || sum_out * 4 > sum_dry * 5)
+                $fatal(1, "distortion loudness mismatch amp=%0d dry=%0d wet=%0d",
+                    amplitude, sum_dry, sum_out);
+        end
+
+        // Sweep the complete signed PCM range. A wrap at any clip threshold
+        // would reverse direction or create a large join in this transfer.
+        repeat (8) run_sample(-16'sd32768);
+        previous_shape = dut.dist_shaped;
+        for (n = -32768; n <= 32767; n = n + 16) begin
+            run_sample(n);
+            if (dut.dist_shaped < previous_shape ||
+                dut.dist_shaped - previous_shape > 16'sd100)
+                $fatal(1, "waveshaper discontinuity near input=%0d: %0d -> %0d",
+                    n, previous_shape, dut.dist_shaped);
+            previous_shape = dut.dist_shaped;
+        end
+
+        // A slow low-level ramp must not turn into a staircase at the tanh LUT.
+        // Inspect the waveshaper before TONE, which would conceal missing
+        // interpolation by smoothing the steps after they have been created.
+        wr(6'd6, 16'd20);
+        for (n = 0; n < 2600; n = n + 1) run_sample(16'sd0);
+        previous_shape = dut.dist_shaped;
+        shape_changes = 0;
+        for (n = 0; n < 250; n = n + 1) begin
+            run_sample(n * 8);
+            if (dut.dist_shaped > previous_shape) shape_changes = shape_changes + 1;
+            if (dut.dist_shaped < previous_shape)
+                $fatal(1, "distortion ramp is not monotonic at %0d", n);
+            previous_shape = dut.dist_shaped;
+        end
+        if (shape_changes < 150)
+            $fatal(1, "distortion waveshaper has visible steps: %0d changes", shape_changes);
+
+        // Peak normalization is above unity at low drive and tends to unity
+        // as GAIN rises; the Q2.14 table must not be uniformly saturated.
+        if (dut.dist_makeup[20] <= dut.dist_makeup[99])
+            $fatal(1, "distortion makeup does not fall as GAIN rises");
+
+        // LEVEL controls wet/dry mix. Zero must preserve the original PCM;
+        // changing GAIN must not turn it into an overall volume control.
+        wr(6'd8, 16'd0);
+        previous_smooth = dut.sm_level;
+        for (n = 0; n < 3000; n = n + 1) begin
+            run_sample(16'sd12000);
+            if (dut.sm_level > previous_smooth)
+                $fatal(1, "LEVEL smoothing rose while target fell: %0d -> %0d",
+                    previous_smooth, dut.sm_level);
+            previous_smooth = dut.sm_level;
+        end
+        if (dut.sm_level !== 24'd0 || dut.lgain !== 16'sd0)
+            $fatal(1, "LEVEL=0 did not converge: state=%0d gain=%0d",
+                dut.sm_level, dut.lgain);
+        for (n = 0; n < 128; n = n + 1) begin
+            run_sample(16'sd12000);
+            if (last_out !== 16'sd12000)
+                $fatal(1, "DIST MIX=0 did not preserve dry audio: %0d", last_out);
+        end
+        wr(6'd0, 16'd0);
+        run_sample(16'sd12345);
+        if (last_out !== 16'sd12345)
+            $fatal(1, "FX master bypass lost exact dry with MIX=0");
+        wr(6'd0, 16'd1);
+        wr(6'd8, 16'd99);
+        previous_smooth = dut.sm_level;
+        for (n = 0; n < 3000; n = n + 1) begin
+            run_sample(16'sd12000);
+            if (dut.sm_level < previous_smooth || dut.sm_level > (24'd99 << 8))
+                $fatal(1, "LEVEL smoothing wrapped while target rose: %0d -> %0d",
+                    previous_smooth, dut.sm_level);
+            previous_smooth = dut.sm_level;
+        end
+        if (dut.level_i < 7'd98)
+            $fatal(1, "LEVEL=99 did not converge: %0d", dut.level_i);
+        high_level_out = last_out;
+        if (high_level_out < 16'sd10800 || high_level_out > 16'sd13200)
+            $fatal(1, "MIX=99 loudness differs from dry: %0d", high_level_out);
+        wr(6'd8, 16'd10);
+        previous_smooth = dut.sm_level;
+        for (n = 0; n < 3000; n = n + 1) begin
+            run_sample(16'sd12000);
+            if (dut.sm_level > previous_smooth)
+                $fatal(1, "LEVEL=10 smoothing rose while target fell");
+            previous_smooth = dut.sm_level;
+        end
+        if (dut.level_i < 7'd9 || dut.level_i > 7'd10 ||
+            last_out < 16'sd10800 || last_out > 16'sd13200)
+            $fatal(1, "MIX=10 loudness differs from dry: low=%0d high=%0d index=%0d",
+                last_out, high_level_out, dut.level_i);
 
         // ---- low-pass filter passes DC, kills alternating Nyquist input ----
         wr(6'd5, 16'd0);         // distortion off

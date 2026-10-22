@@ -1,6 +1,6 @@
 # 给后续 AI 的工程交接说明
 
-更新时间：2026-10-21（阶段 2e 完成）。目标是让接手者从当前代码和硬件状态继续，
+更新时间：2026-10-22（合唱、混响代码检查与优化）。目标是让接手者从当前代码和硬件状态继续，
 不要把计划、候选代码或仿真结果误写成已交付功能。
 
 ## 1. 工程位置与当前状态
@@ -8,8 +8,9 @@
 - 仓库根：`D:\a_My_projects\Gowin_publish`，工程目录：`fpga_project_FM_138k/`。
 - 板卡：ACG720（GW5AT-LV138PG484AC1/I0，Arora V），Gowin V1.9.12.03；顶层 `top_138k`。
 - 构建：`build_cli.tcl` → `impl/pnr/fm_138k_rgb.fs`；烧录用 Gowin Programmer。
-- 当前可烧录：`impl/pnr/fm_138k_rgb.fs`（阶段 4h，2026-10-22 16:48）。旧位流在
-  `impl/pnr/backup/`，IDE 目录里的旧 `fpga_project.fs` 不要烧。
+- 当前可烧录：`impl/pnr/fm_138k_rgb.fs`（合唱/混响优化，2026-10-22 20:28；尚未实机验证）。旧位流在
+  `impl/pnr/backup/`（上一版为 `fm_138k_rgb_2026-10-22_1821_pre_agc.fs`），
+  IDE 目录里的旧 `fpga_project.fs` 不要烧。
 - 标签：`phase0-done`…`phase2d-done`、`phase2e-done`、`phase3a-done`、`phase3b-done`、`phase3c-done`、`phase3d-done`、`phase4-done`、`phase4b-done`、`phase4c-done`、`phase4d-done`、`phase4e-done`、`phase4f-done`、`phase4g-done`、`phase4h-done`。回退：`git reset --hard <tag>`。
 - **进度账本**：`docs/PRO_MENU_PROGRESS.md`。
 - **改 UI 固件先读**：`docs/UI_FIRMWARE_GUIDE.md`。
@@ -52,6 +53,23 @@
 4. 综合：`gw_sh build_cli.tcl`；烧录 `impl/pnr/fm_138k_rgb.fs`。
 
 ## 5. 最近一次已知良好数据（阶段 4h）
+
+2026-10-22 失真响度匹配与 MIX 修正：全 16 位静态传递曲线单调、无阈值翻转；
+旧峰值归一化在 GAIN 50 时把 16000 峰值正弦的 RMS 放大约 2.07 倍。
+现在按输入/失真后平滑绝对值包络自动匹配响度，静音后用 GAIN 对应的预置系数启动；
+原寄存器 8 由总音量 LEVEL 改为干湿 MIX，0=原声、99=全失真，UI 已改名并重编固件。
+五档输入幅度的稳定正弦 RMS 比约 0.92–1.00；实机 ROM 音色波形/听感待确认。
+PnR：Logic 23394、Register 13593、BSRAM 228/340、DSP 48/298；
+50 MHz Fmax 54.845 MHz，像素域 42.853 MHz，两域 setup/hold TNS 均为 0。
+失真单测、完整 RTL 回归和固件编译通过。
+
+本轮合唱采用两个互补调制抽头、Q8 线性插值和独立预热门控，避免延迟读地址量化引起的阶跃和上电脏数据。
+混响采用四路带一阶阻尼的反馈梳状延迟与两级串联全通；Room/Hall/Plate 有独立延迟长度，
+DECAY 基础反馈范围 0.50..0.90。原整数 DC 阻断器留下永久尾音偏置，现改为 Q12 状态。
+`sim/tb_chorus_reverb.sv` 检查双抽头位置、快速调制连续性、三种空间的尾音、DECAY 大小关系、无 X 和 MIX=0 直通。
+本轮 `sim/run_checks.ps1` 全部通过，包括音频效果、真实 UI 固件、触摸和 RGB/XY 多场景回归。
+本轮 PnR：Logic 24031、Register 13889、BSRAM 236/340、DSP 51.5/298；
+50 MHz Fmax 54.825 MHz，像素域 40.844 MHz，两域 setup/hold TNS 均为 0。
 
 - 回归：16 项全过（含 EG 曲线、算法画布、菜单、用户槽）。
 - PnR：Logic 23048、Register 13597、BSRAM 224/340、DSP 45/298、PLL 1/12；

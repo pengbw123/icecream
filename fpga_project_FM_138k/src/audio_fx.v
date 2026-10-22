@@ -6,7 +6,7 @@
 // Register map (6-bit address, 16-bit value, UI order is independent):
 //   0      GLOBAL: bit0 master enable, bit1 bypass
 //   1..4   FILTER:   enable, type (0 LP / 1 BP / 2 HP), cutoff 0..99, Q 0..99
-//   5..8   DISTORTION: enable, gain 0..99, tone 0..99, level 0..99
+//   5..8   DISTORTION: enable, gain 0..99, tone 0..99, wet mix 0..99
 //   9..12  CHORUS: enable, freq, depth, mix
 //   13..16 PHASER: enable, freq, depth, mix
 //   17..20 DELAY: enable, decay, rate, mix
@@ -39,6 +39,7 @@ module audio_fx (
     reg signed [15:0] level_tab [0:99];
     reg [15:0]        dist_drive [0:99];
     reg [15:0]        dist_makeup [0:99];
+    reg [15:0]        dist_initial_gain [0:99];
     reg signed [15:0] tanh_lut [0:511];
     initial begin
         $readmemh("src/generated/fx_filter_f.mem", filter_f);
@@ -47,6 +48,7 @@ module audio_fx (
         $readmemh("src/generated/fx_level_gain.mem", level_tab);
         $readmemh("src/generated/fx_dist_drive.mem", dist_drive);
         $readmemh("src/generated/fx_dist_makeup.mem", dist_makeup);
+        $readmemh("src/generated/fx_dist_initial_gain.mem", dist_initial_gain);
         $readmemh("src/generated/fx_tanh_lut.mem", tanh_lut);
     end
 
@@ -73,9 +75,16 @@ module audio_fx (
         input [23:0] cur;
         input [15:0] tgt;
         reg signed [24:0] d;
+        reg signed [24:0] step;
+        reg signed [24:0] next_value;
         begin
             d = $signed({1'b0, tgt, 8'b0}) - $signed({1'b0, cur});
-            smooth24 = cur + (d >>> 8);
+            // Keep the shift and addition signed. With unsigned cur in the
+            // original expression, a negative d shifted as a large positive
+            // number, so lowering a parameter made its Q8 state wrap.
+            step = d >>> 8;
+            next_value = $signed({1'b0, cur}) + step;
+            smooth24 = next_value[23:0];
         end
     endfunction
 
@@ -94,23 +103,28 @@ module audio_fx (
         end
     end
 
-    localparam [3:0] S_IDLE=4'd0, S_FLP1=4'd1, S_FLP2=4'd2, S_FHP1=4'd3,
-                     S_FBP1=4'd4, S_FSEL=4'd5, S_DSTART=4'd6, S_DIDX=4'd7,
-                     S_DLUT=4'd8, S_DMAKE=4'd9, S_DTONE=4'd10, S_DFIN=4'd11,
-                     S_DLEVEL=4'd12, S_DOUT=4'd13, S_OUT=4'd14;
+    localparam [4:0] S_IDLE=5'd0, S_FLP1=5'd1, S_FLP2=5'd2, S_FHP1=5'd3,
+                     S_FBP1=5'd4, S_FSEL=5'd5, S_DSTART=5'd6, S_DIDX=5'd7,
+                     S_DLUT=5'd8, S_DMAKE=5'd9, S_DTONE=5'd10, S_DFIN=5'd11,
+                     S_DLEVEL=5'd12, S_DOUT=5'd13, S_OUT=5'd14,
+                     S_DINTERP=5'd15, S_DSHAPE=5'd16;
 
-    reg [3:0] state;
+    reg [4:0] state;
     reg signed [15:0] dry_q, delay_q, filt_out, dist_out, tone_state, dist_shaped;
     reg signed [23:0] lp, bp, lp_tmp, hp_tmp, bp_new;
     reg signed [39:0] prod1, prod2, prod3;
     reg signed [47:0] prod_tone;
     reg signed [31:0] prod;
+    reg signed [32:0] mix_prod;
+    reg [23:0] sm_dry_abs, sm_wet_abs;
+    reg [15:0] agc_gain;
 
     reg        dist_en, filt_en;
     reg [1:0]  ftype;
     reg [15:0] ddrive, makeup_q;
     reg signed [15:0] tcoef, lgain, fcoef, qcoef;
-    reg [15:0] tval;
+    reg [15:0] tval, tval_next;
+    reg [31:0] interp_prod;
 
     // Smoothed continuous parameters; switches and type fields stay direct.
     reg [23:0] sm_cut, sm_q, sm_gain, sm_tone, sm_level;
@@ -139,7 +153,19 @@ module audio_fx (
                                        : dist_sx;
     wire [32:0] dist_scaled = dist_mag * ddrive;
     wire [32:0] dist_shift = dist_scaled >> 17;
-    wire [9:0]  dist_idx = (dist_shift > 33'd511) ? 10'd511 : dist_shift[9:0];
+    wire [8:0] dist_idx = (dist_shift >= 33'd511) ? 9'd511 : dist_shift[8:0];
+    wire [8:0] dist_next_idx = (dist_idx == 9'd511) ? 9'd511 : dist_idx + 1'b1;
+    wire [16:0] dist_frac = (dist_shift >= 33'd511) ? 17'd0 : dist_scaled[16:0];
+    wire [16:0] interp_value = {1'b0, tval} + (interp_prod >> 17);
+    wire [32:0] shaped_mag = interp_value * makeup_q;
+    wire [15:0] dist_dry_abs = delay_q[15] ? (~delay_q + 16'd1) : delay_q;
+    wire [15:0] dist_wet_abs = tone_state[15] ? (~tone_state + 16'd1) : tone_state;
+    wire [31:0] agc_wet_product = sm_wet_abs[23:8] * agc_gain;
+    wire [15:0] agc_wet_after = agc_wet_product >> 15;
+    wire signed [17:0] agc_error =
+        $signed({2'b00, sm_dry_abs[23:8]}) - $signed({2'b00, agc_wet_after});
+    wire signed [17:0] agc_next = $signed({2'b00, agc_gain}) + (agc_error >>> 1);
+    wire signed [15:0] dist_wet_scaled = sat16(prod >>> 15);
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
@@ -149,9 +175,12 @@ module audio_fx (
             tone_state <= 16'sd0; dist_shaped <= 16'sd0;
             lp <= 24'sd0; bp <= 24'sd0; lp_tmp <= 24'sd0; hp_tmp <= 24'sd0;
             bp_new <= 24'sd0; prod1 <= 40'sd0; prod2 <= 40'sd0; prod3 <= 40'sd0;
-            prod_tone <= 48'sd0; prod <= 32'sd0;
+            prod_tone <= 48'sd0; prod <= 32'sd0; mix_prod <= 33'sd0;
+            sm_dry_abs <= 24'd0; sm_wet_abs <= 24'd0;
+            agc_gain <= 16'd24952; // tanh(1)/1, until the first silent reset
             dist_en <= 1'b0; filt_en <= 1'b0; ftype <= 2'd0;
-            ddrive <= 16'd256; makeup_q <= 16'd32767; tval <= 16'sd0;
+            ddrive <= 16'd256; makeup_q <= 16'd32767;
+            tval <= 16'd0; tval_next <= 16'd0; interp_prod <= 32'd0;
             tcoef <= 16'sd0; lgain <= 16'sd0; fcoef <= 16'sd0; qcoef <= 16'sd0;
             sm_cut <= 24'd99 << 8; sm_q <= 24'd20 << 8;
             sm_gain <= 24'd20 << 8; sm_tone <= 24'd50 << 8; sm_level <= 24'd80 << 8;
@@ -235,9 +264,19 @@ module audio_fx (
                     state <= S_DLUT;
                 end
                 S_DLUT: begin
+                    tval_next <= tanh_lut[dist_next_idx];
+                    state <= S_DINTERP;
+                end
+                S_DINTERP: begin
+                    // The 512-entry LUT alone produces visible steps at low
+                    // amplitudes. Interpolate with the 17 fractional bits.
+                    interp_prod <= ({1'b0, tval_next} - {1'b0, tval}) * dist_frac;
+                    state <= S_DSHAPE;
+                end
+                S_DSHAPE: begin
                     dist_shaped <= delay_q[15]
-                        ? -sat16(($signed(tval) * $signed(makeup_q)) >>> 15)
-                        :  sat16(($signed(tval) * $signed(makeup_q)) >>> 15);
+                        ? -sat16($signed(shaped_mag >> 14))
+                        :  sat16($signed(shaped_mag >> 14));
                     state <= S_DMAKE;
                 end
                 S_DMAKE: begin
@@ -252,15 +291,39 @@ module audio_fx (
                     state <= S_DFIN;
                 end
                 S_DFIN: begin
-                    prod <= $signed(tone_state) * $signed(lgain);
+                    sm_dry_abs <= smooth24(sm_dry_abs, dist_dry_abs);
+                    sm_wet_abs <= smooth24(sm_wet_abs, dist_wet_abs);
+                    prod <= $signed(tone_state) * $signed(agc_gain);
                     state <= S_DLEVEL;
                 end
                 S_DLEVEL: begin
-                    dist_out <= sat16(prod >>> 15);
+                    // LEVEL is a dry/wet control. Loudness matching is
+                    // independent of it, so zero gives the original signal.
+                    mix_prod <= ($signed({dist_wet_scaled[15], dist_wet_scaled}) -
+                                 $signed({delay_q[15], delay_q})) * $signed(lgain);
                     state <= S_DOUT;
                 end
-                S_DOUT: state <= S_OUT;
-                S_OUT: state <= S_IDLE;
+                S_DOUT: begin
+                    dist_out <= sat16($signed(delay_q) + (mix_prod >>> 15));
+                    state <= S_OUT;
+                end
+                S_OUT: begin
+                    // Match the smoothed absolute loudness of wet and dry.
+                    // The old peak-only makeup made small signals 4x louder
+                    // at mid GAIN. Limit the correction to attenuation.
+                    if (dist_en) begin
+                        // After silence, start with unity small-signal gain.
+                        // An attack must not play at the uncorrected 4x slope
+                        // while the loudness envelope is still filling.
+                        if (sm_dry_abs[23:8] < 16'd32 &&
+                            sm_wet_abs[23:8] < 16'd32)
+                            agc_gain <= dist_initial_gain[gain_i];
+                        else if (agc_next < 18'sd0) agc_gain <= 16'd0;
+                        else if (agc_next > 18'sd32767) agc_gain <= 16'd32767;
+                        else agc_gain <= agc_next[15:0];
+                    end
+                    state <= S_IDLE;
+                end
                 default: state <= S_IDLE;
             endcase
         end
