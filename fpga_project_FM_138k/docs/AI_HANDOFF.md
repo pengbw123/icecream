@@ -8,7 +8,7 @@
 - 仓库根：`D:\a_My_projects\Gowin_publish`，工程目录：`fpga_project_FM_138k/`。
 - 板卡：ACG720（GW5AT-LV138PG484AC1/I0，Arora V），Gowin V1.9.12.03；顶层 `top_138k`。
 - 构建：`build_cli.tcl` → `impl/pnr/fm_138k_rgb.fs`；烧录用 Gowin Programmer。
-- 当前可烧录：`impl/pnr/fm_138k_rgb.fs`（阶段 4h，2026-10-22 16:27）。旧位流在
+- 当前可烧录：`impl/pnr/fm_138k_rgb.fs`（阶段 4h，2026-10-22 16:48）。旧位流在
   `impl/pnr/backup/`，IDE 目录里的旧 `fpga_project.fs` 不要烧。
 - 标签：`phase0-done`…`phase2d-done`、`phase2e-done`、`phase3a-done`、`phase3b-done`、`phase3c-done`、`phase3d-done`、`phase4-done`、`phase4b-done`、`phase4c-done`、`phase4d-done`、`phase4e-done`、`phase4f-done`、`phase4g-done`、`phase4h-done`。回退：`git reset --hard <tag>`。
 - **进度账本**：`docs/PRO_MENU_PROGRESS.md`。
@@ -53,8 +53,8 @@
 ## 5. 最近一次已知良好数据（阶段 4h）
 
 - 回归：16 项全过（含 EG 曲线、算法画布、菜单、用户槽）。
-- PnR：Logic 23093、Register 13483、BSRAM 225/340、DSP 45/298、PLL 1/12；
-  50 MHz Fmax 56.302 MHz，像素域 40.274 MHz，两域 TNS 0。
+- PnR：Logic 23048、Register 13597、BSRAM 224/340、DSP 45/298、PLL 1/12；
+  50 MHz Fmax 50.667 MHz，像素域 37.331 MHz，两域 TNS 0。
 - 固件：37 204 B（含 6 FX 页、底部控制条、EG 六面板、Dexed 风格 ALGO 页）。
 - 效果器：六个效果器全部生效（DIST/FILTER/CHORUS/PHASER/DELAY/REVERB），链尾软限幅；
   已修完有符号位宽 bug（失真 tone 差、各效果 wet-dry 差）。

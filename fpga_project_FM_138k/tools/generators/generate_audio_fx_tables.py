@@ -51,16 +51,8 @@ level_tab = [clamp(round(i / (N - 1) * 32767.0), 0, 32767) for i in range(N)]
 # chosen so a 0.25 FS sine keeps the same RMS at every GAIN setting.
 drive_tab = [clamp(round((1.0 + i * 7.0 / (N - 1)) * 256.0), 256, 2048) for i in range(N)]
 tanh_tab = [clamp(round(math.tanh(i / 511.0 * 8.0) * 32767.0), 0, 32767) for i in range(512)]
-makeup_tab = []
-import math as _m
-for drive in (v / 256.0 for v in drive_tab):
-    acc = 0.0
-    for n in range(4096):
-        x = 0.25 * _m.sin(2.0 * _m.pi * n / 512.0)
-        acc += _m.tanh(drive * x) ** 2
-    rms = _m.sqrt(acc / 4096.0)
-    target = 0.25 / _m.sqrt(2.0)
-    makeup_tab.append(clamp(round(target / rms * 32767.0), 8192, 32767))
+makeup_tab = [clamp(round(32767.0 / math.tanh(v / 256.0)), 8192, 32767)
+              for v in drive_tab]
 
 (GEN / 'fx_filter_f.mem').write_text('\n'.join(hx16(v) for v in f_tab) + '\n')
 (GEN / 'fx_filter_q.mem').write_text('\n'.join(hx16(v) for v in q_tab) + '\n')
