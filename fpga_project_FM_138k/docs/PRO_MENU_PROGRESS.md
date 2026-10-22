@@ -229,6 +229,23 @@ Pitch EG（0x65）、ALGORITHM 移调、OSC ENABLE、NAME 页 10 字符 + 8 个�
 - 固件 37 220 B；回归全过；位流 2026-10-22 15:00。
 - PnR 不变：Logic 22172、BSRAM 222/340、DSP 44/298；Fmax 54.632 / 37.293 MHz。
 
+## 阶段 4h（FM-1 六效果器：第 1、2 步，2026-10-22）
+
+- **链路顺序按实机改正**：
+  `FILTER -> REVERB -> DELAY -> DISTORTION -> CHORUS -> PHASER`（链尾软限幅）。
+  原先的 `DIST->FILTER->...` 与机器不符。
+- **FX 页按钮/箭头顺序同步**：
+  `FILTER > REVERB > DELAY > DIST > CHORUS > PHASER`；参数行按各自效果器显示。
+- **失真改为归一化 tanh**：
+  - 新增 512 点 tanh LUT（z=0..8）、drive 1..8（Q8）、RMS 补偿表；
+  - GAIN 只改变谐波，LEVEL 独立末级音量；
+  - 仿真实测 gain20 与 gain99 的输出 RMS 完全相同（5417600 vs 5417600）。
+- **参数平滑**：所有连续 FX 参数（cutoff/Q/gain/tone/level、chorus/phaser freq/depth/mix、
+  delay decay/rate/mix、reverb decay/mix）加约 5 ms 一阶平滑；enable/type 仍立即生效。
+- 资源：Logic 23093、Register 13483、BSRAM 225/340、DSP 45/298；
+  Fmax 56.302 / 40.274 MHz（比之前略升）。固件 37 204 B。
+- 回归 18 项全过。
+
 ## 下一步
 
 1. 按钮圆角/按下高亮（可选；按下变色已有，圆角需要画布层或小位图）。

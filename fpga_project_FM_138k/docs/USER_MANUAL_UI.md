@@ -122,20 +122,20 @@ LFO 是自动来回摆的低频振荡器，用来做颤音/哇音。
 
 ## 6.1 FX 页（6 FX）
 
-- 顶部 DIST / FILTER / CHORUS / PHASER / DELAY / REVERB 选择效果器。
+- 顶部 FILTER / REVERB / DELAY / DIST / CHORUS / PHASER 选择效果器（与实机顺序一致）。
 - FX MASTER：整条效果链总开关；OFF 时逐位直通，和没加效果器完全一样。
 - EFFECT：当前效果器开关。
 - TYPE：FILTER 的 LOW PASS/BAND/HIGH PASS，或 REVERB 的 ROOM/HALL/PLATE；
   没有类型的效果器显示 --。
 - 三个参数行：DIST = GAIN/TONE/LEVEL；FILTER = CUTOFF/Q；其余为 FREQ/DEPTH/MIX、
   DECAY/RATE/MIX、DECAY/MIX。
-- 六个效果器全部生效：DIST、FILTER、CHORUS、PHASER、DELAY、REVERB；链尾有软限幅。
+- 六个效果器可独立开关，按 FILTER、REVERB、DELAY、DIST、CHORUS、PHASER 顺序串联；链尾有软限幅。
 - 每个按钮下面直接显示 `ON`/`OFF`；按钮之间的 `>` 表示信号处理顺序：
-  `DIST > FILTER > CHORUS > PHASER > DELAY > REVERB`；右上角是 FX MASTER 总开关状态。
+  `FILTER > REVERB > DELAY > DIST > CHORUS > PHASER`；右上角是 FX MASTER 总开关状态。
 
 ### 效果器在做什么（简单版）
 
-- **DIST（失真）**：先把信号放大（GAIN），再软削波产生谐波，TONE 决定削波后保留多少高频，
+- **DIST（失真）**：GAIN 控制进入归一化 tanh 的驱动量（只改谐波，不改变整体音量），TONE 决定保留多少高频，
   LEVEL 是输出音量。适合做脏音色/电吉他感。
 - **FILTER（滤波）**：一个可调截止频率的滤波器。LOW PASS 只留低频、BAND 只留中频、
   HIGH PASS 只留高频；CUTOFF 是转折点（30 Hz–8 kHz），Q 越大转折点附近越"尖"（有共振）。

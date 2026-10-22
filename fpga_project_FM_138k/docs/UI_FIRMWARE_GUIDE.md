@@ -11,11 +11,11 @@
 | 字符层 | `rtl_char_display.v` | 128×32 格 ×16 bit，4 块 BSRAM，16 色可写调色板 |
 | 包络曲线 | `ui_eg_curve.v` | 256×256 面板，256 个高度样本查表画填充/亮边/网格 |
 | 算法位图 | `ui_algo_map.v` | 512×256 2bpp 画布（32 KiB BSRAM）；类 1=载波绿、2=调制蓝、3=白 |
-| 效果器 | `audio_fx.v` | 32×16 位配置寄存器；完整 6 效果器链 + 软限幅 |
+| 效果器 | `audio_fx.v` | 32×16 位配置寄存器；FILTER→REVERB→DELAY→DIST→CHORUS→PHASER + 软限幅；失真为归一化 tanh，连续参数平滑 |
 | 注意 | — | 音频算术必须先扩位再相减；16 位 wet-dry 差会溢出（已修） |
 | 合唱 | `audio_chorus.v` | 2048 样本延迟线 + LFO，freq/depth/mix |
 | 移相 | `audio_phaser.v` | 4 级全通 + LFO，freq/depth/mix |
-| 延迟 | `audio_delay.v` | 40..670 ms 延迟线，decay/rate/mix |
+| 延迟 | `audio_delay.v` | 40..670 ms 延迟线，decay/rate/mix（下一步扩到 20..1000 ms） |
 | 混响 | `audio_reverb.v` | 3 梳状（各自反馈）+ 全通 + DC 阻断，type/decay/mix |
 | EG 六面板 | `ui_eg_multi.v` | 6×128 样本包络面板（3×2）；面板 p 显示算子 5-p（DX7 内部序号 0=OP6） |
 | 光栅合成 | `rgb_visualizer.v` | 800×480 RGB565：波形/XY/EG/键盘 + 字符层/曲线/位图叠加 |

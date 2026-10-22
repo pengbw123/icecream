@@ -4,7 +4,9 @@
   fx_filter_q.mem    100 x signed 16-bit, q = 1/Q in Q2.14
   fx_tone_coeff.mem  100 x unsigned 16-bit, one-pole LP coefficient in Q1.15
   fx_level_gain.mem  100 x unsigned 16-bit, 0..1 in Q1.15
-  fx_dist_gain.mem   100 x unsigned 8-bit, integer pre-gain 1..32
+  fx_dist_drive.mem  100 x unsigned 16-bit, drive 1.0..8.0 in Q8
+  fx_dist_makeup.mem 100 x unsigned 16-bit, RMS makeup in Q1.15
+  fx_tanh_lut.mem    512 x signed 16-bit, tanh(z) for z = 0..8 in Q1.15
 """
 import math
 from pathlib import Path
@@ -45,13 +47,28 @@ for i in range(N):
     tone_tab.append(clamp(round(a * 32768.0), 1, 32767))
 
 level_tab = [clamp(round(i / (N - 1) * 32767.0), 0, 32767) for i in range(N)]
-gain_tab = [clamp(1 + round(i * 31.0 / (N - 1)), 1, 32) for i in range(N)]
+# Distortion: normalized tanh.  Drive 1..8, LUT covers z=0..8, makeup is
+# chosen so a 0.25 FS sine keeps the same RMS at every GAIN setting.
+drive_tab = [clamp(round((1.0 + i * 7.0 / (N - 1)) * 256.0), 256, 2048) for i in range(N)]
+tanh_tab = [clamp(round(math.tanh(i / 511.0 * 8.0) * 32767.0), 0, 32767) for i in range(512)]
+makeup_tab = []
+import math as _m
+for drive in (v / 256.0 for v in drive_tab):
+    acc = 0.0
+    for n in range(4096):
+        x = 0.25 * _m.sin(2.0 * _m.pi * n / 512.0)
+        acc += _m.tanh(drive * x) ** 2
+    rms = _m.sqrt(acc / 4096.0)
+    target = 0.25 / _m.sqrt(2.0)
+    makeup_tab.append(clamp(round(target / rms * 32767.0), 8192, 32767))
 
 (GEN / 'fx_filter_f.mem').write_text('\n'.join(hx16(v) for v in f_tab) + '\n')
 (GEN / 'fx_filter_q.mem').write_text('\n'.join(hx16(v) for v in q_tab) + '\n')
 (GEN / 'fx_tone_coeff.mem').write_text('\n'.join(hx16(v) for v in tone_tab) + '\n')
 (GEN / 'fx_level_gain.mem').write_text('\n'.join(hx16(v) for v in level_tab) + '\n')
-(GEN / 'fx_dist_gain.mem').write_text('\n'.join(hx8(v) for v in gain_tab) + '\n')
+(GEN / 'fx_dist_drive.mem').write_text('\n'.join(hx16(v) for v in drive_tab) + '\n')
+(GEN / 'fx_dist_makeup.mem').write_text('\n'.join(hx16(v) for v in makeup_tab) + '\n')
+(GEN / 'fx_tanh_lut.mem').write_text('\n'.join(hx16(v) for v in tanh_tab) + '\n')
 
 # LFO phase increments: inc = round(freq * 2^32 / fs)
 def lfo_inc(freq):

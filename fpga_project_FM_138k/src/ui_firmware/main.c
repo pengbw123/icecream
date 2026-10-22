@@ -658,24 +658,24 @@ static void load_fx(void){
 static void fx_write(u8 reg,u16 val){
     if(reg<25u){fx_regs[reg]=val;cmd(0x70,(u32)reg|((u32)val<<8),0);}
 }
-static const u8 fx_en_reg[6]  ={5,1,9,13,17,21};
-static const u8 fx_type_reg[6]={0xFF,2,0xFF,0xFF,0xFF,22};
+static const u8 fx_en_reg[6]  ={1,21,17,5,9,13};
+static const u8 fx_type_reg[6]={2,22,0xFF,0xFF,0xFF,0xFF};
 static const u8 fx_p_reg[6][3]={
-    {6,7,8},          /* DIST: gain,tone,level */
     {3,4,0xFF},       /* FILTER: cutoff,Q */
+    {23,24,0xFF},     /* REVERB: decay,mix */
+    {18,19,20},       /* DELAY: decay,rate,mix */
+    {6,7,8},          /* DIST: gain,tone,level */
     {10,11,12},       /* CHORUS */
-    {14,15,16},       /* PHASER */
-    {18,19,20},       /* DELAY */
-    {23,24,0xFF}      /* REVERB: decay,mix */
+    {14,15,16}        /* PHASER */
 };
-static const char*const fx_names[6]={"DIST","FILTER","CHORUS","PHASER","DELAY","REVERB"};
+static const char*const fx_names[6]={"FILTER","REVERB","DELAY","DIST","CHORUS","PHASER"};
 static const char*const fx_p_names[6][3]={
-    {"GAIN","TONE","LEVEL"},
     {"CUTOFF","Q",""},
-    {"FREQ","DEPTH","MIX"},
-    {"FREQ","DEPTH","MIX"},
+    {"DECAY","MIX",""},
     {"DECAY","RATE","MIX"},
-    {"DECAY","MIX",""}
+    {"GAIN","TONE","LEVEL"},
+    {"FREQ","DEPTH","MIX"},
+    {"FREQ","DEPTH","MIX"}
 };
 static const char*const filter_type_names[3]={"LOW PASS","BAND","HIGH PASS"};
 static const char*const reverb_type_names[3]={"ROOM","HALL","PLATE"};
@@ -690,7 +690,7 @@ static void draw_fx(void){
          for(j=0;j<n;j++)c_at((u8)(base+1u+j),4,(u8)fx_names[i][j],pal,1);}
     }
     /* ON/OFF under each button and a '>' between neighbours to show the
-       processing order (DIST -> FILTER -> CHORUS -> PHASER -> DELAY -> REVERB). */
+       processing order (FILTER -> REVERB -> DELAY -> DIST -> CHORUS -> PHASER). */
     for(i=0;i<6;i++){
         u8 base=(u8)(2u+i*9u);
         u8 on=(u8)(fx_regs[fx_en_reg[i]]&1u);
@@ -705,7 +705,7 @@ static void draw_fx(void){
     if(fx_type_reg[sel]!=0xFFu){
         u8 tv=(u8)(fx_regs[fx_type_reg[sel]]&3u);
         if(tv>2u)tv=0;
-        prow_eg(row,"TYPE",(sel==1u)?filter_type_names[tv]:reverb_type_names[tv],(sel_row==2));
+        prow_eg(row,"TYPE",(sel==0u)?filter_type_names[tv]:reverb_type_names[tv],(sel_row==2));
     }else{
         prow_eg(row,"TYPE","--",(sel_row==2));
     }

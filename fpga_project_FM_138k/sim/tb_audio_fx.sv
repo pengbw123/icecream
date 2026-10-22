@@ -46,7 +46,7 @@ module tb_audio_fx;
     endtask
 
     integer n;
-    integer sum_out, mean_out;
+    integer sum_out, mean_out, sum20, sum99;
     reg signed [15:0] max_out;
 
     task expect_reg(input [5:0] a, input [15:0] v, input [127:0] name);
@@ -83,17 +83,32 @@ module tb_audio_fx;
         tick_once;
         if (sample_out !== dry) $fatal(1, "master-off output %04h", sample_out);
 
-        // ---- distortion: soft clipping must bound a hot input ----
+        // ---- distortion: normalized tanh, GAIN must not change loudness ----
         wr(6'd0, 16'h0001);      // master on
         wr(6'd5, 16'h0001);      // distortion on
-        wr(6'd6, 16'd99);        // gain
         wr(6'd7, 16'd99);        // tone open
         wr(6'd8, 16'd99);        // level
-        repeat (40) run_sample(16'sd30000);
-        if (last_out > 16'sd32767 || last_out < -16'sd32768)
-            $fatal(1, "distortion overflow %0d", last_out);
-        if (last_out < 16'sd24000)
-            $fatal(1, "distortion did not clamp a hot input (%0d)", last_out);
+        wr(6'd6, 16'd20);        // low gain
+        for (n = 0; n < 2560; n = n + 1)
+            run_sample(((n / 32) % 2) ? 16'sd12000 : -16'sd12000);
+        sum20 = 0;
+        for (n = 0; n < 4096; n = n + 1) begin
+            run_sample(((n / 32) % 2) ? 16'sd12000 : -16'sd12000);
+            sum20 = sum20 + ((last_out * last_out) >>> 16);
+        end
+        wr(6'd6, 16'd99);        // high gain
+        for (n = 0; n < 2560; n = n + 1)
+            run_sample(((n / 32) % 2) ? 16'sd12000 : -16'sd12000);
+        sum99 = 0;
+        for (n = 0; n < 4096; n = n + 1) begin
+            run_sample(((n / 32) % 2) ? 16'sd12000 : -16'sd12000);
+            sum99 = sum99 + ((last_out * last_out) >>> 16);
+            if (last_out > 16'sd32767 || last_out < -16'sd32768)
+                $fatal(1, "distortion overflow %0d", last_out);
+        end
+        $display("distortion gain RMS sums: %0d vs %0d", sum20, sum99);
+        if (sum20 < sum99 / 2 || sum99 < sum20 / 2)
+            $fatal(1, "distortion gain changed loudness: %0d vs %0d", sum20, sum99);
 
         // ---- low-pass filter passes DC, kills alternating Nyquist input ----
         wr(6'd5, 16'd0);         // distortion off
