@@ -572,10 +572,10 @@ static void build_algo_map(void){
     for(i=0;i<6;i++)if((f[i]&3u)!=0u&&dep[i]==0u)dep[i]=1;
     for(i=6;i>0;i--){u8 op=(u8)(i-1u);if((f[op]&3u)==0u)car[nc++]=op;}
     algo_ncarrier=nc;
-    if(nc==1u){algo_ax[car[0]]=256;}
+    if(nc==1u){algo_ax[car[0]]=233;}
     else{
-        u16 gap=(u16)((512u-60u)/(nc-1u));if(gap>92u)gap=92u;
-        u16 x0=(u16)(256u-(gap*(nc-1u))/2u);
+        u16 gap=(u16)((440u-26u)/(nc-1u));if(gap>92u)gap=92u;
+        u16 x0=(u16)(26u+(414u-gap*(nc-1u))/2u);
         for(i=0;i<nc;i++)algo_ax[car[i]]=(u16)(x0+i*gap);
     }
     for(i=0;i<nc;i++){algo_carrier[i]=car[i];algo_ay[car[i]]=206;}
@@ -595,11 +595,11 @@ static void build_algo_map(void){
                (algo_ax[a]==algo_ax[b]&&(6u-a)>(6u-b))){order[i]=b;order[k]=a;}
         }
         {int minx=26;for(i=0;i<n;i++){u8 op=order[i];
-            if(algo_ax[op]<minx)algo_ax[op]=(u16)minx;minx=algo_ax[op]+62;}}
+            if(algo_ax[op]<minx)algo_ax[op]=(u16)minx;minx=algo_ax[op]+76;}}
         {int lo=999,hi=-999,sh=0;
          for(i=0;i<n;i++){if(algo_ax[order[i]]<lo)lo=algo_ax[order[i]];
                           if(algo_ax[order[i]]>hi)hi=algo_ax[order[i]];}
-         if(hi>486)sh=486-hi;if(lo+sh<26)sh=26-lo;
+         if(hi>440)sh=440-hi;if(lo+sh<26)sh=26-lo;
          for(i=0;i<n;i++)algo_ax[order[i]]=(u16)(algo_ax[order[i]]+sh);}
     }
     for(i=0;i<6;i++){
