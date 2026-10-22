@@ -8,9 +8,9 @@
 - 仓库根：`D:\a_My_projects\Gowin_publish`，工程目录：`fpga_project_FM_138k/`。
 - 板卡：ACG720（GW5AT-LV138PG484AC1/I0，Arora V），Gowin V1.9.12.03；顶层 `top_138k`。
 - 构建：`build_cli.tcl` → `impl/pnr/fm_138k_rgb.fs`；烧录用 Gowin Programmer。
-- 当前可烧录：`impl/pnr/fm_138k_rgb.fs`（阶段 4e，2026-10-21 22:30）。旧位流在
+- 当前可烧录：`impl/pnr/fm_138k_rgb.fs`（阶段 4f，2026-10-21 23:00）。旧位流在
   `impl/pnr/backup/`，IDE 目录里的旧 `fpga_project.fs` 不要烧。
-- 标签：`phase0-done`…`phase2d-done`、`phase2e-done`、`phase3a-done`、`phase3b-done`、`phase3c-done`、`phase3d-done`、`phase4-done`、`phase4b-done`、`phase4c-done`、`phase4d-done`、`phase4e-done`。回退：`git reset --hard <tag>`。
+- 标签：`phase0-done`…`phase2d-done`、`phase2e-done`、`phase3a-done`、`phase3b-done`、`phase3c-done`、`phase3d-done`、`phase4-done`、`phase4b-done`、`phase4c-done`、`phase4d-done`、`phase4e-done`、`phase4f-done`。回退：`git reset --hard <tag>`。
 - **进度账本**：`docs/PRO_MENU_PROGRESS.md`。
 - **改 UI 固件先读**：`docs/UI_FIRMWARE_GUIDE.md`。
 - **用户操作说明**：`docs/USER_MANUAL_UI.md`（零基础版）。
@@ -50,12 +50,12 @@
 3. 预览：`tmp/render_menu.py` / `render_eg.py` / `render_algo.py`（字符流+图形日志离线合成）。
 4. 综合：`gw_sh build_cli.tcl`；烧录 `impl/pnr/fm_138k_rgb.fs`。
 
-## 5. 最近一次已知良好数据（阶段 4e）
+## 5. 最近一次已知良好数据（阶段 4f）
 
 - 回归：16 项全过（含 EG 曲线、算法画布、菜单、用户槽）。
 - PnR：Logic 22172、Register 13104、BSRAM 222/340、DSP 44/298、PLL 1/12；
   50 MHz Fmax 54.632 MHz，像素域 37.293 MHz，两域 TNS 0。
-- 固件：36 944 B（含 6 FX 页、底部控制条、EG 六面板、Dexed 风格 ALGO 页）。
+- 固件：37 216 B（含 6 FX 页、底部控制条、EG 六面板、Dexed 风格 ALGO 页）。
 - 效果器：六个效果器全部生效（DIST/FILTER/CHORUS/PHASER/DELAY/REVERB），链尾软限幅；
   已修完有符号位宽 bug（失真 tone 差、各效果 wet-dry 差）。
   混响已修正自激问题（每个梳状只反馈自己的抽头 + 输入/2 + DC 阻断）。

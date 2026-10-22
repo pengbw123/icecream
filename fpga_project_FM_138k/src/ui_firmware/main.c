@@ -530,6 +530,22 @@ static void map_arrow_l(u16 x,u16 y,u8 c){
     map_px((u16)(x+2u),(u16)(y-2u),c);map_px((u16)(x+2u),(u16)(y+2u),c);
 }
 static u16 algo_ax[6],algo_ay[6],algo_out_x;
+static void map_digit(u16 cx,u16 cy,u8 n,u8 c){
+    u8 pat[5],r,k;
+    switch(n){
+        case 1:pat[0]=2;pat[1]=6;pat[2]=2;pat[3]=2;pat[4]=7;break;
+        case 2:pat[0]=7;pat[1]=1;pat[2]=7;pat[3]=4;pat[4]=7;break;
+        case 3:pat[0]=7;pat[1]=1;pat[2]=7;pat[3]=1;pat[4]=7;break;
+        case 4:pat[0]=5;pat[1]=5;pat[2]=7;pat[3]=1;pat[4]=1;break;
+        case 5:pat[0]=7;pat[1]=4;pat[2]=7;pat[3]=1;pat[4]=7;break;
+        default:pat[0]=7;pat[1]=4;pat[2]=7;pat[3]=5;pat[4]=7;break;
+    }
+    for(r=0;r<5;r++)for(k=0;k<3;k++)if(pat[r]&(4u>>k)){
+        u16 x=(u16)(cx-3u+k*2u),y=(u16)(cy-5u+r*2u);
+        map_px(x,y,c);map_px((u16)(x+1u),y,c);
+        map_px(x,(u16)(y+1u),c);map_px((u16)(x+1u),(u16)(y+1u),c);
+    }
+}
 static u8 algo_carrier[6],algo_ncarrier;
 
 /* Dexed-style operator diagram: carriers green on the bottom row, modulators
@@ -607,7 +623,8 @@ static void build_algo_map(void){
         map_hline((u16)(cx+24u),(u16)(cx+46u),(u16)(cy-16u),3);
         map_arrow_l((u16)(cx+24u),(u16)(cy-16u),3);
     }
-    {u8 minx=255,maxx=0;
+    for(i=0;i<6;i++)map_digit(algo_ax[i],algo_ay[i],(u8)(6-i),3);
+    {u16 minx=511,maxx=0;
      for(i=0;i<nc;i++){u16 cx=algo_ax[car[i]];map_vline(cx,220,238,3);
          if(cx<minx)minx=cx;if(cx>maxx)maxx=cx;}
      if(nc){map_hline(minx,maxx,238,3);algo_out_x=maxx;}}
@@ -708,12 +725,6 @@ static void draw_algo(void){
     prow(8,"OSC SYNC",g_sync?"ON":"OFF",(sel_row==2));
     prow(9,"TRANSPOSE",u2d(g_trans),(sel_row==3));
     if(algo_map_dirty){build_algo_map();upload_algo_map();algo_map_dirty=0;}
-    for(i=0;i<6;i++){
-        u16 x=(u16)(144u+algo_ax[i]),y=(u16)(160u+algo_ay[i]);
-        u8 col=(u8)((x>4u)?((x-4u)/8u):0u),r0=(u8)((y>8u)?((y-8u)/16u):0u);
-        char s[2];s[0]=(char)('0'+(6-i));s[1]=0;
-        if(col<99u&&r0<26u)text(col,r0,s,1,0);
-    }
     {u16 x=(u16)(144u+algo_out_x+10u);
      if(x>780u)x=780u;
      text((u8)(x/8u),24,"OUT",1,0);}
