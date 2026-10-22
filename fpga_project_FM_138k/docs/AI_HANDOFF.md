@@ -13,6 +13,7 @@
 - 标签：`phase0-done`…`phase2d-done`、`phase2e-done`、`phase3a-done`、`phase3b-done`、`phase3c-done`、`phase3d-done`、`phase4-done`、`phase4b-done`、`phase4c-done`、`phase4d-done`、`phase4e-done`、`phase4f-done`、`phase4g-done`、`phase4h-done`。回退：`git reset --hard <tag>`。
 - **进度账本**：`docs/PRO_MENU_PROGRESS.md`。
 - **改 UI 固件先读**：`docs/UI_FIRMWARE_GUIDE.md`。
+- **改效果器先读**：`docs/EFFECTS_SPEC.md`（六效果器原理/参数/链路/已知坑/待办）。
 - **用户操作说明**：`docs/USER_MANUAL_UI.md`（零基础版）。
 
 ## 2. 系统结构
