@@ -1,0 +1,13 @@
+[General]
+ipc_version=4
+file=dvi_tx
+module=hdmi_dvi_tx
+target_device=gw5at138b-012
+type=dvi_tx
+version=1.0
+
+[Config]
+ELVDS=true
+LANG=0
+Synthesis_tool=GowinSynthesis
+TLVDS=false

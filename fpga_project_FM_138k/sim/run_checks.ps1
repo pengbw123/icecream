@@ -15,6 +15,7 @@ try {
     @{ Name='tb_eg_multi'; Sources=@('sim/tb_eg_multi.sv','src/ui_eg_multi.v') },
     @{ Name='tb_audio_fx'; Sources=@('sim/tb_audio_fx.sv','src/audio_fx.v','src/audio_chorus.v','src/audio_phaser.v','src/audio_delay.v','src/audio_reverb.v') },
     @{ Name='tb_chorus_reverb'; Sources=@('sim/tb_chorus_reverb.sv','src/audio_chorus.v','src/audio_reverb.v') },
+        @{ Name='tb_hdmi_scope_video'; Sources=@('sim/tb_hdmi_scope_video.sv','src/hdmi_scope_video.v','src/audio_wave_scope.v','src/audio_xy_scope.v') },
     @{ Name='tb_algo_map'; Sources=@('sim/tb_algo_map.sv','src/ui_algo_map.v') },
         @{ Name='tb_fm_readback'; Sources=@('sim/tb_fm_readback.sv','src/fm_uart_control.v','src/fm_poly_synth.v','src/uart_rx.v','src/audio_fx.v','src/audio_chorus.v','src/audio_phaser.v','src/audio_delay.v','src/audio_reverb.v') },
         @{ Name='tb_138k_io'; Sources=@('sim/tb_138k_io.sv','../fpga_midi_bridge_25k/src/midi_frame_tx.v','src/midi_bridge_rx.v','src/uart_rx.v','src/ws2812_keys.v','src/tmds_encoder.v') },

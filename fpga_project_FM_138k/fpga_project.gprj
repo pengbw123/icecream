@@ -5,47 +5,53 @@
     <Version>5</Version>
     <Device name="GW5AT-138B" pn="GW5AT-LV138PG484AC1/I0">gw5at138b-012</Device>
     <FileList>
+        <File path="src/audio_chorus.v" type="file.verilog" enable="1"/>
+        <File path="src/audio_delay.v" type="file.verilog" enable="1"/>
         <File path="src/audio_effects.v" type="file.verilog" enable="1"/>
-<File path="src/audio_fx.v" type="file.verilog" enable="1"/>
-<File path="src/audio_chorus.v" type="file.verilog" enable="1"/>
-<File path="src/audio_phaser.v" type="file.verilog" enable="1"/>
-<File path="src/audio_delay.v" type="file.verilog" enable="1"/>
-<File path="src/audio_reverb.v" type="file.verilog" enable="1"/>
-<File path="src/pro_audio_effects.v" type="file.verilog" enable="1"/>
-<File path="src/rtl_char_display.v" type="file.verilog" enable="1"/>
-<File path="src/ui_eg_curve.v" type="file.verilog" enable="1"/>
-<File path="src/ui_eg_multi.v" type="file.verilog" enable="1"/>
-<File path="src/ui_algo_map.v" type="file.verilog" enable="1"/>
-
+        <File path="src/audio_fx.v" type="file.verilog" enable="1"/>
         <File path="src/audio_output_stage.v" type="file.verilog" enable="1"/>
+        <File path="src/audio_phaser.v" type="file.verilog" enable="1"/>
+        <File path="src/audio_reverb.v" type="file.verilog" enable="1"/>
+        <File path="src/audio_wave_scope.v" type="file.verilog" enable="1"/>
+        <File path="src/audio_xy_scope.v" type="file.verilog" enable="1"/>
+        <File path="src/dvi_tx/dvi_tx.v" type="file.verilog" enable="0"/>
         <File path="src/fm_poly_synth.v" type="file.verilog" enable="1"/>
         <File path="src/fm_status_lcd.v" type="file.verilog" enable="1"/>
         <File path="src/fm_uart_control.v" type="file.verilog" enable="1"/>
+        <File path="src/gt9147_reset.v" type="file.verilog" enable="1"/>
+        <File path="src/hdmi_scope_tx.v" type="file.verilog" enable="1"/>
+        <File path="src/hdmi_scope_video.v" type="file.verilog" enable="1"/>
         <File path="src/i2s_tx.v" type="file.verilog" enable="1"/>
+        <File path="src/midi_bridge_rx.v" type="file.verilog" enable="1"/>
         <File path="src/midi_performance_control.v" type="file.verilog" enable="1"/>
+        <File path="src/pro_audio_effects.v" type="file.verilog" enable="1"/>
+        <File path="src/rgb_visualizer.v" type="file.verilog" enable="1"/>
+        <File path="src/rtl_char_display.v" type="file.verilog" enable="1"/>
+        <File path="src/rtl_menu_text.v" type="file.verilog" enable="1"/>
+        <File path="src/rtl_performance_text.v" type="file.verilog" enable="1"/>
         <File path="src/top.v" type="file.verilog" enable="1"/>
         <File path="src/top_138k.v" type="file.verilog" enable="1"/>
-        <File path="src/midi_bridge_rx.v" type="file.verilog" enable="1"/>
-        <File path="src/ws2812_keys.v" type="file.verilog" enable="1"/>
-        <File path="src/video_pll.v" type="file.verilog" enable="1"/>
-        <File path="src/rgb_visualizer.v" type="file.verilog" enable="1"/>
-        <File path="src/audio_xy_scope.v" type="file.verilog" enable="1"/>
-        <File path="src/audio_wave_scope.v" type="file.verilog" enable="1"/>
-        <File path="src/rtl_performance_text.v" type="file.verilog" enable="1"/>
-        <File path="src/visual_auto_gain.v" type="file.verilog" enable="1"/>
-        <File path="src/rtl_menu_text.v" type="file.verilog" enable="1"/>
-        <File path="src/gt9147_reset.v" type="file.verilog" enable="1"/>
+        <File path="src/top_138k_hdmi.v" type="file.verilog" enable="1"/>
+        <File path="src/tmds_encoder.v" type="file.verilog" enable="1"/>
         <File path="src/touch_ui_controller.v" type="file.verilog" enable="1"/>
-        <File path="src/ui_firmware/firmware.hex" type="file.other" enable="1"/>
         <File path="src/uart_rx.v" type="file.verilog" enable="1"/>
+        <File path="src/ui_algo_map.v" type="file.verilog" enable="1"/>
+        <File path="src/ui_eg_curve.v" type="file.verilog" enable="1"/>
+        <File path="src/ui_eg_multi.v" type="file.verilog" enable="1"/>
         <File path="src/usb_midi/rtl/rv32i.v" type="file.verilog" enable="1"/>
         <File path="src/usb_midi/rtl/usb11_phy.v" type="file.verilog" enable="1"/>
         <File path="src/usb_midi/rtl/usb11_regs.v" type="file.verilog" enable="1"/>
         <File path="src/usb_midi/rtl/usb11_sie.v" type="file.verilog" enable="1"/>
         <File path="src/usb_midi/rtl/usb_midi_host.v" type="file.verilog" enable="1"/>
         <File path="src/usb_midi/rtl/usb_pll.v" type="file.verilog" enable="1"/>
-        <File path="src/acg720_rgb.cst" type="file.cst" enable="1"/>
-        <File path="src/acg720_rgb.sdc" type="file.sdc" enable="1"/>
+        <File path="src/video_pll.v" type="file.verilog" enable="1"/>
+        <File path="src/visual_auto_gain.v" type="file.verilog" enable="1"/>
+        <File path="src/ws2812_keys.v" type="file.verilog" enable="1"/>
+        <File path="src/acg720_rgb.cst" type="file.cst" enable="0"/>
+        <File path="src/acg720_rgb.sdc" type="file.sdc" enable="0"/>
+        <File path="src/acg720_rgb_hdmi.cst" type="file.cst" enable="1"/>
+        <File path="src/acg720_rgb_hdmi.sdc" type="file.sdc" enable="1"/>
+        <File path="src/ui_firmware/firmware.hex" type="file.other" enable="1"/>
         <File path="src/usb_midi/firmware/firmware.hex" type="file.other" enable="1"/>
     </FileList>
 </Project>
