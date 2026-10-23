@@ -14,6 +14,16 @@ module tb_eg_curve;
     reg [8:0] wdata = 0;
     wire ink;
     wire [1:0] cls;
+    wire pitch_ink;wire [1:0] pitch_cls;
+    ui_eg_curve #(.X0(272),.Y0(192),.W(512),.H(208)) pitch(
+        .pclk(pclk),.video_reset_n(reset_n),.h(h),.v(v),.enable(enable),
+        .wclk(wclk),.we(we),.waddr(waddr),.wdata(wdata),.ink(pitch_ink),.cls(pitch_cls));
+
+    task check_pitch(input [10:0] px,input [9:0] py,input [1:0] expected);
+        begin h=px;v=py;repeat(4) @(posedge pclk);
+            if(pitch_cls!==expected)$fatal(1,"Pitch viewport (%0d,%0d) cls=%0d expected=%0d",px,py,pitch_cls,expected);
+        end
+    endtask
 
     ui_eg_curve dut(.pclk(pclk), .video_reset_n(reset_n), .h(h), .v(v), .enable(enable),
         .wclk(wclk), .we(we), .waddr(waddr), .wdata(wdata), .ink(ink), .cls(cls));
@@ -45,12 +55,22 @@ module tb_eg_curve;
         check(10'd640, 10'd120, 2'd1, "fill");
         check(10'd640, 10'd96,  2'd2, "edge");
         check(10'd640, 10'd90,  2'd0, "outside");
+        check_pitch(512,192,2'd2);
+        check_pitch(512,240,2'd1);
         // flat bottom level: only the baseline row, grid visible above it
         for (i = 0; i < 256; i = i + 1) wr(i[7:0], 9'd0);
         repeat (4) @(posedge pclk);
         check(10'd646, 10'd300, 2'd0, "not-filled");
         check(10'd646, 10'd351, 2'd2, "baseline");
         check(10'd640, 10'd160, 2'd3, "grid");
+        check_pitch(515,398,2'd2);
+        check_pitch(515,300,2'd0);
+        check_pitch(784,398,2'd0);
+        wr(8'd120,9'd255);
+        repeat(4) @(posedge pclk);
+        check_pitch(512,192,2'd2);
+        check_pitch(513,192,2'd2);
+        check_pitch(514,192,2'd3);
         // disabled panel draws nothing
         enable = 0;
         repeat (4) @(posedge pclk);

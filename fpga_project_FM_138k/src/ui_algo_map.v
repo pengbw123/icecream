@@ -5,7 +5,10 @@
 // uploads it through UI[20]/UI[21]; UI[22] enables the layer.  The video side
 // only does a byte lookup per four pixels, so the diagram costs BSRAM but very
 // little logic and no per-pixel line math.
-module ui_algo_map (
+module ui_algo_map #(
+    parameter integer PANEL_X=144,
+    parameter integer PANEL_Y=160
+) (
     input  wire        pclk,
     input  wire        video_reset_n,
     input  wire [10:0] h,
@@ -18,8 +21,8 @@ module ui_algo_map (
     output wire        ink,
     output wire [1:0]  cls
 );
-    localparam [9:0] X0 = 10'd144;   // panel left edge
-    localparam [8:0] Y0 = 9'd160;    // panel top edge
+    localparam [9:0] X0 = PANEL_X;
+    localparam [8:0] Y0 = PANEL_Y;
     localparam integer MAP_W = 512;
     localparam integer MAP_H = 256;
 

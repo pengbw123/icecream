@@ -4,7 +4,8 @@
 //   attr[0] = inverse (cell filled with the palette colour, glyph drawn dark)
 //   attr[1] = underline (bottom two rows)
 //   attr[2] = blank    (fill the whole cell with the palette colour)
-//   attr[3] = reserved
+//   attr[3] = opaque pair: palette index is the background; foreground is
+//             palette 1 (normal) or palette 9 (attr[0], selected button).
 //
 // Storage is a strict simple-dual-port RAM (write on clk / read on pclk, one
 // always block per port, no reset and no initial contents) so Gowin infers
@@ -30,7 +31,8 @@ module rtl_char_display (
     input  wire [9:0]  v,
     input  wire        enabled,
     output wire        ink,
-    output wire [23:0] color
+    output wire [23:0] color,
+    output wire [383:0] palette_colors
 );
     // 128 columns x 32 rows of cells.
     reg [15:0] cells [0:4095];
@@ -123,11 +125,17 @@ module rtl_char_display (
     wire        underline = (v_low_q2 >= 4'd14);
     wire        inverse = attr[0];
     wire        blank = attr[2];
+    wire        paired = attr[3];
     wire [23:0] pal_color = palette_sync[pal_index];
     wire [23:0] dark_color = palette_sync[0];
     wire        glyph_ink = glyph_pixel | (attr[1] & underline);
 
-    assign ink = valid_q2 & (blank | inverse | glyph_ink);
-    assign color = blank ? pal_color : inverse ? (glyph_ink ? dark_color : pal_color)
+    genvar pi;
+    generate for(pi=0;pi<16;pi=pi+1)begin:g_palette_out
+        assign palette_colors[pi*24 +: 24]=palette_sync[pi];
+    end endgenerate
+    assign ink = valid_q2 & (paired | blank | inverse | glyph_ink);
+    assign color = paired ? (glyph_ink ? palette_sync[inverse ? 9 : 1] : pal_color) :
+                   blank ? pal_color : inverse ? (glyph_ink ? dark_color : pal_color)
                                                : pal_color;
 endmodule

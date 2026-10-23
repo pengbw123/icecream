@@ -1,7 +1,10 @@
 // Six small operator-envelope panels for the EG page (3 columns x 2 rows).
 // Firmware rasterises six 128-sample curves into a 768-byte RAM; the video
 // side draws frame, grid, fill and top edge per panel.
-module ui_eg_multi (
+module ui_eg_multi #(
+    parameter integer PANEL_Y=176,
+    parameter integer PANEL_H=104
+) (
     input  wire        pclk,
     input  wire        video_reset_n,
     input  wire [10:0] h,
@@ -26,13 +29,13 @@ module ui_eg_multi (
     reg       en2;
 
     wire [9:0] col = (h >= 10'd528) ? 10'd2 : (h >= 10'd272) ? 10'd1 : 10'd0;
-    wire [9:0] row = (v >= 10'd288) ? 10'd1 : 10'd0;
+    wire [9:0] row = (v >= PANEL_Y+112) ? 10'd1 : 10'd0;
     wire [9:0] x0 = 10'd16 + col * 10'd256;
-    wire [9:0] y0 = 10'd176 + row * 10'd112;
+    wire [9:0] y0 = PANEL_Y + row * 10'd112;
     wire [9:0] dx = h - x0;
     wire [9:0] dy = v - y0;
     wire       in_panel = (h >= x0) && (h < x0 + 10'd240) &&
-                        (v >= y0) && (v < y0 + 10'd104);
+                        (v >= y0) && (v < y0 + PANEL_H);
     wire [9:0] panel = row * 10'd3 + col;
     wire [15:0] dxw0 = {6'd0, dx};
     wire [15:0] lxw0 = (dxw0 * 16'd17) >> 5;
@@ -60,9 +63,9 @@ module ui_eg_multi (
 
     // geometry for the registered pixel
     wire [9:0] col2 = (h2 >= 10'd528) ? 10'd2 : (h2 >= 10'd272) ? 10'd1 : 10'd0;
-    wire [9:0] row2 = (v2 >= 10'd288) ? 10'd1 : 10'd0;
+    wire [9:0] row2 = (v2 >= PANEL_Y+112) ? 10'd1 : 10'd0;
     wire [9:0] x02 = 10'd16 + col2 * 10'd256;
-    wire [9:0] y02 = 10'd176 + row2 * 10'd112;
+    wire [9:0] y02 = PANEL_Y + row2 * 10'd112;
     wire [9:0] dx2 = h2 - x02;
     wire [9:0] dy2 = v2 - y02;
     wire [15:0] dxw = {6'd0, dx2};
@@ -70,12 +73,12 @@ module ui_eg_multi (
     wire [9:0] lx2 = lx2w[9:0];
     wire [9:0] lx2_c = (lx2 > 10'd127) ? 10'd127 : lx2;
     wire [15:0] hspan = 16'd255 - {8'd0, q2};
-    wire [15:0] topw = {6'd0, y02} + 16'd6 + ((hspan * 16'd11) >> 5);
+    wire [15:0] topw = {6'd0, y02} + 16'd6 + ((hspan * (PANEL_H-16)) >> 8);
     wire [9:0] top = topw[9:0];
-    wire       frame = (dy2 == 0) || (dy2 == 1) || (dy2 == 10'd103) ||
+    wire       frame = (dy2 == 0) || (dy2 == 1) || (dy2 == PANEL_H-1) ||
                        (dx2 == 0) || (dx2 == 1) || (dx2 == 10'd238) || (dx2 == 10'd239);
     wire       curve = (v2 == top) || (v2 == top + 1);
-    wire       fill  = (v2 > top + 1) && (v2 <= y02 + 10'd101);
+    wire       fill  = (v2 > top + 1) && (v2 <= y02 + PANEL_H-3);
     wire       gridv = (lx2_c[4:0] == 5'd0);
     wire [9:0] gy = dy2 - 10'd6;
     wire       gridh = (gy == 10'd0) || (gy == 10'd22) || (gy == 10'd44) ||

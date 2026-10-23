@@ -81,14 +81,14 @@ module tb_rgb_visualizer;
                 if(^{r,g,b}===1'bx)$fatal(1,"Unknown RGB output");
                 $fwrite(file_handle,"%c%c%c",{r,r[4:2]},{g,g[5:4]},{b,b[4:2]});
                 probe_x=pixels%800;probe_y=pixels/800;
-                if(probe_x>=32&&probe_x<544&&probe_y>=64&&probe_y<320)begin
-                    plot_x=probe_x-32;wave_pixel={r,g,b}==WAVE565;
+                if(probe_x>=16&&probe_x<528&&probe_y>=96&&probe_y<352)begin
+                    plot_x=probe_x-16;wave_pixel={r,g,b}==WAVE565;
                     if(wave_pixel)begin
                         if(col_n[plot_x]==0)begin
-                            col_lo[plot_x]=probe_y-64;col_hi[plot_x]=probe_y-64;
+                            col_lo[plot_x]=probe_y-96;col_hi[plot_x]=probe_y-96;
                         end else begin
-                            if(probe_y-64<col_lo[plot_x])col_lo[plot_x]=probe_y-64;
-                            if(probe_y-64>col_hi[plot_x])col_hi[plot_x]=probe_y-64;
+                            if(probe_y-96<col_lo[plot_x])col_lo[plot_x]=probe_y-96;
+                            if(probe_y-96>col_hi[plot_x])col_hi[plot_x]=probe_y-96;
                         end
                         col_n[plot_x]=col_n[plot_x]+1;
                     end

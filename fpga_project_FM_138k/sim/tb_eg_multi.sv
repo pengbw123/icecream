@@ -6,6 +6,10 @@ module tb_eg_multi;
     reg enable=1;
     reg we=0; reg [9:0] waddr=0; reg [7:0] wdata=0;
     wire ink; wire [2:0] cls;
+    wire small_ink;wire [2:0] small_cls;
+    ui_eg_multi #(.PANEL_Y(208),.PANEL_H(80)) compact_panels(
+        .pclk(pclk),.video_reset_n(reset_n),.h(h),.v(v),.enable(enable),
+        .wclk(wclk),.we(we),.waddr(waddr),.wdata(wdata),.ink(small_ink),.cls(small_cls));
     ui_eg_multi dut(.pclk(pclk),.video_reset_n(reset_n),.h(h),.v(v),
         .enable(enable),.wclk(wclk),.we(we),.waddr(waddr),.wdata(wdata),
         .ink(ink),.cls(cls));
@@ -44,6 +48,12 @@ module tb_eg_multi;
         repeat (4) @(posedge pclk);
         pixel(528+120,182,c,i);
         if(!i||c!==3'd2) $fatal(1,"tall curve cls=%0d ink=%b",c,i);
+
+        pixel(16,208,c,i);if(!small_ink||small_cls!==3'd1)$fatal(1,"Compact EG frame");
+        pixel(136,277,c,i);if(!small_ink||small_cls!==3'd2)$fatal(1,"Compact EG baseline");
+        pixel(136,282,c,i);if(!small_ink||small_cls!==3'd3)$fatal(1,"Compact EG fill");
+        pixel(648,214,c,i);if(!small_ink||small_cls!==3'd2)$fatal(1,"Compact EG peak");
+        pixel(136,288,c,i);if(small_ink)$fatal(1,"Compact EG outside viewport");
 
         enable=0;
         pixel(16+120,275,c,i); if(i) $fatal(1,"disabled canvas still inks");

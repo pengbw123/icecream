@@ -6,7 +6,12 @@
 // so the panel costs one small BSRAM and a few comparators instead of a full
 // framebuffer.  Output timing matches rtl_char_display (two pixel-clock stages,
 // aligned with the background pipeline).
-module ui_eg_curve (
+module ui_eg_curve #(
+    parameter integer X0=512,
+    parameter integer Y0=96,
+    parameter integer W=256,
+    parameter integer H=256
+) (
     input  wire        pclk,
     input  wire        video_reset_n,
     input  wire [10:0] h,
@@ -20,21 +25,18 @@ module ui_eg_curve (
     output wire        ink,
     output wire [1:0]  cls
 );
-    localparam integer X0 = 512;   // panel left edge on screen
-    localparam integer Y0 = 96;    // panel top edge
-    localparam integer W  = 256;   // one sample per pixel column
-    localparam integer H  = 256;   // one sample step per pixel row
 
     reg [8:0] level_mem [0:255] /* synthesis syn_ramstyle = "block_ram" */;
 
     // Independent write port: the softcore writes these through UI[18]/UI[19].
     always @(posedge wclk) begin
-        if (we && waddr < W) level_mem[waddr] <= wdata;
+        if (we) level_mem[waddr] <= wdata;
     end
 
     wire in_range = (h >= X0[10:0]) && (h < (X0 + W));
     wire in_v     = (v >= Y0[9:0]) && (v < (Y0 + H));
-    wire [7:0]  hx = h[7:0] - X0[7:0];
+    wire [10:0] dx = h-X0;
+    wire [7:0]  hx = W==512 ? dx[8:1] : dx[7:0];
     wire [9:0]  vy = v - Y0[9:0];
 
     reg [7:0]  raddr;
@@ -64,7 +66,8 @@ module ui_eg_curve (
     end
 
     // level 0 = bottom row, 255 = top row.
-    wire [9:0] top_y = 10'd255 - {1'b0, level_q};
+    wire [17:0] scaled_level=(18'd255-{9'd0,level_q})*(H-1);
+    wire [9:0] top_y = H==256 ? 10'd255-{1'b0,level_q} : scaled_level[17:8];
     wire is_filled = (vy_q2 >= top_y);
     wire is_edge = (vy_q2 + 10'd1 >= top_y) && (vy_q2 <= top_y + 10'd1);
     wire is_grid = (hx_q[5:0] == 6'd0) || (hx_q == 8'd0) || (hx_q == W[7:0] - 8'd1) ||

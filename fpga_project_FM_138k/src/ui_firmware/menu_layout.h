@@ -1,0 +1,258 @@
+/* 800x480 instrument layout. Geometry is in 8x16 character cells; touch
+ * coordinates below use the same boundaries. No framebuffer or DSP changes. */
+static u8 osc_group, patch_pick, patch_bank, patch_rom_page;
+
+static const u32 backgrounds[4]={0xFFFFFF,0xEDF1F5,0x1B222A,0x0E1116};
+static const u32 accents[5]={0x245E8F,0x52B9D2,0x33856D,0x665C9C,0x647A90};
+static const char *const bg_labels[4]={"WHITE","COOL GRAY","CHARCOAL","BLACK"};
+static const char *const ac_labels[5]={"BLUE","CYAN","TEAL","VIOLET","SLATE"};
+static u32 palette_now[16];
+static void cache_operator_switches(void){u8 i;for(i=0;i<6;i++)op_enabled[i]=(u8)(rd((u16)(0x40u+i*32u))&1u);}
+static u8 str_len(const char *s){u8 n=0;while(s[n])n++;return n;}
+static u32 mix_color(u32 a,u32 b,u32 t){u32 r=0;u8 i;for(i=0;i<3;i++){
+    u32 sh=i*8u;u32 v=(((a>>sh)&255u)*(256u-t)+((b>>sh)&255u)*t)>>8;r|=v<<sh;}return r;}
+static int light_color(u32 c){return (((c>>16)&255u)*54u+((c>>8)&255u)*183u+(c&255u)*19u)>36000u;}
+static void apply_theme(u8 unused){
+    u8 i;u32 bg=backgrounds[bg_pick],ac=accents[accent_pick],fg=light_color(bg)?0x111820:0xF5F8FB;
+    u32 vis=ac;u32 on=light_color(ac)?0x111820:0xF5F8FB;
+    (void)unused;
+    /* Dark blue needs a lighter trace on a dark background. Keep the selected
+       button's actual fill unchanged, with a separately contrasting label. */
+    if(!light_color(bg))vis=mix_color(ac,0xF5F8FB,96);
+    palette_now[0]=bg;palette_now[1]=fg;palette_now[2]=mix_color(bg,fg,176);
+    palette_now[3]=ac;palette_now[4]=vis;palette_now[5]=mix_color(bg,fg,12);
+    palette_now[6]=mix_color(bg,fg,77);palette_now[7]=mix_color(bg,fg,41);
+    palette_now[8]=vis;palette_now[9]=on;palette_now[10]=0xF5F8FB;
+    palette_now[11]=mix_color(bg,fg,31);palette_now[12]=mix_color(bg,fg,18);
+    palette_now[13]=0x111820;palette_now[14]=mix_color(bg,ac,46);palette_now[15]=bg;
+    for(i=0;i<16;i++)UI[16]=((u32)i<<24)|palette_now[i];
+    UI[10]=bg;UI[11]=vis;UI[12]=vis;
+}
+static void rect_cells(u8 c,u8 r,u8 w,u8 h,u8 pal){u8 y;for(y=r;y<r+h;y++)fill_cells(c,(u8)(c+w-1),y,pal,4);}
+static void pair_text(u8 c,u8 r,const char *s,u8 bg,int selected){text(c,r,s,bg,(u8)(selected?9:8));}
+static void button_box(u8 c,u8 r,u8 w,u8 h,const char *label,int selected){
+    u8 n=str_len(label),bg=selected?3:5;
+    rect_cells(c,r,w,h,bg);
+    pair_text((u8)(c+(w-n)/2u),(u8)(r+h/2),label,bg,selected);
+}
+static void row_box(u8 c,u8 r,u8 w,u8 h,const char *label,const char *value,int selected){
+    u8 bg=selected?14:0;
+    rect_cells(c,r,w,h,bg);
+    pair_text((u8)(c+2),(u8)(r+h/2),label,bg,0);
+    pair_text((u8)(c+w-2-str_len(value)),(u8)(r+h/2),value,bg,0);
+}
+static void draw_tabs(void){u8 i;rect_cells(0,0,100,3,12);
+    for(i=0;i<8;i++)button_box((u8)(2+i*12),0,12,3,tab_names[i],page==i);
+}
+static void draw_status(void){u8 i;u32 st=UI[4];u8 pr=(u8)((st>>7)&31u);
+    rect_cells(0,3,100,2,5);
+    pair_text(2,3,"ROM",5,0);pair_text(5,3,u2d(pr+1u),5,0);
+    pair_text(8,3,cur_name[0]?cur_name:preset_names[pr],5,0);
+    if(patch_dirty)pair_text(28,3,"EDIT",5,0);
+    pair_text(38,3,"ALG",5,0);pair_text(42,3,u2d(((st>>12)&31u)+1u),5,0);
+    pair_text(52,3,"VOICE",5,0);pair_text(58,3,u2d((st>>17)&31u),5,0);
+    pair_text(60,3,"/16",5,0);pair_text(71,3,"OCT",5,0);pair_text(75,3,sgn1(octave),5,0);
+    pair_text(86,3,"VOL",5,0);
+    /* Hardware volume is 0..127; show the full value, never wrap 100..127. */
+    i=(u8)(st&127u);nb[0]=(char)('0'+i/100);nb[1]=(char)('0'+(i/10)%10);nb[2]=(char)('0'+i%10);nb[3]=0;
+    pair_text(92,3,nb,5,0);
+}
+static void draw_perf_controls(void){
+    text(2,5,visual_mode?"LISSAJOUS":"WAVEFORM",2,0);text(68,5,"OUT",2,0);
+    text(76,6,"VOLUME",2,0);text_r(98,6,u2d((u32)(vol_local*99/127)),1,0);
+    button_box(76,8,10,3,"-",0);button_box(88,8,10,3,"+",0);
+    button_box(76,11,10,3,"< PREV",0);button_box(88,11,10,3,"NEXT >",0);
+    button_box(76,15,22,3,"ARP >",0);button_box(76,19,22,3,"SEQ >",0);
+    button_box(2,22,13,3,"WAVE",!visual_mode);button_box(16,22,10,3,"XY",visual_mode);
+    button_box(27,22,13,3,"FFT",0);button_box(41,22,14,3,display_auto_gain?"AUTO ON":"AUTO OFF",display_auto_gain);
+    button_box(56,22,16,3,"XY DELAY",0);
+    button_box(76,22,10,3,"OCT -",0);button_box(88,22,10,3,"OCT +",0);
+    button_box(80,25,18,5,"PANIC",0);
+}
+static void draw_perf(void){draw_tabs();draw_status();draw_perf_controls();}
+static void draw_header(void){clear_all();draw_tabs();draw_status();}
+static void draw_algo(void){
+    row_box(2,6,28,3,"ALGORITHM",u2d(g_algo+1u),sel_row==0);
+    row_box(2,10,28,3,"FEEDBACK",u1d(g_fb),sel_row==1);
+    row_box(2,14,28,3,"OSC SYNC",g_sync?"ON":"OFF",sel_row==2);
+    row_box(2,18,28,3,"TRANSPOSE",sgn1((int)g_trans-24),sel_row==3);
+    text(34,7,"OPERATOR ROUTING",2,0);text(2,23,"CARRIER = FILLED",4,0);text(2,24,"MODULATOR = OUTLINE",2,0);
+    if(algo_map_dirty){build_algo_map();upload_algo_map();algo_map_dirty=0;}
+}
+static const u8 osc_first[3]={0,4,8},osc_count[3]={4,4,5};
+static const char *const osc_labels[14]={"MODE","COARSE","FINE","DETUNE","LEVEL","RATE SCALE","VEL SENS","AM SENS","KEY BP","L DEPTH","R DEPTH","L CURVE","R CURVE","ENABLE"};
+static const char *osc_value(u8 i){switch(i){
+    case 0:return o_fx?"FIXED":"RATIO";case 1:return u2d(o_coarse);case 2:return u2d(o_fine);
+    case 3:return sgn1((int)o_det-7);case 4:return u2d(o_lvl);case 5:return u1d(o_rs);
+    case 6:return u1d(o_vel);case 7:return u1d(o_ams);case 8:return u2d(o_bp);
+    case 9:return u2d(o_ld);case 10:return u2d(o_rd);case 11:return curve_name(o_lc);
+    case 12:return curve_name(o_rc);default:return o_en?"ON":"OFF";}}
+static void draw_osc(void){u8 i;char label[4]="OP1";
+    text(2,5,"OPERATORS",2,0);
+    for(i=0;i<6;i++){label[2]=(char)('1'+i);button_box(2,(u8)(6+i*3),20,3,label,sel_op==5-i);
+        button_box(22,(u8)(6+i*3),8,3,op_enabled[5-i]?"ON":"OFF",0);}
+    button_box(32,6,22,3,"PITCH",osc_group==0);button_box(54,6,22,3,"RESPONSE",osc_group==1);
+    button_box(76,6,22,3,"KEY SCALE",osc_group==2);
+    for(i=0;i<osc_count[osc_group];i++){u8 n=(u8)(osc_first[osc_group]+i);
+        row_box(32,(u8)(10+i*3),66,3,osc_labels[n],osc_value(n),sel_row==n);}
+}
+static void draw_eg(void){u8 i;char s[4]="R1";
+    if(eg_mode)eg_rebuild();
+    for(i=0;i<8;i++){s[0]=i<4?'R':'L';s[1]=(char)('1'+(i&3));
+        row_box((u8)(2+(i&3)*24),(u8)(5+(i/4)*3),24,3,s,u2d(eg_mode?(i<4?p_rate[i]:p_lev[i-4]):(i<4?o_rate[i]:o_lev[i-4])),sel_row==i);}
+    if(eg_mode){text(2,12,"PITCH ENVELOPE",4,0);text(2,14,"50 = CENTER",2,0);return;}
+    for(i=0;i<6;i++){s[0]='O';s[1]='P';s[2]=(char)('1'+i);s[3]=0;
+        rect_cells((u8)(2+(i%3)*32),(u8)(12+(i/3)*7),30,1,sel_op==5-i?3:12);
+        pair_text((u8)(3+(i%3)*32),(u8)(12+(i/3)*7),s,sel_op==5-i?3:12,sel_op==5-i);}
+}
+static const u8 lfo_order[8]={0,1,2,6,3,4,5,7};
+static const char *const lfo_labels[8]={"WAVE","SPEED","DELAY","PM DEPTH","AM DEPTH","PM SENS","LFO SYNC","OSC SYNC"};
+static const char *lfo_value(u8 n){switch(n){case 0:return lfo_wave_names[g_wave%6];case 1:return u2d(g_speed);
+    case 2:return u2d(g_delay);case 3:return u2d(g_pmd);case 4:return u2d(g_amd);case 5:return u1d(g_pms);
+    case 6:return g_lsync?"ON":"OFF";default:return g_sync?"ON":"OFF";}}
+static void draw_lfo(void){u8 i;text(2,6,"LFO GENERATOR",2,0);text(52,6,"MODULATION",2,0);
+    for(i=0;i<8;i++){u8 n=lfo_order[i];row_box(i<4?2:52,(u8)(8+(i%4)*4),46,4,lfo_labels[n],lfo_value(n),sel_row==n);}}
+static const char *fx_value(u8 n){u8 reg=fx_p_reg[fx_sel][n];u16 v=fx_regs[reg];
+    if(fx_sel==2&&n==0){u16 ms=(u16)(20u+((u32)v*980u+49u)/99u);u8 k=0;
+        if(ms>=1000)nb[k++]='1';if(ms>=100)nb[k++]=(char)('0'+(ms/100)%10);
+        if(ms>=10)nb[k++]=(char)('0'+(ms/10)%10);nb[k++]=(char)('0'+ms%10);nb[k++]='m';nb[k++]='s';nb[k]=0;return nb;}
+    return u2d(v);}
+static void draw_fx(void){u8 i;u8 type=fx_type_reg[fx_sel];
+    text(2,5,"FX CHAIN",2,0);
+    for(i=0;i<6;i++){button_box(2,(u8)(6+i*3),20,3,fx_names[i],fx_sel==i);
+        button_box(22,(u8)(6+i*3),8,3,(fx_regs[fx_en_reg[i]]&1)?"ON":"OFF",0);}
+    text(32,6,fx_names[fx_sel],1,0);text_r(98,6,(fx_regs[fx_en_reg[fx_sel]]&1)?"ENABLED":"BYPASSED",4,0);
+    if(type!=255){for(i=0;i<3;i++)button_box((u8)(32+i*22),8,22,3,fx_sel==0?filter_type_names[i]:reverb_type_names[i],(fx_regs[type]%3)==i);}
+    for(i=0;i<3;i++)if(fx_p_reg[fx_sel][i]!=255)row_box(32,(u8)(12+i*4),66,3,fx_p_names[fx_sel][i],fx_value(i),sel_row==3+i);
+    if(fx_sel==2)text(32,24,"TIME 20..1000 ms",2,0);
+}
+static void draw_name(void){u8 i;char label[12];text(2,6,"ROM1A / 32 VOICES",2,0);
+    text(52,6,"USER RAM / 8 SLOTS",2,0);text(52,7,"POWER OFF = LOST",4,0);
+    for(i=0;i<5;i++){u8 n=(u8)(patch_rom_page*5+i);if(n<32)row_box(2,(u8)(8+i*3),46,3,u2d(n+1u),preset_names[n],n==patch_pick);}
+    for(i=0;i<4;i++){u8 n=(u8)(patch_bank*4+i);row_box(52,(u8)(8+i*3),46,3,u2d(n+1u),slots[n].magic==SLOT_MAGIC?slots[n].name:"-- EMPTY --",slot_sel==n);}
+    button_box(2,23,24,3,"< PREV",0);button_box(26,23,22,3,"NEXT >",0);
+    button_box(52,21,22,3,"LOAD RAM",0);button_box(76,21,22,3,"STORE RAM",0);
+    button_box(86,5,12,3,patch_bank?"5-8 >":"1-4 >",0);
+    button_box(2,27,46,3,"LOAD ROM",1);button_box(52,27,22,3,"RENAME",0);button_box(76,27,22,3,"PLAY",0);
+    (void)label;
+}
+static const char *const setup_labels[5]={"BACKGROUND","ACCENT","DISPLAY","XY DELAY","AUTO RANGE"};
+static const char *setup_value(u8 n){if(n==0)return bg_labels[bg_pick];if(n==1)return ac_labels[accent_pick];
+    if(n==2)return visual_mode?"XY":"WAVE";if(n==3)return u2d(xy_delay);return display_auto_gain?"ON":"OFF";}
+static void draw_theme(void){u8 i;text(2,6,"DISPLAY",2,0);text(52,6,"SYSTEM",2,0);
+    for(i=0;i<5;i++)row_box(2,(u8)(8+i*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
+    row_box(52,8,46,4,"AUDIO Fs","48.828 kHz",0);row_box(52,12,46,4,"OUTPUT","SPEAKER + HP",0);
+    row_box(52,16,46,4,"HDMI","WAVE / XY",0);row_box(52,20,46,4,"USER SLOTS","VOLATILE RAM",0);
+}
+static const char *selected_label(void){if(page==1){static const char *const a[4]={"ALGORITHM","FEEDBACK","OSC SYNC","TRANSPOSE"};return a[sel_row];}
+    if(page==2)return osc_labels[sel_row];if(page==3)return sel_row<4?"RATE":"LEVEL";
+    if(page==4)return lfo_labels[sel_row];if(page==5)return sel_row>=3?fx_p_names[fx_sel][sel_row-3]:"CONTROL";
+    if(page==7)return setup_labels[sel_row];return "VALUE";}
+static void draw_bottom(void){int cur,lo,hi,cyc,norm;u8 c;
+    if(page==0||page==6)return;
+    rect_cells(0,26,100,4,12);
+    button_box(2,27,28,3,page==5?((fx_regs[0]&1)?"FX MASTER ON":"FX MASTER OFF"):page==3?(eg_mode?"PITCH EG":"OPERATOR EG"):"PLAY",0);
+    button_box(32,27,8,3,"-1",0);button_box(90,27,8,3,"+1",0);
+    if(!get_sel(&cur,&lo,&hi,&cyc))return;
+    pair_text(42,26,selected_label(),12,0);
+    {const char *v;
+     if(page==7)v=setup_value(sel_row);
+     else if(page==2)v=osc_value(sel_row);
+     else if(page==4)v=lfo_value(sel_row);
+     else if(page==5&&sel_row>=3)v=fx_value(sel_row-3);
+     else if(page==1&&sel_row==2)v=g_sync?"ON":"OFF";
+     else if(page==1&&sel_row==3)v=sgn1((int)g_trans-24);
+     else v=u2d((u32)(page==1&&sel_row==0?cur+1:cur));
+     pair_text((u8)(88-str_len(v)),26,v,12,0);}
+    if(cyc>0)norm=cyc>1?cur*45/(cyc-1):0;else norm=hi>lo?(cur-lo)*45/(hi-lo):0;
+    for(c=42;c<88;c++)c_at(c,28,0,c<=42+norm?3:7,4);
+    c_at((u8)(42+norm),28,'|',1,0);
+}
+static void draw_dialog(void){
+    rect_cells(10,8,80,15,5);
+    pair_text(14,9,dialog==1?"ARPEGGIATOR":dialog==2?"STEP SEQUENCER":dialog==3?"SPECTRUM":dialog==4?"RENAME":dialog==5?"LOAD ROM":dialog==6?"OVERWRITE RAM":"LOAD RAM",5,0);
+    if(dialog<=3){pair_text(14,12,"RESERVED / NOT AVAILABLE YET",5,0);button_box(30,18,40,3,"BACK",1);}
+    else if(dialog==4){pair_text(34,13,cur_name,5,0);button_box(12,14,8,3,"<",0);button_box(22,14,8,3,">",0);
+        button_box(70,14,8,3,"-",0);button_box(80,14,8,3,"+",0);button_box(30,19,40,3,"DONE",1);
+        c_at((u8)(34+name_pos),14,'^',4,0);}
+    else{pair_text(14,12,dialog==6?"REPLACE SELECTED SLOT?":"REPLACE CURRENT EDITS?",5,0);
+        button_box(14,19,30,3,"CANCEL",0);button_box(54,19,30,3,dialog==6?"STORE":"LOAD",1);}
+}
+static void draw_page(void){draw_header();
+    if(page==0)draw_perf_controls();else if(page==1)draw_algo();else if(page==2)draw_osc();
+    else if(page==3)draw_eg();else if(page==4)draw_lfo();else if(page==5)draw_fx();else if(page==6)draw_name();else draw_theme();
+    draw_bottom();if(dialog)draw_dialog();
+}
+static void load_selected_rom(void){release_all();emit(0xb0,27,patch_pick);preset_local=patch_pick;
+    name_from_preset(patch_pick);last_preset=patch_pick;patch_dirty=0;dialog=0;draw_page();}
+static void request_rom(u8 n){patch_pick=n;if(patch_dirty){dialog=5;draw_page();}else load_selected_rom();}
+static void perf_control(int x,int y,u8 id){u8 k=0;u32 t=now();
+    if(y>=128&&y<176&&x>=608)k=x<696?3:4;
+    else if(y>=176&&y<224&&x>=608){request_rom((u8)((preset_local+(x<696?31:1))&31));return;}
+    else if(y>=352&&y<400){
+        if(x>=608)k=x<696?5:6;
+        else if(x>=16&&x<120){visual_mode=0;publish();draw_page();return;}
+        else if(x>=128&&x<208){visual_mode=1;publish();draw_page();return;}
+        else if(x>=216&&x<320){dialog=3;draw_page();return;}
+        else if(x>=328&&x<440){display_auto_gain=!display_auto_gain;publish();draw_page();return;}
+        else if(x>=448&&x<576){page_enter(7);sel_row=3;draw_page();return;}
+    }else if(x>=608&&y>=240&&y<288){dialog=1;draw_page();return;}
+    else if(x>=608&&y>=304&&y<352){dialog=2;draw_page();return;}
+    else if(x>=640&&y>=400){release_all();emit(0xb0,64,0);emit(0xb0,123,0);return;}
+    if(!k)return;if(ctrl_last[k]&&(u32)(t-ctrl_last[k])<300000u)return;
+    ctrl_last[k]=t;perf_step(k);ctrl_hold=k;ctrl_hold_id=id;ctrl_hold_t=t;ctrl_hold_count=0;
+}
+static void page_enter(u8 p){if(p==page&&p!=0)return;release_all();ctrl_hold=0;held_id=255;held_kind=0;
+    dialog=0;page=p;sel_row=0;last_adj=0;
+    if(p==1){load_globals();load_flags();algo_map_dirty=1;}
+    else if(p==2){osc_group=0;cache_operator_switches();load_op(sel_op);load_flags();}
+    else if(p==3){load_op(sel_op);load_all_eg();build_all_eg();upload_eg6();if(eg_mode)load_pitch();}
+    else if(p==4)load_globals();else if(p==5){load_fx();sel_row=3;}
+    else if(p==6){patch_pick=(u8)((UI[4]>>7)&31u);patch_rom_page=patch_pick/5;}
+    publish();draw_page();
+}
+static void adj_setup(u8 r,int d){int n;
+    if(r<2){u8 max=r==0?4:5;u8 *p=r==0?&bg_pick:&accent_pick;n=((int)*p+d+(int)max)%max;*p=(u8)n;apply_theme(0);}
+    else if(r==2)visual_mode=!visual_mode;
+    else if(r==3){n=xy_delay+d;if(n<1)n=1;if(n>96)n=96;xy_delay=n;}
+    else display_auto_gain=!display_auto_gain;
+    publish();draw_page();
+}
+static int menu_press(int x,int y){int i,n;
+    if(dialog){
+        if(dialog<=3){if(y>=288&&y<336){dialog=0;draw_page();}return 1;}
+        if(dialog==4){if(y>=304){dialog=0;draw_page();return 1;}
+            if(y>=224&&y<272){if(x>=96&&x<160)name_pos=(name_pos+9)%10;else if(x>=176&&x<240)name_pos=(name_pos+1)%10;
+                else if(x>=560&&x<624){name_cycle(-1);patch_dirty=1;}else if(x>=640&&x<704){name_cycle(1);patch_dirty=1;}draw_page();}return 1;}
+        if(y>=304&&y<352){if(x>=112&&x<352){dialog=0;draw_page();}
+            else if(x>=432&&x<672){u8 d=dialog;dialog=0;if(d==5)load_selected_rom();else if(d==6)slot_save();else{slot_load();patch_dirty=0;draw_page();}}}return 1;
+    }
+    if(y<48){i=(x-16)/96;if(x>=16&&x<784)page_enter((u8)i);return 1;}
+    if(page==0){perf_control(x,y,0);return 1;}
+    if(y>=432&&x>=16&&x<240){
+        if(page==5){adj_fx(0,1);return 1;}if(page==3){eg_mode=!eg_mode;if(eg_mode)load_pitch();publish();draw_page();return 1;}
+        if(page!=6){page_enter(0);return 1;}}
+    if(page==6){
+        if(y>=80&&y<128&&x>=688){patch_bank^=1;slot_sel=patch_bank*4;}
+        else if(y>=128&&y<368&&x>=16&&x<384){n=patch_rom_page*5+(y-128)/48;if(n<32)patch_pick=(u8)n;}
+        else if(y>=128&&y<320&&x>=416&&x<784)slot_sel=(u8)(patch_bank*4+(y-128)/48);
+        else if(y>=368&&y<416&&x>=16&&x<384){patch_rom_page=(u8)((patch_rom_page+(x<208?6:1))%7);}
+        else if(y>=336&&y<384&&x>=416){if(x>=608){if(slots[slot_sel].magic==SLOT_MAGIC)dialog=6;else slot_save();}
+            else if(slots[slot_sel].magic==SLOT_MAGIC){if(patch_dirty)dialog=7;else{slot_load();patch_dirty=0;}}}
+        else if(y>=432){if(x<384)request_rom(patch_pick);else if(x>=416&&x<592){dialog=4;name_pos=0;}else if(x>=608)page_enter(0);}
+        draw_page();return 1;
+    }
+    if(page==1&&x>=16&&x<240&&y>=96&&y<352){i=(y-96)/64;if(i<4)sel_row=(u8)i;}
+    else if(page==2){
+        if(x>=16&&x<240&&y>=96&&y<384){sel_op=(u8)(5-(y-96)/48);load_op(sel_op);publish();if(x>=176){adj_op(13,1);patch_dirty=1;}}
+        else if(x>=256&&x<784&&y>=96&&y<144){osc_group=(u8)((x-256)/176);sel_row=osc_first[osc_group];}
+        else if(x>=256&&x<784&&y>=160&&y<400){i=(y-160)/48;if(i<osc_count[osc_group])sel_row=(u8)(osc_first[osc_group]+i);}}
+    else if(page==3){if(y>=80&&y<176&&x>=16&&x<784){i=(x-16)/192;if(i>3)i=3;sel_row=(u8)(i+(y>=128?4:0));}
+        else if(!eg_mode&&y>=192&&y<400&&x>=16&&x<768){i=(x-16)/256;if(i<3){n=(y>=304?3:0)+i;sel_op=(u8)(5-n);load_op(sel_op);publish();}}}
+    else if(page==4&&y>=128&&y<384){i=(y-128)/64;if(x>=16&&x<384)sel_row=lfo_order[i];else if(x>=416&&x<784)sel_row=lfo_order[i+4];}
+    else if(page==5){if(x>=16&&x<240&&y>=96&&y<384){fx_sel=(u8)((y-96)/48);sel_row=3;if(x>=176)adj_fx(1,1);}
+        else if(x>=256&&x<784&&y>=128&&y<176&&fx_type_reg[fx_sel]!=255){n=(x-256)/176;fx_write(fx_type_reg[fx_sel],(u16)n);}
+        else if(x>=256&&x<784&&y>=192&&y<368){i=(y-192)/64;if(i<3&&fx_p_reg[fx_sel][i]!=255)sel_row=(u8)(3+i);}}
+    else if(page==7&&y>=128&&y<368&&x>=16&&x<384)sel_row=(u8)((y-128)/48);
+    draw_page();return 1;
+}

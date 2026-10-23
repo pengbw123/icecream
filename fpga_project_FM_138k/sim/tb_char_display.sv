@@ -132,8 +132,21 @@ module tb_char_display;
         enabled = 0;
         sample(11'd18, 10'd50); check_ink(1'b0, "disabled layer");
 
+        // Independent foreground on an opaque button: selected labels must
+        // stay readable when palette 0 is white or the accent is very light.
+        enabled=1;
+        write_palette(4'd0,24'hFFFFFF);
+        write_palette(4'd9,24'hF5F8FB);
+        write_cell(12'h187,{4'd9,4'd3,8'h41});
+        write_cell(12'h188,{4'd8,4'd2,8'h41});
+        repeat(6) @(posedge pclk);
+        sample(11'd59,10'd50);check_ink(1,"paired selected glyph");check_color(24'hF5F8FB,"selected contrasting text");
+        sample(11'd56,10'd50);check_color(24'h778899,"selected accent background");
+        sample(11'd67,10'd50);check_color(24'h112233,"paired normal text");
+        sample(11'd64,10'd50);check_color(24'h445566,"paired normal background");
+
         if (errors == 0) $display("PASS character layer glyph/attr/palette/alignment");
-        else $display("FAIL %0d character-layer checks", errors);
+        else $fatal(1,"FAIL %0d character-layer checks", errors);
         $finish;
     end
 endmodule

@@ -55,6 +55,10 @@ module rgb_visualizer #(
     reg [9:0] vcount, y;
     wire frame_latch = hcount == 0 && vcount == 480;
     wire menu_ink;wire [23:0] menu_color;
+    wire [383:0] ui_palette;
+    wire [23:0] ui_fg=ui_palette[1*24 +:24],ui_grid=ui_palette[11*24 +:24];
+    wire [23:0] ui_panel=ui_palette[5*24 +:24],ui_dim=ui_palette[2*24 +:24];
+    wire [23:0] ui_on=ui_palette[9*24 +:24],ui_soft=ui_palette[14*24 +:24];
     reg [3:0] page_meta,page_sync,page_frame;
     reg [23:0] bg_meta,bg_sync,bg_frame,wc_meta,wc_sync,wc_frame,xc_meta,xc_sync,xc_frame;
     reg [47:0] flags_meta,flags_sync,flags_frame;
@@ -73,12 +77,12 @@ module rgb_visualizer #(
             .text_write(text_write),.text_address(text_address),.text_data(text_data),
             .palette_write(palette_write),.palette_index(palette_index),.palette_data(palette_data),
             .pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
-            .enabled(text_enable),.ink(menu_ink),.color(menu_color));
+            .enabled(text_enable),.ink(menu_ink),.color(menu_color),.palette_colors(ui_palette));
     end endgenerate
     wire xy_pixel,wave_valid;
     wire [7:0] wave_min,wave_max;
-    wire [10:0] xy_read_x=hcount-11'd32;
-    wire [9:0] xy_read_y=vcount-10'd64;
+    wire [10:0] xy_read_x=hcount-11'd16;
+    wire [9:0] xy_read_y=vcount-10'd96;
     audio_xy_scope u_xy (
         .clk(clk),.reset_n(capture_reset_n),.sample_tick(sample_tick),.audio_sample(audio_sample),
         .delay_samples(xy_delay_samples),.auto_gain(display_auto_gain),
@@ -251,36 +255,29 @@ module rgb_visualizer #(
         font_enable=0;font_character=0;font_x=0;font_y=0;font_color=24'hFFFFFF;
         bx=0;key_index=0;note_class=0;eg_height=0;black_key=0;menu_row=0;
         base_note=48+$signed(octave_frame)*12;
-        if (x>=32 && x<544 && y>=64 && y<320) begin
-            rgb=24'h101013;
-            if (x[5:0]==32 || y==64 || y==128 || y==192 || y==256 || y==319) rgb=24'h24242A;
+        if (x>=16 && x<528 && y>=96 && y<352) begin
+            rgb=bg_frame;
+            if (x[5:0]==16 || y==96 || y==160 || y==224 || y==288 || y==351) rgb=ui_grid;
             // One extra row above and below: a 1-pixel trace loses pixels on the
             // real panel and reads as a broken line.  The XY view already draws
             // 2x2 blocks, which is why only the waveform looked discontinuous.
             if (!visual_frame && wave_valid &&
-                y>=10'd64+wave_min-1'b1 && y<=10'd64+wave_max+1'b1) rgb=wc_frame;
+                y>=10'd96+wave_min-1'b1 && y<=10'd96+wave_max+1'b1) rgb=wc_frame;
             if (visual_frame && xy_pixel) rgb=xc_frame;
         end
-        if (x>=576 && x<608 && y>=64 && y<316) begin
-            rgb=24'h151517;
-            if (y>=315-peak_frame) rgb=(peak_frame>120) ? 24'hFF3B00 : wc_frame;
+        if (x>=544 && x<576 && y>=96 && y<352) begin
+            rgb=ui_panel;
+            if (y>=351-peak_frame) rgb=wc_frame;
         end
-        if (clip_frame && x>=576 && x<608 && y>=40 && y<52) rgb=24'hFF3B00;
-        for (k=0;k<6;k=k+1) begin
-            bx=32+k*86;eg_height=eg_frame[k*8 +: 8]>>2;
-            if (x>=bx && x<bx+62 && y>=324 && y<388) begin
-                rgb=24'h151517;
-                if (y>=388-eg_height) rgb=wc_frame;
-            end
-        end
-        if (x>=20 && x<620 && y>=408 && y<460) begin
-            key_index=(x-20)/40;
-            rgb=keys_frame[base_note+white_note(key_index)] ? wc_frame : 24'hD8D8DC;
-            if ((x-20)%40==0 || y==459) rgb=bg_frame;
+        if (clip_frame && x>=544 && x<576 && y>=80 && y<88) rgb=wc_frame;
+        if (x>=16 && x<616 && y>=400 && y<480) begin
+            key_index=(x-16)/40;
+            rgb=keys_frame[base_note+white_note(key_index)] ? wc_frame : 24'hF5F8FB;
+            if ((x-16)%40==0 || y==479) rgb=bg_frame;
             for(k=0;k<10;k=k+1)begin
-                bx=20+black_boundary(k)*40;
-                if(x>=bx-11&&x<bx+11&&y<439)
-                    rgb=keys_frame[base_note+black_note(k)] ? wc_frame : 24'h101013;
+                bx=16+black_boundary(k)*40;
+                if(x>=bx-12&&x<bx+12&&y<448)
+                    rgb=keys_frame[base_note+black_note(k)] ? wc_frame : 24'h111820;
             end
         end
         // Menu pages are a flat panel drawn entirely by the character layer;
@@ -309,18 +306,23 @@ module rgb_visualizer #(
     reg [2:0] font_x_pipe,font_y_pipe;
     reg font_enable_pipe,de_pipe,hs_pipe,vs_pipe;
     wire eg2_ink;wire [2:0] eg2_cls;
-    wire [23:0] eg2_color=(eg2_cls==3'd1)?wc_frame:(eg2_cls==3'd2)?24'hF2F2F2:
-                          (eg2_cls==3'd3)?24'h5A1E1E:24'h2A2A30;
-    ui_eg_multi u_eg2(.pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
+    wire [23:0] eg2_color=(eg2_cls==3'd1)?ui_dim:(eg2_cls==3'd2)?wc_frame:
+                          (eg2_cls==3'd3)?bg_frame:ui_grid;
+    ui_eg_multi #(.PANEL_Y(208),.PANEL_H(80)) u_eg2(.pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
         .enable(text_enable&&(page_frame==4'd3)&&eg2_enable),
         .wclk(clk),.we(eg2_we),.waddr(eg2_addr),.wdata(eg2_data),.ink(eg2_ink),.cls(eg2_cls));
     wire algo_ink;wire [1:0] algo_cls;
-    wire [23:0] algo_color=(algo_cls==2'd1)?24'h36D07A:(algo_cls==2'd2)?24'h3A7BFF:24'hF2F2F2;
-    ui_algo_map u_amap(.pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
+    wire [23:0] algo_color=(algo_cls==2'd1)?ui_soft:(algo_cls==2'd2)?ui_panel:ui_fg;
+    ui_algo_map #(.PANEL_X(272),.PANEL_Y(144)) u_amap(.pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
         .enable(text_enable&&(page_frame==4'd1)&&algo_enable),
         .wclk(clk),.we(algo_we),.waddr(algo_addr),.wdata(algo_data),
         .ink(algo_ink),.cls(algo_cls));
-    wire [23:0] final_rgb=menu_ink?menu_color:
+    wire pitch_ink;wire [1:0] pitch_cls;
+    ui_eg_curve #(.X0(272),.Y0(192),.W(512),.H(208)) u_pitch(
+        .pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
+        .enable(text_enable&&(page_frame==4'd8)),.wclk(clk),.we(eg_we),.waddr(eg_addr),.wdata(eg_data),.ink(pitch_ink),.cls(pitch_cls));
+    wire [23:0] pitch_color=pitch_cls==2?wc_frame:pitch_cls==3?ui_grid:bg_frame;
+    wire [23:0] final_rgb=menu_ink?menu_color:pitch_ink?pitch_color:
         (algo_ink?algo_color:(eg2_ink?eg2_color:background_pipe));
     always @(posedge pclk) begin
         if (!video_reset_n) begin

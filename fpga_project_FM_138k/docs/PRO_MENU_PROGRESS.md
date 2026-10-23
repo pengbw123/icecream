@@ -1,5 +1,10 @@
 # 专业菜单/UI 改造进度账本
 
+> 2026-10-23 菜单已改版：当前八页为 PLAY / ALGO / OSC / EG / LFO / FX / PATCH / SETUP。
+> 新版布局、独立背景/主题色、触摸操作、预留入口与编译方法以 [UI_LAYOUT_2026.md](UI_LAYOUT_2026.md) 为准。
+> 以下旧阶段记录及旧布局描述保留作历史参考；音源参数的含义仍可参考。
+
+
 > 阶段 0..5 的唯一进度账本。先读 `AI_HANDOFF.md`；改固件读 `UI_FIRMWARE_GUIDE.md`；
 > 用户说明见 `USER_MANUAL_UI.md`。本文件统一 UTF-8；不要用本机 PowerShell 的
 > `Set-Content` 改中文（默认 ANSI，会毁掉 UTF-8 编码）。

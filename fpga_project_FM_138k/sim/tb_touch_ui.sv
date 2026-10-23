@@ -34,12 +34,14 @@ module tb_touch_ui;
             if(pr_wait==1)pr_valid<=1;
         end
     end
-    integer cell_fd,eg_fd,algo_fd,eg6_fd;
+    integer cell_fd,eg_fd,algo_fd,eg6_fd,palette_fd;
+    initial if($test$plusargs("ui_tail")) palette_fd=$fopen("tmp/tail_menu_palette.txt","w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
+    always @(posedge clk)if(dut.palette_write)$fwrite(palette_fd,"%0d %0d %0d\n",dut.palette_index,dut.palette_data,$time);
     reg [9:0] eg6_base;
-    initial cell_fd=$fopen("tmp/menu_cells.txt","w");
-    initial eg_fd=$fopen("tmp/eg_curve.txt","w");
-    initial algo_fd=$fopen("tmp/algo_map.txt","w");
-    initial eg6_fd=$fopen("tmp/eg6_panels.txt","w");
+    initial if($test$plusargs("ui_tail")) cell_fd=$fopen("tmp/tail_menu_cells.txt","w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
+    initial if($test$plusargs("ui_tail")) eg_fd=$fopen("tmp/tail_eg_curve.txt","w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
+    initial if($test$plusargs("ui_tail")) algo_fd=$fopen("tmp/tail_algo_map.txt","w");else algo_fd=$fopen("tmp/algo_map.txt","w");
+    initial if($test$plusargs("ui_tail")) eg6_fd=$fopen("tmp/tail_eg6_panels.txt","w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
     always @(posedge clk)begin
         if(dut.text_write)
             $fwrite(cell_fd,"%0d %0d %0d\n",dut.text_address,dut.text_data,$time);
@@ -76,10 +78,18 @@ module tb_touch_ui;
             8'h70:cmd_70<=cmd_70+1;
             default:;
         endcase
+        if(dut.command_valid&&dut.command==8'h65&&dut.command_payload[63:47]!=0)$fatal(1,"Pitch target outside protocol bits 46:24");
+        if(dut.command_valid&&dut.command==8'h64)begin
+            if(dut.command_payload[41:40]!==2'd0)$fatal(1,"Slot right scaling curve field");
+        end
+        if(dut.command_valid&&dut.command==8'h65&&cmd_65>=1&&cmd_65<=4)begin
+            if(dut.command_payload[46:24]!==23'h210021)$fatal(1,"Slot pitch target restore");
+        end
         if(dut.text_write)text_cells<=text_cells+1;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
+    integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
     integer state=0,bits=0,reg_bytes=0;
@@ -89,44 +99,54 @@ module tb_touch_ui;
     function [7:0] goodix_read(input [15:0] addr);
         integer px,py;
         begin
-            px=touch_kind==1?750:40;py=touch_kind==1?100:450;
-            if(touch_kind==6)begin px=750;py=310;end
-            if(touch_kind==7)begin px=750;py=345;end
-            if(touch_kind==8)begin px=650;py=210;end
-            if(touch_kind==9)begin px=750;py=378;end
-            if(touch_kind==10)begin px=100;py=8;end
-            if(touch_kind==11)begin px=8;py=8;end
-            if(touch_kind==12)begin px=104;py=8;end
-            if(touch_kind==13)begin px=200;py=104;end
-            if(touch_kind==14)begin px=750;py=450;end
-            if(touch_kind==15)begin px=200;py=8;end
-            if(touch_kind==17)begin px=720;py=8;end
-            if(touch_kind==18)begin px=400;py=200;end
-            if(touch_kind==19)begin px=338;py=8;end
-            if(touch_kind==20)begin px=434;py=8;end
-            if(touch_kind==21)begin px=700;py=72;end
-            if(touch_kind==22)begin px=626;py=8;end
-            if(touch_kind==23)begin px=130;py=104;end
-            if(touch_kind==24)begin px=280;py=168;end
-            if(touch_kind==25)begin px=440;py=168;end
-            if(touch_kind==26)begin px=200;py=312;end
-            if(touch_kind==27)begin px=750;py=450;end
-            if(touch_kind==28)begin px=200;py=152;end
-            if(touch_kind==29)begin px=750;py=450;end
-            if(touch_kind==30)begin px=50;py=450;end
-            if(touch_kind==31)begin px=750;py=450;end
-            if(touch_kind==32)begin px=530;py=8;end
-            if(touch_kind==33)begin px=30;py=72;end
-            if(touch_kind==34)begin px=200;py=120;end
-            if(touch_kind==35)begin px=750;py=450;end
-            if(touch_kind==16)begin px=30;py=72;end
+            px=frame_kind==1?750:40;py=frame_kind==1?200:470;
+            if(frame_kind==6)begin px=168;py=376;end
+            if(frame_kind==7)begin px=480;py=376;end
+            if(frame_kind==8)begin px=650;py=376;end
+            if(frame_kind==9)begin px=376;py=376;end
+            if(frame_kind==10)begin px=100;py=8;end
+            if(frame_kind==11)begin px=64;py=24;end
+            if(frame_kind==12)begin px=160;py=24;end
+            if(frame_kind==13)begin px=200;py=frame_page==4?144:104;end
+            if(frame_kind==14)begin px=750;py=450;end
+            if(frame_kind==15)begin px=256;py=24;end
+            if(frame_kind==17)begin px=736;py=24;end
+            if(frame_kind==18)begin px=750;py=450;end
+            if(frame_kind==19)begin px=352;py=24;end
+            if(frame_kind==20)begin px=448;py=24;end
+            if(frame_kind==21)begin px=120;py=450;end
+            if(frame_kind==22)begin px=640;py=24;end
+            if(frame_kind==23)begin px=500;py=450;end
+            if(frame_kind==24)begin px=680;py=360;end
+            if(frame_kind==25)begin px=480;py=360;end
+            if(frame_kind==26)begin px=200;py=120;end
+            if(frame_kind==27)begin px=750;py=450;end
+            if(frame_kind==28)begin px=200;py=304;end
+            if(frame_kind==29)begin px=750;py=450;end
+            if(frame_kind==30)begin px=50;py=450;end
+            if(frame_kind==31)begin px=750;py=450;end
+            if(frame_kind==32)begin px=544;py=24;end
+            if(frame_kind==33)begin px=30;py=120;end
+            if(frame_kind==34)begin px=400;py=210;end
+            if(frame_kind==35)begin px=750;py=450;end
+            if(frame_kind==16)begin px=40;py=120;end
+            if(frame_kind==36)begin px=100;py=200;end
+            if(frame_kind==37)begin px=704;py=450;end
+            if(frame_kind==38)begin px=250;py=376;end
+            if(frame_kind==39)begin px=400;py=312;end
+            if(frame_kind==40)begin px=700;py=264;end
+            if(frame_kind==41)begin px=700;py=328;end
+            if(frame_kind==42)begin px=100;py=200;end
+            if(frame_kind==43)begin px=200;py=450;end
+            if(frame_kind==44)begin px=200;py=320;end
+            if(frame_kind==45)begin px=500;py=320;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
                 16'h8148:goodix_read=8'hE0;16'h8149:goodix_read=8'h01;
                 16'h8047:goodix_read=8'h81;
-                16'h814E:goodix_read=touch_kind==3?8'h00:touch_kind==0?8'h80:touch_kind==4?8'h82:8'h81;
-                16'h814F:goodix_read=touch_kind==5?1:0;
+                16'h814E:goodix_read=frame_kind==3?8'h00:frame_kind==0?8'h80:frame_kind==4?8'h82:8'h81;
+                16'h814F:goodix_read=frame_kind==5?1:0;
                 16'h8150:goodix_read=px&255;16'h8151:goodix_read=px>>8;
                 16'h8152:goodix_read=py&255;16'h8153:goodix_read=py>>8;
                 16'h8157:goodix_read=1;
@@ -164,7 +184,12 @@ module tb_touch_ui;
             2:begin slave_low=1;state=3;end
             4:begin
                 slave_low=0;bits=0;sh=0;
-                if(reading)begin send_byte=goodix_read(pointer);bits=7;slave_low=!send_byte[7];state=5;end
+                if(reading)begin
+                    // Goodix holds one coordinate report stable until the host
+                    // clears status. A scripted finger change must not tear
+                    // the status/X/Y bytes during a read transaction.
+                    if(pointer==16'h814E)begin frame_kind=touch_kind;frame_page=menu_page;end
+                    send_byte=goodix_read(pointer);bits=7;slave_low=!send_byte[7];state=5;end
                 else state=1;
             end
             5:slave_low=!send_byte[bits];
@@ -183,6 +208,7 @@ module tb_touch_ui;
             0:if(event_word!==32'h00B01B01)$fatal(1,"Preset button event");
             1:if(event_word!==32'h00903064)$fatal(1,"Touch C3 note-on event");
             2:if(event_word!==32'h00803000)$fatal(1,"Touch release event");
+            3:if(event_word!==32'h00B01B01)$fatal(1,"Explicit ROM load selected wrong preset");
             default:$fatal(1,"Held control generated duplicate events");
         endcase
         event_count=event_count+1;
@@ -192,7 +218,24 @@ module tb_touch_ui;
         // The unmodified piano1 reset sequencer is already hardware proven.
         // Skip its 177 ms only in this firmware/I2C regression.
         force dut.reset_ready=1'b1;
-        wait(present);wait(event_count==1);#10000000;
+        wait(present);
+        if($test$plusargs("ui_tail"))begin
+            touch_kind=0;#10000000;
+            touch_kind=15;wait(menu_page==2);#10000000;
+            touch_kind=0;#8000000;touch_kind=26;#5000000;
+            touch_kind=0;#8000000;
+            touch_kind=22;wait(menu_page==6);#5000000;
+            touch_kind=0;#8000000;touch_kind=42;#5000000;
+            touch_kind=0;#8000000;touch_kind=43;#5000000;
+            touch_kind=0;#8000000;touch_kind=44;#5000000;
+            touch_kind=0;#8000000;
+            if(event_count!=0)$fatal(1,"Cancelled edited preset load emitted MIDI");
+            touch_kind=43;#5000000;touch_kind=0;#8000000;
+            touch_kind=45;wait(event_count==1);#5000000;
+            $display("PASS edited preset load cancel/confirm with real UI firmware");
+            $finish;
+        end
+        wait(event_count==1);#10000000;
         if(event_count!=1)$fatal(1,"Held preset repeated");
         touch_kind=2;wait(event_count==2);#5000000;
         touch_kind=4;#5000000;
@@ -204,7 +247,9 @@ module tb_touch_ui;
         touch_kind=0;wait(event_count==3);#1000000;
         touch_kind=6;wait(visual_mode);#5000000;
         touch_kind=0;#5000000;
-        touch_kind=7;wait(xy_delay==25);#5000000;
+        touch_kind=7;wait(menu_page==7);#5000000;
+        touch_kind=0;#5000000;touch_kind=14;wait(xy_delay==25);#5000000;
+        touch_kind=0;#5000000;touch_kind=11;wait(menu_page==0);#5000000;
         if(xy_delay!=25)$fatal(1,"Held delay button repeated");
         touch_kind=0;#5000000;
         touch_kind=8;wait(octave==-1);#5000000;
@@ -250,6 +295,7 @@ module tb_touch_ui;
         touch_kind=18;#5000000;
         touch_kind=0;#8000000;
         if(pal_writes<32)$fatal(1,"Theme cycle did not rewrite the palette");
+        if(dut.background_color!==24'hFFFFFF)$fatal(1,"Background choice did not wrap BLACK to WHITE");
         $display("M6 theme at %t",$time);
         touch_kind=19;wait(menu_page==4'd3);#5000000;
         if(cmd_69<8)$fatal(1,"EG page did not read the envelope");
@@ -304,6 +350,7 @@ module tb_touch_ui;
         touch_kind=0;#8000000;
         if(cmd_69<60)$fatal(1,"User-slot save did not snapshot the patch");
         touch_kind=25;#5000000;
+        touch_kind=0;#8000000;touch_kind=45;#8000000;
         touch_kind=0;#8000000;
         if(cmd_64<1)$fatal(1,"User-slot load did not restore key scaling");
         if(cmd_65<5)$fatal(1,"User-slot load did not restore the pitch EG");
@@ -322,10 +369,42 @@ module tb_touch_ui;
         touch_kind=32;wait(menu_page==4'd5);#5000000;
         touch_kind=0;#8000000;
         $display("M13 fx page at %t",$time);
-        $fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);$fclose(eg6_fd);
+        touch_kind=17;wait(menu_page==7);#5000000;
+        touch_kind=0;#8000000;touch_kind=36;#5000000;
+        touch_kind=0;#8000000;touch_kind=37;#5000000;
+        touch_kind=0;#8000000;
+        if(dut.background_color!==24'hFFFFFF)$fatal(1,"Accent changed independent background");
+        if(dut.wave_color!==24'h647A90)$fatal(1,"Accent slider did not reach SLATE");
+        touch_kind=11;wait(menu_page==0);#5000000;
+        touch_kind=0;#8000000;touch_kind=38;#5000000;
+        touch_kind=0;#8000000;touch_kind=39;#5000000;
+        touch_kind=0;#8000000;touch_kind=40;#5000000;
+        touch_kind=0;#8000000;touch_kind=39;#5000000;
+        touch_kind=0;#8000000;touch_kind=41;#5000000;
+        touch_kind=0;#8000000;touch_kind=39;#5000000;
+        touch_kind=0;#8000000;
+        if(event_count!=3)$fatal(1,"Reserved tools emitted MIDI");
+        touch_kind=15;wait(menu_page==2);#10000000;
+        touch_kind=0;#8000000;touch_kind=26;#5000000;
+        touch_kind=0;#8000000;
+        touch_kind=22;wait(menu_page==6);#5000000;
+        touch_kind=0;#8000000;touch_kind=42;#5000000;
+        touch_kind=0;#8000000;touch_kind=43;#5000000;
+        touch_kind=0;#8000000;touch_kind=44;#5000000;
+        touch_kind=0;#8000000;
+        if(event_count!=3)$fatal(1,"Cancelled ROM load changed the synth");
+        touch_kind=43;#5000000;touch_kind=0;#8000000;
+        touch_kind=45;wait(event_count==4);#5000000;
+        $display("M14 independent colors, reserved tools and explicit ROM load at %t",$time);
+        $fclose(palette_fd);$fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);$fclose(eg6_fd);
         $display("PASS real UI firmware, I2C, menu pages, EG/LFO/pitch, name/slots, FX page");$finish;
     end
-    initial begin #900000000;$fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);$fclose(eg6_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
+    initial if($test$plusargs("ui_debug"))forever begin
+        #10000000;
+        $display("UI DEBUG kind=%0d page=%0d events=%0d pc=%h ctrl=%h",touch_kind,menu_page,event_count,dut.u_cpu.r_pc,dut.ui_state);
+        $fflush();
+    end
+    initial begin #1800000000;$fclose(palette_fd);$fclose(cell_fd);$fclose(eg_fd);$fclose(algo_fd);$fclose(eg6_fd);$fatal(1,"Touch UI timeout PC=%h",dut.address);end
 endmodule
 
 
