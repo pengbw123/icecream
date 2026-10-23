@@ -85,6 +85,9 @@ static void release_all(void){int i,j,n;for(i=0;i<16;i++)if(slot_note[i]>=0){
 #define PAGE_PERF 0
 #define PAGE_ALGO 1
 #define PAGE_OSC  2
+#define PAGE_LESSON 9
+static void draw_lesson_status(void);
+static void lesson_poll(void);
 static u8 page;
 static u8 op_enabled[6];
 static u8 bg_pick=3, accent_pick=0, patch_dirty, dialog, eg_mode;
@@ -1095,7 +1098,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         else{x=(int)(raw_x*800/x_res);y=(int)(raw_y*480/y_res);}
         if(x>799)x=799;if(y>479)y=479;
         note=-1;
-        if(page==PAGE_PERF&&!dialog&&x>=0&&x<800&&y>=352&&y<480){
+        if((page==PAGE_PERF||page==PAGE_LESSON)&&!dialog&&x>=0&&x<800&&y>=352&&y<480){
             static const u8 whites[15]={0,2,4,5,7,9,11,12,14,16,17,19,21,23,24};
             static const u8 edges[10]={1,2,4,5,6,8,9,11,12,13};
             static const u8 blacks[10]={1,3,6,8,10,13,15,18,20,22};
@@ -1105,7 +1108,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         }
         next[id]=note;px[id]=x;py[id]=y;
     }
-    if(page==PAGE_PERF){
+    if(page==PAGE_PERF||page==PAGE_LESSON){
         /* Compare note sets, not individual fingers: two fingers on the same
          * key share one Note On, and only the final finger sends Note Off. */
         for(id=0;id<16;id++){
@@ -1135,7 +1138,9 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
             control_down|=(u16)(1u<<id);
             control_x[id]=px[id];control_y[id]=py[id];
             
-            if(page==PAGE_PERF){
+            if(page==PAGE_LESSON){
+                if(next[id]<0)menu_press(px[id],py[id]);
+            }else if(page==PAGE_PERF){
                 if(dialog||py[id]<48){menu_press(px[id],py[id]);}
                 else if(next[id]<0)perf_control(px[id],py[id],(u8)id);
             }else{
@@ -1209,7 +1214,7 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
                 }
             }
         }
-        menu_repeat();perf_repeat();}
+        menu_repeat();perf_repeat();lesson_poll();}
         else if((u32)(now()-retry)>500000u){retry=now();present=detect();publish();}
         delay_us(2000);
     }

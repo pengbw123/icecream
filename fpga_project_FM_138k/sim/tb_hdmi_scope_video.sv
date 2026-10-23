@@ -24,6 +24,7 @@ module tb_hdmi_scope_video;
         end
     end
     hdmi_scope_video dut (
+        .lesson_state(32'd0),.lesson_bank(1'b0),.lesson_count(8'd42),.lesson_write(1'b0),.lesson_address(7'd0),.lesson_data(32'd0),.midi_event_data(32'd0),.midi_event_valid(1'b0),
         .clk(clk), .reset_n(reset_n), .pixel_clk(pixel_clk),
         .pll_locked(1'b1), .sample_tick(sample_tick),
         .audio_sample(audio_sample), .visual_mode(visual_mode),.spectrum_enable(spectrum_case),.spectrum_write(spectrum_write),.spectrum_address(spectrum_address),.spectrum_data(spectrum_data),

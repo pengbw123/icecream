@@ -6,6 +6,9 @@ module rgb_visualizer #(
     // the vendor TFT example and this panel's sampling edge.
     parameter integer PIXEL_CLK_INVERT = 0
 ) (
+    input wire [31:0] lesson_state,
+    input wire lesson_bank,input wire [7:0] lesson_count,
+    input wire lesson_write,input wire [6:0] lesson_address,input wire [31:0] lesson_data,
     input wire clk, input wire reset_n,
     input wire sample_tick, input wire signed [15:0] audio_sample,
     input wire [31:0] midi_event_data, input wire midi_event_valid,
@@ -259,6 +262,14 @@ module rgb_visualizer #(
         begin bits=glyph(c);text_pixel=(cx<4 && cy<6) ? bits[(5-cy)*4+3-cx] : 0;end
     endfunction
     localparam [127:0] TITLE="FM SYNTH ACG720 ";
+    wire lesson_enabled,lesson_ink;
+    wire [23:0] lesson_color;
+    lesson_view #(.WIDTH(800)) u_lesson_view(
+        .clk(clk),.reset_n(reset_n),.pclk(pclk),.video_reset_n(video_reset_n),.frame_latch(frame_latch),
+        .x(x),.y(y),.state(lesson_state),.score_bank(lesson_bank),.score_count(lesson_count),
+        .score_write(lesson_write),.score_address(lesson_address),.score_data(lesson_data),
+        .midi_event(midi_event_data),.midi_valid(midi_event_valid),
+        .background(bg_frame),.accent(wc_frame),.enabled(lesson_enabled),.ink(lesson_ink),.color(lesson_color));
     reg [23:0] rgb;
     reg font_enable;
     reg [7:0] font_character;
@@ -312,6 +323,7 @@ module rgb_visualizer #(
         // hide the performance-page graphics behind it.  page_frame is latched
         // at the frame boundary, so this switch is tear-free.
         if(page_frame!=0)begin rgb=bg_frame;font_enable=0;end
+        if(page_frame==9&&lesson_ink)rgb=lesson_color;
         if (!de) rgb=0;
     end
     // Forward the pixel clock with the SAME phase as the logic that launches

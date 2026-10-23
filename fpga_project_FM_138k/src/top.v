@@ -328,8 +328,11 @@ module top #(
     assign synth_midi_event_data = midi_event_valid
         ? midi_event_latched : external_midi_event_valid
         ? external_midi_event_data : uart_midi_event_data;
-    assign synth_midi_event_valid = midi_event_valid | external_midi_event_valid |
-        uart_midi_event_valid;
+    wire selected_midi_valid=midi_event_valid|external_midi_event_valid|uart_midi_event_valid;
+    wire owner_forward;
+    midi_note_owners u_note_owners(.clk(clk),.reset_n(audio_reset_n),
+        .data(synth_midi_event_data),.valid(selected_midi_valid),.ready(synth_midi_event_ready),.forward(owner_forward));
+    assign synth_midi_event_valid=selected_midi_valid&&owner_forward;
     wire [6:0] synth_midi_event_brightness = midi_event_valid
         ? midi_event_latched[6:0] : external_midi_event_valid
         ? external_midi_event_data[6:0] : uart_midi_event_brightness;
@@ -466,7 +469,7 @@ module top #(
     assign monitor_sample = output_sample;
     assign monitor_sample_tick = sample_tick;
     assign monitor_midi_event_data = synth_midi_event_data;
-    assign monitor_midi_event_valid = synth_midi_event_valid && synth_midi_event_ready;
+    assign monitor_midi_event_valid = selected_midi_valid && synth_midi_event_ready;
     assign monitor_voice_count = active_voice_count;
     assign monitor_preset = current_preset;
     assign monitor_algorithm = fm_algorithm;

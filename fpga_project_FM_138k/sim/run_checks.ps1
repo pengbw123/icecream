@@ -7,6 +7,10 @@ try {
     $vvp = if ($IverilogDirectory) { Join-Path $IverilogDirectory 'vvp.exe' } else { 'vvp' }
     New-Item -ItemType Directory -Force -Path 'tmp' | Out-Null
     $cases = @(
+        @{ Name='tb_lesson_player'; Sources=@('sim/tb_lesson_player.sv','src/lesson_player.v','src/lesson_score_memory.v') },
+        @{ Name='tb_midi_note_owners'; Sources=@('sim/tb_midi_note_owners.sv','src/midi_note_owners.v') },
+        @{ Name='tb_lesson_view'; Sources=@('sim/tb_lesson_view.sv','src/lesson_view.v','src/lesson_score_memory.v') },
+        @{ Name='tb_lesson_loader'; Sources=@('sim/tb_lesson_loader.sv','src/lesson_player.v','src/lesson_score_memory.v','src/touch_ui_controller.v','src/gt9147_reset.v','src/usb_midi/rtl/rv32i.v','src/usb_midi/rtl/usb_midi_host.v') },
         @{ Name='tb_velocity80'; Sources=@('sim/tb_velocity80.sv','../fpga_midi_bridge_25k/src/top_bridge.v','../fpga_midi_bridge_25k/src/midi_frame_tx.v','src/midi_performance_control.v') },
         @{ Name='tb_audio_spectrum'; Sources=@('sim/tb_audio_spectrum.sv','src/audio_spectrum_analyzer.v') },
         @{ Name='tb_spectrum_snapshot'; Sources=@('sim/tb_spectrum_snapshot.sv','src/audio_spectrum_snapshot.v') },
@@ -22,13 +26,13 @@ try {
     @{ Name='tb_delay_phaser'; Sources=@('sim/tb_delay_phaser.sv','src/audio_delay.v','src/audio_phaser.v') },
     @{ Name='tb_es8388_output'; Sources=@('sim/tb_es8388_output.sv','src/es8388_output.v','src/i2s_tx.v') },
     @{ Name='tb_es8388_i2c_faults'; Sources=@('sim/tb_es8388_i2c_faults.sv','src/es8388_output.v') },
-        @{ Name='tb_hdmi_scope_video'; Sources=@('sim/tb_hdmi_scope_video.sv','src/hdmi_scope_video.v','src/audio_spectrum_snapshot.v','src/audio_wave_scope.v','src/audio_xy_scope.v') },
+        @{ Name='tb_hdmi_scope_video'; Sources=@('sim/tb_hdmi_scope_video.sv','src/lesson_view.v','src/lesson_score_memory.v','src/hdmi_scope_video.v','src/audio_spectrum_snapshot.v','src/audio_wave_scope.v','src/audio_xy_scope.v') },
     @{ Name='tb_algo_map'; Sources=@('sim/tb_algo_map.sv','src/ui_algo_map.v') },
         @{ Name='tb_fm_sine_interpolation'; Sources=@('sim/tb_fm_sine_interpolation.sv','src/fm_poly_synth.v') },
         @{ Name='tb_fm_readback'; Sources=@('sim/tb_fm_readback.sv','src/fm_uart_control.v','src/fm_poly_synth.v','src/uart_rx.v','src/audio_fx.v','src/audio_chorus.v','src/audio_phaser.v','src/audio_delay.v','src/audio_reverb.v') },
         @{ Name='tb_138k_io'; Sources=@('sim/tb_138k_io.sv','../fpga_midi_bridge_25k/src/midi_frame_tx.v','src/midi_bridge_rx.v','src/uart_rx.v','src/ws2812_keys.v','src/tmds_encoder.v') },
-        @{ Name='tb_touch_ui'; Sources=@('sim/tb_touch_ui.sv','src/touch_ui_controller.v','src/gt9147_reset.v','src/usb_midi/rtl/rv32i.v','src/usb_midi/rtl/usb_midi_host.v') },
-        @{ Name='tb_rgb_visualizer'; Sources=@('sim/tb_rgb_visualizer.sv','src/rgb_visualizer.v','src/audio_spectrum_snapshot.v','src/audio_xy_scope.v','src/audio_wave_scope.v','src/rtl_performance_text.v','src/rtl_char_display.v','src/ui_eg_curve.v','src/ui_algo_map.v','src/ui_eg_multi.v') }
+        @{ Name='tb_touch_ui'; Sources=@('sim/tb_touch_ui.sv','src/lesson_player.v','src/lesson_score_memory.v','src/touch_ui_controller.v','src/gt9147_reset.v','src/usb_midi/rtl/rv32i.v','src/usb_midi/rtl/usb_midi_host.v') },
+        @{ Name='tb_rgb_visualizer'; Sources=@('sim/tb_rgb_visualizer.sv','src/lesson_view.v','src/lesson_score_memory.v','src/rgb_visualizer.v','src/audio_spectrum_snapshot.v','src/audio_xy_scope.v','src/audio_wave_scope.v','src/rtl_performance_text.v','src/rtl_char_display.v','src/ui_eg_curve.v','src/ui_algo_map.v','src/ui_eg_multi.v') }
     )
     foreach ($case in $cases) {
         $outputFile = 'tmp/' + $case.Name + '.vvp'
@@ -60,6 +64,9 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Mono legato regression failed.' }
         }
         if ($case.Name -eq 'tb_touch_ui') {
+            & $vvp $outputFile '+lesson'
+            if ($LASTEXITCODE -ne 0) { throw 'Assisted performance UI regression failed.' }
+
             & $vvp $outputFile '+keyboard'
             if ($LASTEXITCODE -ne 0) { throw 'Full-width keyboard, velocity and output-selection regression failed.' }
             & $vvp $outputFile '+spectrum'

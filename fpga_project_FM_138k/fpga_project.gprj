@@ -56,5 +56,10 @@
         <File path="src/acg720_rgb_hdmi.sdc" type="file.sdc" enable="1"/>
         <File path="src/ui_firmware/firmware.hex" type="file.other" enable="1"/>
         <File path="src/usb_midi/firmware/firmware.hex" type="file.other" enable="1"/>
+        <File path="src/lesson_player.v" type="file.verilog" enable="1"/>
+        <File path="src/lesson_score_memory.v" type="file.verilog" enable="1"/>
+        <File path="src/lesson_view.v" type="file.verilog" enable="1"/>
+        <File path="src/midi_note_owners.v" type="file.verilog" enable="1"/>
+        <File path="src/generated/lesson_score.mem" type="file.other" enable="1"/>
     </FileList>
 </Project>

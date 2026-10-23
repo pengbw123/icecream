@@ -40,13 +40,13 @@ module tb_touch_ui;
         end
     end
     integer cell_fd,eg_fd,algo_fd,eg6_fd,palette_fd;
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")) palette_fd=$fopen("tmp/tail_menu_palette.txt","w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")) palette_fd=$fopen("tmp/tail_menu_palette.txt","w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
     always @(posedge clk)if(dut.palette_write)$fwrite(palette_fd,"%0d %0d %0d\n",dut.palette_index,dut.palette_data,$time);
     reg [9:0] eg6_base;
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")) cell_fd=$fopen("tmp/tail_menu_cells.txt","w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")) eg_fd=$fopen("tmp/tail_eg_curve.txt","w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")) algo_fd=$fopen("tmp/tail_algo_map.txt","w");else algo_fd=$fopen("tmp/algo_map.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")) eg6_fd=$fopen("tmp/tail_eg6_panels.txt","w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")) cell_fd=$fopen("tmp/tail_menu_cells.txt","w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")) eg_fd=$fopen("tmp/tail_eg_curve.txt","w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")) algo_fd=$fopen("tmp/tail_algo_map.txt","w");else algo_fd=$fopen("tmp/algo_map.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")) eg6_fd=$fopen("tmp/tail_eg6_panels.txt","w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
     always @(posedge clk)begin
         if(dut.text_write)captured_cells[dut.text_address]<=dut.text_data;
         if(dut.text_write)
@@ -95,7 +95,7 @@ module tb_touch_ui;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
-    initial if($test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance"))touch_kind=0;
+    initial if($test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson"))touch_kind=0;
     integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -161,6 +161,12 @@ module tb_touch_ui;
             if(frame_kind==58)begin px=100;py=248;end
             if(frame_kind==59)begin px=650;py=200;end
             if(frame_kind==60)begin px=288;py=450;end
+            if(frame_kind==61)begin px=600;py=344;end
+            if(frame_kind==62)begin px=80;py=104;end
+            if(frame_kind==63)begin px=240;py=104;end
+            if(frame_kind==64)begin px=400;py=104;end
+            if(frame_kind==65)begin px=640;py=104;end
+            if(frame_kind==66)begin px=540;py=104;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -225,7 +231,10 @@ module tb_touch_ui;
     integer event_count=0;
     always @(posedge clk)if(valid)begin
         $display("UI MIDI %h at %t",event_word,$time);
-        if(performance_case)begin
+        if($test$plusargs("lesson"))begin
+            if(event_word!==32'h00b04000&&event_word!==32'h00903064&&event_word!==32'h00803000)
+                $fatal(1,"Unexpected lesson UI MIDI %h",event_word);
+        end else if(performance_case)begin
             if(event_word[23:16]==8'hb0&&event_word[14:8]==27)model_preset<=event_word[6:0];
             else if(event_word[23:16]==8'hb0&&event_word[14:8]==22)model_glide<=event_word[6:0]!=0;
             else if(event_word!==32'h00903064 && event_word!==32'h00803000)$fatal(1,"Unexpected performance MIDI");
@@ -253,6 +262,24 @@ module tb_touch_ui;
         force dut.reset_ready=1'b1;
         wait(present);
         if(volume!==5)$fatal(1,"Power-up volume must be 5");
+        if($test$plusargs("lesson"))begin
+            #10000000;touch_kind=17;wait(menu_page==7);#10000000;
+            touch_kind=0;#8000000;touch_kind=61;wait(menu_page==9);#10000000;
+            if(octave!=0||!dut.lesson_state[16])$fatal(1,"Lesson entry failed");
+            if(captured_cells[774][7:0]!="M")$fatal(1,"Lesson transport not drawn");
+            touch_kind=0;#8000000;touch_kind=2;wait(event_count==2);#5000000;
+            touch_kind=0;wait(event_count==3);#8000000;
+            touch_kind=65;wait(dut.u_lesson.speed==125);#5000000;
+            touch_kind=0;#8000000;touch_kind=66;wait(dut.u_lesson.speed==100);#5000000;
+            touch_kind=0;#8000000;touch_kind=62;wait(dut.u_lesson.demo);#5000000;
+            touch_kind=0;#8000000;touch_kind=63;wait(dut.u_lesson.running);#5000000;
+            touch_kind=0;#8000000;touch_kind=63;wait(!dut.u_lesson.running);#5000000;
+            touch_kind=0;#8000000;touch_kind=64;#5000000;
+            if(dut.u_lesson.position!=0)$fatal(1,"Restart did not reset song");
+            touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);#5000000;
+            if(dut.lesson_state[16])$fatal(1,"Exit did not disable lesson");
+            $display("PASS real UI lesson entry, full keyboard, mode, transport, speed, restart, exit");$finish;
+        end
         if(performance_case)begin
             #10000000;touch_kind=59;wait(model_preset==127);#10000000;
             if(captured_cells[389][7:0]!="1"||captured_cells[390][7:0]!="2"||captured_cells[391][7:0]!="8")$fatal(1,"128 preset header truncated");

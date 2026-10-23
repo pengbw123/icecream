@@ -274,3 +274,33 @@ DECAY 基础反馈范围 0.50..0.90。原整数 DC 阻断器留下永久尾音�
   最终专项明确检查高库名称、编号、末页、滑音和按键，不以旧名称版测试代替发布检查。
   45 个工程 RTL 文件 hierarchy 校验通过，两块 FPGA 位流时序检查通过。未执行实机烧录。
 - 实机待确认：四库试听、超过 32 的名称、力度手感、单音连奏与松键回退、踏板和快速开关模式。
+
+## 辅助演奏与曲目装载接口（2026-10-23）
+
+- SETUP 右列新增 PRACTICE，内部页面编号 9；保留底部 800×128 全宽琴键。
+  上方落键与黑白键精确对齐，WAIT 等键练习、DEMO 示范、暂停/继续、重来、50..150% 五档速度。
+  工厂 ROM 为自行录入的公版《小星星》42 音、默认含引导 26.624 s。
+- 重复音必须收到新的非零力度 Note On；错音与提前一直按住不推进，长音暂不评松键时机。
+  进入时暂时关闭单音滑音、固定显示八度 0、释放踏板；退出恢复原滑音开关与显示八度。
+  当前音色、效果器和主音量继续适用。操作前先松开键和踏板。
+- RGB/HDMI 共用 `lesson_view.v`，纯 RTL 绘制；每行消隐扫描 128 项，不用帧缓冲或 DDR。
+  `lesson_player.v` 独立硬件时基，MIDI 握手和退出清理不会等待 UI。
+  `midi_note_owners.v` 区分手动/示范持有的同音键，示范退出不会松掉手动仍按住的音。
+  示范用内部事件 bit31 标记，MIDI channel 不被占用；单音模式切换同步清理所有权记录。
+- 已留统一 RAM 曲目装载口 UI[31..34]，与 USB/蓝牙/SD 传输方式分离。
+  当前容量 128 个单音事件，16 ms 刻度，C3..C5；检查连续地址、音域、时值、重叠、越界后提交。
+  工厂 ROM 与上传 RAM 独立，播放/RGB/HDMI 各自同步读取并共享写入；复位恢复工厂曲目。
+  **尚无 USB/蓝牙接收驱动、SD 驱动、曲目列表或掉电保存，不能直接装入任意完整复音 MIDI。**
+  重写已选中的上传 RAM 后若中止，应恢复工厂库或重新上传；无损替换旧上传曲目要增加第二个用户 bank。
+- `tools/midi_to_lesson.py` 支持 SMF 0/1、tempo map、running status 与单通道提取，
+  输出版本化 JSON/`.mem`，无第三方 MIDI 包依赖；工厂 ROM 和参考 MIDI 同由 `generate_lesson.py` 生成。
+- 完整使用说明、寄存器、容量边界和验证项见 `ASSISTED_PLAY.md`；49 个工程 RTL 文件已登记，
+  IDE hierarchy 与两份 CLI 构建脚本一致。软核固件 45,328 / 65,536 B。
+- 验证日志：`tmp/checks_lesson_release.log` 为全套回归，真实 UI 专项另见 `tmp/checks_lesson_ui.log`；
+  最后增加的滑音切换所有权清理另见 `tmp/checks_lesson_owner_final.log`；暂停时未接收音符不跳过的
+  修订见 `tmp/checks_lesson_player_final.log`，最终装载专项见 `tmp/checks_lesson_loader_final.log`。
+  全套回归开始后进行了这两项小修，相关最终 RTL 已另外重编上述专项，Python 共 15 项单测。
+  发布构建日志为 `tmp/build_lesson_release.log`；`build_lesson.log` 为发现前向声明差异前的诊断构建，
+  其中菜单逻辑被错误优化掉，绝不能作为发布结果；中间构建同样不是发布结果。
+- 修改前的 128 音色/滑音版备份：`impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-23_pre_lesson.fs`。
+- 发布位流与最终时序/回归状态在本章节构建完成后补入；尚未实机烧录。

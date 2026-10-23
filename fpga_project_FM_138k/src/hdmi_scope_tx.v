@@ -2,6 +2,10 @@
 // so the vendor DVI TX LVDS25E buffer cannot coexist with that panel.
 // Reuse the proven RTL TMDS encoder and paired 3.3 V ODDR outputs instead.
 module hdmi_scope_tx (
+    input wire [31:0] lesson_state,
+    input wire lesson_bank,input wire [7:0] lesson_count,
+    input wire lesson_write,input wire [6:0] lesson_address,input wire [31:0] lesson_data,
+    input wire [31:0] midi_event_data,input wire midi_event_valid,
     input wire clk, reset_n, sample_tick,
     input wire signed [15:0] audio_sample,
     input wire visual_mode,
@@ -23,6 +27,10 @@ module hdmi_scope_tx (
         .lock(pll_locked)
     );
     hdmi_scope_video u_scope (
+        .lesson_state(lesson_state),.lesson_bank(lesson_bank),.lesson_count(lesson_count),
+        .lesson_write(lesson_write),.lesson_address(lesson_address),.lesson_data(lesson_data),
+        .midi_event_data(midi_event_data),.midi_event_valid(midi_event_valid),
+
         .clk(clk), .reset_n(reset_n), .pixel_clk(pixel_clk),
         .pll_locked(pll_locked), .sample_tick(sample_tick),
         .audio_sample(audio_sample), .visual_mode(visual_mode),

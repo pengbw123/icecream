@@ -1,6 +1,10 @@
 // Independent 640x480 raster for the HDMI connector. Capture and drawing
 // reuse the same RTL scopes as the 800x480 panel; the UI CPU draws no pixels.
 module hdmi_scope_video (
+    input wire [31:0] lesson_state,
+    input wire lesson_bank,input wire [7:0] lesson_count,
+    input wire lesson_write,input wire [6:0] lesson_address,input wire [31:0] lesson_data,
+    input wire [31:0] midi_event_data,input wire midi_event_valid,
     input wire clk, reset_n, pixel_clk, pll_locked,
     input wire sample_tick,
     input wire signed [15:0] audio_sample,
@@ -103,6 +107,14 @@ module hdmi_scope_video (
     wire [9:0] spectrum_height=({3'd0,spectrum_level}*10'd7)/10'd3;
     wire [9:0] spectrum_peak_height=({3'd0,spectrum_peak}*10'd7)/10'd3;
 
+    wire lesson_enabled,lesson_ink;
+    wire [23:0] lesson_color;
+    lesson_view #(.WIDTH(640)) u_lesson_view(
+        .clk(clk),.reset_n(reset_n),.pclk(pixel_clk),.video_reset_n(video_reset_n),.frame_latch(frame_latch),
+        .x({1'b0,x}),.y(y),.state(lesson_state),.score_bank(lesson_bank),.score_count(lesson_count),
+        .score_write(lesson_write),.score_address(lesson_address),.score_data(lesson_data),
+        .midi_event(midi_event_data),.midi_valid(midi_event_valid),
+        .background(bg_frame),.accent(wave_frame),.enabled(lesson_enabled),.ink(lesson_ink),.color(lesson_color));
     reg [23:0] rgb;
     always @* begin
         rgb = bg_frame;
@@ -125,6 +137,7 @@ module hdmi_scope_video (
                 end
             end
         end
+        if(lesson_enabled)begin rgb=bg_frame;if(lesson_ink)rgb=lesson_color;end
         if (!de) rgb = 0;
     end
     assign {red, green, blue} = rgb;

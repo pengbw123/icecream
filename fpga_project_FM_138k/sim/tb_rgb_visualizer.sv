@@ -53,7 +53,8 @@ module tb_rgb_visualizer;
     wire pclk,de,hs,vs,bl,lock;
     wire [4:0] r,b;
     wire [5:0] g;
-    rgb_visualizer dut(.clk(clk),.reset_n(reset_n),.sample_tick(tick),.audio_sample(pcm),
+    rgb_visualizer dut(
+        .lesson_state(32'd0),.lesson_bank(1'b0),.lesson_count(8'd42),.lesson_write(1'b0),.lesson_address(7'd0),.lesson_data(32'd0),.clk(clk),.reset_n(reset_n),.sample_tick(tick),.audio_sample(pcm),
         .midi_event_data(event_word),.midi_event_valid(event_valid),.active_voice_count(5'd3),
         .preset_index(7'd10),.algorithm(5'd4),.operator_envelopes(48'hB090603080D0),
         .touch_present(1'b1),.keyboard_octave(4'sd0),.master_volume(7'd96),

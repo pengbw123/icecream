@@ -73,7 +73,14 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire readback_valid;
     assign bridge_ready=external_ready;
     assign ui_ready=external_ready && !bridge_valid;
+    wire [31:0] lesson_state,lesson_data;
+    wire lesson_bank,lesson_write;
+    wire [7:0] lesson_count;
+    wire [6:0] lesson_address;
     touch_ui_controller u_ui (
+        .lesson_state(lesson_state),.lesson_bank(lesson_bank),.lesson_count(lesson_count),
+        .lesson_write(lesson_write),.lesson_address(lesson_address),.lesson_data(lesson_data),
+
         .clk(clk),.reset_n(reset_n),.tp_scl(tp_scl),.tp_sda(tp_sda),.tp_int(tp_int),.tp_rst(tp_rst),
         .uart_tx(uart_tx_pin),.midi_event_data(ui_event),.midi_event_valid(ui_valid),.midi_event_ready(ui_ready),
         .monitor_event(event_data),.monitor_event_valid(event_valid),
@@ -124,6 +131,9 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     );
     wire video_lock;
     rgb_visualizer u_video (
+        .lesson_state(lesson_state),.lesson_bank(lesson_bank),.lesson_count(lesson_count),
+        .lesson_write(lesson_write),.lesson_address(lesson_address),.lesson_data(lesson_data),
+
         .clk(clk),.reset_n(reset_n),.sample_tick(tick),.audio_sample(pcm),
         .midi_event_data(event_data),.midi_event_valid(event_valid),
         .active_voice_count(voices),.preset_index(preset),.algorithm(algorithm),
@@ -143,6 +153,10 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     );
     wire hdmi_video_lock;
     hdmi_scope_tx u_hdmi (
+        .lesson_state(lesson_state),.lesson_bank(lesson_bank),.lesson_count(lesson_count),
+        .lesson_write(lesson_write),.lesson_address(lesson_address),.lesson_data(lesson_data),
+        .midi_event_data(event_data),.midi_event_valid(event_valid),
+
         .clk(clk), .reset_n(reset_n), .sample_tick(tick),
         .audio_sample(pcm), .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),
         .spectrum_write(spectrum_write),.spectrum_address(spectrum_address),.spectrum_data(spectrum_data),

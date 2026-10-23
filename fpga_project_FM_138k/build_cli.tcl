@@ -1,3 +1,7 @@
+add_file -type verilog "src/lesson_player.v"
+add_file -type verilog "src/lesson_score_memory.v"
+add_file -type verilog "src/lesson_view.v"
+add_file -type verilog "src/midi_note_owners.v"
 # Command-line build script for Gowin gw_sh.
 # Run this script from the project root so $readmemh relative paths resolve.
 
