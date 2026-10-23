@@ -109,9 +109,9 @@ module hdmi_scope_video (
 
     wire lesson_enabled,lesson_ink;
     wire [23:0] lesson_color;
-    lesson_view #(.WIDTH(640)) u_lesson_view(
+    lesson_view #(.WIDTH(640),.GEOMETRY_FILE("src/generated/lesson_geometry_640.mem")) u_lesson_view(
         .clk(clk),.reset_n(reset_n),.pclk(pixel_clk),.video_reset_n(video_reset_n),.frame_latch(frame_latch),
-        .x({1'b0,x}),.y(y),.state(lesson_state),.score_bank(lesson_bank),.score_count(lesson_count),
+        .prefetch_x({1'b0,hcount}),.x({1'b0,x}),.y(y),.state(lesson_state),.score_bank(lesson_bank),.score_count(lesson_count),
         .score_write(lesson_write),.score_address(lesson_address),.score_data(lesson_data),
         .midi_event(midi_event_data),.midi_valid(midi_event_valid),
         .background(bg_frame),.accent(wave_frame),.enabled(lesson_enabled),.ink(lesson_ink),.color(lesson_color));

@@ -29,3 +29,27 @@ module midi_note_owners(
         end
     end
 endmodule
+
+// One elastic stage isolates the ownership lookup from the FM allocator's
+// event decoder. Suppressed inputs are acknowledged in-order as empty events.
+module midi_owner_queue(
+    input wire clk,reset_n,
+    input wire [31:0] in_data,input wire [6:0] in_brightness,input wire in_valid,
+    output wire in_ready,
+    output reg [31:0] out_data,output reg [6:0] out_brightness,
+    output wire out_valid,input wire out_ready
+);
+    reg occupied,pass;
+    wire forward;
+    assign in_ready=!occupied||out_ready;
+    assign out_valid=occupied&&pass;
+    midi_note_owners u_owners(.clk(clk),.reset_n(reset_n),.data(in_data),
+        .valid(in_valid),.ready(in_ready),.forward(forward));
+    always @(posedge clk or negedge reset_n)begin
+        if(!reset_n)begin occupied<=0;pass<=0;out_data<=0;out_brightness<=0;end
+        else if(in_ready)begin
+            occupied<=in_valid;
+            if(in_valid)begin out_data<=in_data;out_brightness<=in_brightness;pass<=forward;end
+        end
+    end
+endmodule

@@ -61,5 +61,7 @@
         <File path="src/lesson_view.v" type="file.verilog" enable="1"/>
         <File path="src/midi_note_owners.v" type="file.verilog" enable="1"/>
         <File path="src/generated/lesson_score.mem" type="file.other" enable="1"/>
+        <File path="src/generated/lesson_geometry_800.mem" type="file.other" enable="1"/>
+        <File path="src/generated/lesson_geometry_640.mem" type="file.other" enable="1"/>
     </FileList>
 </Project>

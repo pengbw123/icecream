@@ -325,21 +325,23 @@ module top #(
     // priority for the one cycle in which it is presented, while queued UART
     // notes remain pending until accepted.  The separate additive branch
     // retains the experimental chord/strum scheduler.
-    assign synth_midi_event_data = midi_event_valid
+    wire [31:0] selected_midi_data = midi_event_valid
         ? midi_event_latched : external_midi_event_valid
         ? external_midi_event_data : uart_midi_event_data;
     wire selected_midi_valid=midi_event_valid|external_midi_event_valid|uart_midi_event_valid;
-    wire owner_forward;
-    midi_note_owners u_note_owners(.clk(clk),.reset_n(audio_reset_n),
-        .data(synth_midi_event_data),.valid(selected_midi_valid),.ready(synth_midi_event_ready),.forward(owner_forward));
-    assign synth_midi_event_valid=selected_midi_valid&&owner_forward;
-    wire [6:0] synth_midi_event_brightness = midi_event_valid
+    wire ingress_ready;
+    wire [6:0] selected_brightness = midi_event_valid
         ? midi_event_latched[6:0] : external_midi_event_valid
         ? external_midi_event_data[6:0] : uart_midi_event_brightness;
-    assign raw_midi_event_ready = synth_midi_event_ready &
+    wire [6:0] synth_midi_event_brightness;
+    midi_owner_queue u_note_queue(.clk(clk),.reset_n(audio_reset_n),
+        .in_data(selected_midi_data),.in_brightness(selected_brightness),.in_valid(selected_midi_valid),.in_ready(ingress_ready),
+        .out_data(synth_midi_event_data),.out_brightness(synth_midi_event_brightness),
+        .out_valid(synth_midi_event_valid),.out_ready(synth_midi_event_ready));
+    assign raw_midi_event_ready = ingress_ready &
         ~external_midi_event_valid & ~uart_midi_event_valid;
-    assign external_midi_event_ready = synth_midi_event_ready & ~midi_event_valid;
-    assign uart_midi_event_ready = synth_midi_event_ready &
+    assign external_midi_event_ready = ingress_ready & ~midi_event_valid;
+    assign uart_midi_event_ready = ingress_ready &
         ~midi_event_valid & ~external_midi_event_valid;
 
     wire signed [15:0] synth_sample;
@@ -468,8 +470,8 @@ module top #(
 
     assign monitor_sample = output_sample;
     assign monitor_sample_tick = sample_tick;
-    assign monitor_midi_event_data = synth_midi_event_data;
-    assign monitor_midi_event_valid = selected_midi_valid && synth_midi_event_ready;
+    assign monitor_midi_event_data = selected_midi_data;
+    assign monitor_midi_event_valid = selected_midi_valid && ingress_ready;
     assign monitor_voice_count = active_voice_count;
     assign monitor_preset = current_preset;
     assign monitor_algorithm = fm_algorithm;

@@ -300,7 +300,26 @@ DECAY 基础反馈范围 0.50..0.90。原整数 DC 阻断器留下永久尾音�
   最后增加的滑音切换所有权清理另见 `tmp/checks_lesson_owner_final.log`；暂停时未接收音符不跳过的
   修订见 `tmp/checks_lesson_player_final.log`，最终装载专项见 `tmp/checks_lesson_loader_final.log`。
   全套回归开始后进行了这两项小修，相关最终 RTL 已另外重编上述专项，Python 共 15 项单测。
-  发布构建日志为 `tmp/build_lesson_release.log`；`build_lesson.log` 为发现前向声明差异前的诊断构建，
+  首轮构建日志为 `tmp/build_lesson_release.log`（该轮时序失败，最终发布使用下文 pipeline 日志）；
+  `build_lesson.log` 为发现前向声明差异前的诊断构建，
   其中菜单逻辑被错误优化掉，绝不能作为发布结果；中间构建同样不是发布结果。
 - 修改前的 128 音色/滑音版备份：`impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-23_pre_lesson.fs`。
-- 发布位流与最终时序/回归状态在本章节构建完成后补入；尚未实机烧录。
+- 代码检查点 `8a3c05b`。`build_lesson_release.log` 的首轮最终构建于 2026-10-24 00:17 完成，
+  **时序失败**：主域 37.427、RGB 17.063、HDMI 像素 14.586 MHz，不可烧录。
+  已将失败位流留到 `tmp/fm_138k_rgb_hdmi_lesson_timing_failed.fs`，标准 .fs 路径恢复上一版 1FC729... 位流。
+  随后把像素除法/反算边界替换为同步几何 ROM，并在 MIDI 所有权判断后增加弹性队列，
+  修复组合路径跨越多个复杂运算的问题。几何 ROM 与曲目一同由生成器输出，RGB 下半段白键边界也与触摸坐标对齐。
+  修改后双屏光栅/丢锁专项与 MIDI 队列专项通过；原全套 37 个场景无失败，Python 15 项通过。
+  `tmp/build_lesson_pipeline.log` 的修订版已通过四域时序：主域 52.899、RGB 37.614、HDMI 像素 32.906、
+  HDMI 串行 166.583 MHz；全部 setup/hold TNS=0。
+- **最终发布位流**：`impl/pnr/fm_138k_rgb_hdmi.fs`，2026-10-24 00:37:21，41,852,327 字节，
+  SHA256 `221021C6368B185C73C0737C26F474BD0D9880160D706DA365481C8B5F9EB4ED`。
+  Logic 34240/138240、Register 17479/139095、BSRAM 310/340、DSP 64.5/298；固件仍为 45,328 B。
+  BSRAM 剩余 30 块，后续扩大曲库/音效缓存时需要继续核算，不能直接加入整屏帧缓冲。
+- 原全套 37 个仿真场景全部完成且日志无 FAIL/FATAL；时序修订后重新编译双屏光栅专项，
+  见 `tmp/checks_lesson_view_timing.log`，以及新增的所有权队列专项 `tmp/checks_midi_owner_queue.log`。
+  队列验证停顿期间输入数据/亮度改变不影响已缓存事件，验证同音归属和事件顺序。
+  几何 ROM 替代算术后，落键区域像素保持一致，下半段白键边界补齐并与触摸坐标一致。
+  永久回归脚本现含 27 个 testbench、38 个场景（新增队列用例已单独通过）；未为了未改动的音效重跑第二遍全套。
+- 本轮只需更新 138K 双屏位流，25K USB 桥接协议与位流未改。尚未执行实机烧录。
+  实机待确认：触屏/USB 等键、连续重复音、变速和暂停、示范与手动同音、双屏对齐及退出后无挂音。

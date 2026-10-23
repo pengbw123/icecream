@@ -9,6 +9,7 @@ try {
     $cases = @(
         @{ Name='tb_lesson_player'; Sources=@('sim/tb_lesson_player.sv','src/lesson_player.v','src/lesson_score_memory.v') },
         @{ Name='tb_midi_note_owners'; Sources=@('sim/tb_midi_note_owners.sv','src/midi_note_owners.v') },
+        @{ Name='tb_midi_owner_queue'; Sources=@('sim/tb_midi_owner_queue.sv','src/midi_note_owners.v') },
         @{ Name='tb_lesson_view'; Sources=@('sim/tb_lesson_view.sv','src/lesson_view.v','src/lesson_score_memory.v') },
         @{ Name='tb_lesson_loader'; Sources=@('sim/tb_lesson_loader.sv','src/lesson_player.v','src/lesson_score_memory.v','src/touch_ui_controller.v','src/gt9147_reset.v','src/usb_midi/rtl/rv32i.v','src/usb_midi/rtl/usb_midi_host.v') },
         @{ Name='tb_velocity80'; Sources=@('sim/tb_velocity80.sv','../fpga_midi_bridge_25k/src/top_bridge.v','../fpga_midi_bridge_25k/src/midi_frame_tx.v','src/midi_performance_control.v') },

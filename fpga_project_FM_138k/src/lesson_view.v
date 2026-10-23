@@ -1,10 +1,12 @@
 // Shared RGB/HDMI piano roll. One score read per blanking clock, never a
 // framebuffer. 128 events fit inside the 160-clock HDMI horizontal blank.
 module lesson_view #(
-    parameter integer WIDTH=800
+    parameter integer WIDTH=800,
+    parameter GEOMETRY_FILE="src/generated/lesson_geometry_800.mem"
 )(
     input wire clk,reset_n,pclk,video_reset_n,frame_latch,
     input wire [10:0] x,input wire [9:0] y,
+    input wire [10:0] prefetch_x,
     input wire [31:0] state,
     input wire score_bank,input wire [7:0] score_count,
     input wire score_write,input wire [6:0] score_address,input wire [31:0] score_data,
@@ -72,50 +74,27 @@ module lesson_view #(
                 row_notes[entry[6:0]-48]<=1;
         end
     end
-    function [4:0] white_note;
-        input integer k;
-        begin case(k)
-            0:white_note=0;1:white_note=2;2:white_note=4;3:white_note=5;
-            4:white_note=7;5:white_note=9;6:white_note=11;7:white_note=12;
-            8:white_note=14;9:white_note=16;10:white_note=17;11:white_note=19;
-            12:white_note=21;13:white_note=23;default:white_note=24;
-        endcase end
-    endfunction
-    function [3:0] boundary;
-        input integer k;
-        begin case(k)
-            0:boundary=1;1:boundary=2;2:boundary=4;3:boundary=5;4:boundary=6;
-            5:boundary=8;6:boundary=9;7:boundary=11;8:boundary=12;default:boundary=13;
-        endcase end
-    endfunction
-    function [4:0] black_note;
-        input integer k;
-        begin case(k)
-            0:black_note=1;1:black_note=3;2:black_note=6;3:black_note=8;4:black_note=10;
-            5:black_note=13;6:black_note=15;7:black_note=18;8:black_note=20;default:black_note=22;
-        endcase end
-    endfunction
-    integer k,center,lane,wi,left_edge,right_edge;
-    reg black;
+    // Prefetch with hcount, one clock ahead of raster x. A small synchronous
+    // geometry ROM replaces division and 10 cascaded lane/edge multiplexers.
+    reg [31:0] geometry[0:1023];
+    reg [31:0] geom;
+    initial $readmemh(GEOMETRY_FILE,geometry);
+    always @(posedge pclk)geom<=geometry[prefetch_x[9:0]];
+    wire black=geom[31]&&y<432;
+    wire [4:0] lane=(y<432)?geom[30:26]:geom[5:1];
+    wire [9:0] left_edge=geom[25:16],right_edge=geom[15:6];
     wire [23:0] grid={1'b0,background[23:17],1'b0,background[15:9],1'b0,background[7:1]}^
                      24'h303030;
     always @*begin
         ink=enabled&&x<WIDTH&&y>=128&&y<480;
-        color=background;wi=(x*15)/WIDTH;lane=white_note(wi);black=0;center=0;
-        left_edge=(wi*WIDTH)/15;right_edge=((wi+1)*WIDTH)/15;
-        for(k=0;k<10;k=k+1)begin
-            center=(boundary(k)*WIDTH)/15;
-            if(x>=center-WIDTH/50&&x<center+WIDTH/50&&(y<352||y<432))begin
-                lane=black_note(k);black=1;left_edge=center-WIDTH/50;right_edge=center+WIDTH/50;
-            end
-        end
+        color=background;
         if(y<352)begin
             if(x==left_edge||((frame_state[15:0]+351-y)&31)==0)color=grid;
             if(row_notes[lane]&&x>left_edge+2&&x<right_edge-2)color=accent;
             if(y>=350)color=accent;
         end else begin
             color=keys[48+lane]?accent:(black?24'h111820:24'hF5F8FB);
-            if(x==left_edge||y==479)color=background;
+            if((y<432?x==left_edge:geom[0])||y==479)color=background;
         end
         if(!ink)color=background;
     end

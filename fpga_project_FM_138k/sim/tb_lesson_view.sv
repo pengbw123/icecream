@@ -7,10 +7,10 @@ module tb_lesson_view;
     reg [31:0] state=32'h00010080,event_word=0;
     reg ev=0;
     wire en8,ink8,en6,ink6;wire [23:0] c8,c6;
-    lesson_view #(.WIDTH(800)) a(.clk(clk),.reset_n(reset_n),.pclk(pclk),.video_reset_n(vr),.frame_latch(latch),.x(x),.y(y),
+    lesson_view #(.WIDTH(800)) a(.clk(clk),.reset_n(reset_n),.pclk(pclk),.video_reset_n(vr),.frame_latch(latch),.prefetch_x(x),.x(x),.y(y),
         .state(state),.score_bank(1'b0),.score_count(8'd42),.score_write(1'b0),.score_address(7'd0),.score_data(32'd0),
         .midi_event(event_word),.midi_valid(ev),.background(24'h0e1116),.accent(24'h52b9d2),.enabled(en8),.ink(ink8),.color(c8));
-    lesson_view #(.WIDTH(640)) b(.clk(clk),.reset_n(reset_n),.pclk(pclk),.video_reset_n(vr),.frame_latch(latch),.x(x),.y(y),
+    lesson_view #(.WIDTH(640),.GEOMETRY_FILE("src/generated/lesson_geometry_640.mem")) b(.clk(clk),.reset_n(reset_n),.pclk(pclk),.video_reset_n(vr),.frame_latch(latch),.prefetch_x(x),.x(x),.y(y),
         .state(state),.score_bank(1'b0),.score_count(8'd42),.score_write(1'b0),.score_address(7'd0),.score_data(32'd0),
         .midi_event(event_word),.midi_valid(ev),.background(24'h0e1116),.accent(24'h52b9d2),.enabled(en6),.ink(ink6),.color(c6));
     integer frames=0,fd,fd6,bars=0;

@@ -38,6 +38,24 @@ def main():
     midi += b'\x00\xff\x2f\x00'
     data = b'MThd' + struct.pack('>IHHH', 6, 0, 1, 32) + b'MTrk' + struct.pack('>I', len(midi)) + midi
     (ROOT / 'docs/lesson_twinkle.mid').write_bytes(data)
+    whites=[0,2,4,5,7,9,11,12,14,16,17,19,21,23,24]
+    edges=[1,2,4,5,6,8,9,11,12,13]
+    blacks=[1,3,6,8,10,13,15,18,20,22]
+    for width in (800,640):
+        geometry=[]
+        for x in range(1024):
+            word=0
+            if x<width:
+                wi=x*15//width
+                lane=whites[wi];left=wi*width//15;right=(wi+1)*width//15;black=0
+                white_edge=int(x==0 or x*15//width!=(x-1)*15//width)
+                for edge,note in zip(edges,blacks):
+                    center=edge*width//15
+                    if center-width//50<=x<center+width//50:
+                        lane=note;left=center-width//50;right=center+width//50;black=1
+                word=(black<<31)|(lane<<26)|(left<<16)|(right<<6)|(whites[wi]<<1)|white_edge
+            geometry.append(word)
+        (ROOT/('src/generated/lesson_geometry_%d.mem'%width)).write_text(''.join('%08x\n'%w for w in geometry),encoding='ascii')
     print('%d notes; %.3f s including lead-in' % (len(score), t * .016))
 
 if __name__ == '__main__':
