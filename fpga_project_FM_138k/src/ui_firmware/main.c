@@ -21,6 +21,7 @@ static int present;
 static int visual_mode;
 static int display_auto_gain=1;
 static int xy_delay=24;
+static u8 touch_velocity=100, headphone_select=0;
 static int slot_note[16];
 static u16 control_down;
 static int control_x[16],control_y[16];
@@ -101,7 +102,7 @@ static u32 held_count;
 
 static void publish(void){UI[5]=((u32)((page==3&&eg_mode)?8:page)<<24)|
     (display_auto_gain?0u:0x80000000u)|((u32)xy_delay<<16)|
-    ((u32)visual_mode<<12)|((u32)(octave&15)<<8)|(present?1u:0u);}
+    ((u32)headphone_select<<13)|((u32)visual_mode<<12)|((u32)(octave&15)<<8)|(present?1u:0u);}
 
 /* Performance-page controls, hit boxes shared with draw_perf_controls(). */
 static void draw_status(void);
@@ -111,7 +112,7 @@ static u32 ctrl_last[9];
 static u8 ctrl_hold, ctrl_hold_id;
 static u32 ctrl_hold_t, ctrl_hold_count;
 static u32 last_adj;
-static int vol_local=96, preset_local=0;
+static int vol_local=5, preset_local=0;
 /* k: 1 preset-, 2 preset+, 3 volume-, 4 volume+, 5 octave-, 6 octave+,
    7 xy-, 8 xy+.  Single tap = one step; repeat starts after 1.5 s. */
 static void perf_step(u8 k){
@@ -942,6 +943,8 @@ static int get_sel(int *cur,int *lo,int *hi,int *cyc){
         else if(sel_row==2){*cur=visual_mode;*hi=1;*cyc=2;}
         else if(sel_row==3){*cur=xy_delay;*lo=1;*hi=96;}
         else if(sel_row==4){*cur=display_auto_gain;*hi=1;*cyc=2;}
+        else if(sel_row==5){*cur=touch_velocity;*lo=1;*hi=127;}
+        else if(sel_row==6){*cur=headphone_select;*hi=1;*cyc=2;}
         else return 0;return 1;
     }
     return 0;
@@ -1098,12 +1101,12 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         else{x=(int)(raw_x*800/x_res);y=(int)(raw_y*480/y_res);}
         if(x>799)x=799;if(y>479)y=479;
         note=-1;
-        if(page==PAGE_PERF&&!dialog&&x>=16&&x<616&&y>=400&&y<480){
+        if(page==PAGE_PERF&&!dialog&&x>=0&&x<800&&y>=352&&y<480){
             static const u8 whites[15]={0,2,4,5,7,9,11,12,14,16,17,19,21,23,24};
             static const u8 edges[10]={1,2,4,5,6,8,9,11,12,13};
             static const u8 blacks[10]={1,3,6,8,10,13,15,18,20,22};
-            int k;note=whites[(x-16)/40];
-            if(y<448)for(k=0;k<10;k++)if(x>=16+edges[k]*40-12&&x<16+edges[k]*40+12)note=blacks[k];
+            int k;note=whites[(x*15)/800];
+            if(y<432)for(k=0;k<10;k++)if(x>=(edges[k]*800)/15-16&&x<(edges[k]*800)/15+16)note=blacks[k];
             note+=48+octave*12;
         }
         next[id]=note;px[id]=x;py[id]=y;
@@ -1122,7 +1125,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         }
         for(note=0;note<128;note++){
             u32 bit=1u<<(note&31);i=note>>5;
-            if((new_mask[i]&bit)&&!(old_mask[i]&bit))emit(0x90,(u8)note,100);
+            if((new_mask[i]&bit)&&!(old_mask[i]&bit))emit(0x90,(u8)note,touch_velocity);
         }
     }
     for(id=0;id<16;id++)if(seen&(1u<<id)){

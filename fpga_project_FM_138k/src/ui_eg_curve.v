@@ -73,7 +73,7 @@ module ui_eg_curve #(
     wire is_grid = (hx_q[5:0] == 6'd0) || (hx_q == 8'd0) || (hx_q == W[7:0] - 8'd1) ||
                   (vy_q2[6:0] == 7'd0) || (vy_q2 == 10'd0) || (vy_q2 == H[9:0] - 10'd1);
 
-    assign cls = !in_q2 ? 2'd0 : is_edge ? 2'd2 : is_filled ? 2'd1 : is_grid ? 2'd3 : 2'd0;
+    assign cls = !in_q2 ? 2'd0 : is_edge ? 2'd2 : is_grid ? 2'd3 : is_filled ? 2'd1 : 2'd0;
     assign ink = (cls != 2'd0);
 endmodule
 

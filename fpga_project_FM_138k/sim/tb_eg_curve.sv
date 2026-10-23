@@ -52,7 +52,7 @@ module tb_eg_curve;
         // flat top level: panel fully filled, top edge highlighted
         for (i = 0; i < 256; i = i + 1) wr(i[7:0], 9'd255);
         repeat (4) @(posedge pclk);
-        check(10'd640, 10'd120, 2'd1, "fill");
+        check(10'd640, 10'd120, 2'd3, "fill");
         check(10'd640, 10'd96,  2'd2, "edge");
         check(10'd640, 10'd90,  2'd0, "outside");
         check_pitch(512,192,2'd2);
@@ -71,6 +71,7 @@ module tb_eg_curve;
         check_pitch(512,192,2'd2);
         check_pitch(513,192,2'd2);
         check_pitch(514,192,2'd3);
+        check_pitch(512,320,2'd3); // horizontal grid below the curve remains visible
         // disabled panel draws nothing
         enable = 0;
         repeat (4) @(posedge pclk);

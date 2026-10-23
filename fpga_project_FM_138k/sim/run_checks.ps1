@@ -7,6 +7,7 @@ try {
     $vvp = if ($IverilogDirectory) { Join-Path $IverilogDirectory 'vvp.exe' } else { 'vvp' }
     New-Item -ItemType Directory -Force -Path 'tmp' | Out-Null
     $cases = @(
+        @{ Name='tb_i2s_output_select'; Sources=@('sim/tb_i2s_output_select.sv','src/i2s_tx.v') },
         @{ Name='tb_visual_auto_gain'; Sources=@('sim/tb_visual_auto_gain.sv','src/visual_auto_gain.v') },
         @{ Name='tb_audio_xy_scope'; Sources=@('sim/tb_audio_xy_scope.sv','src/audio_xy_scope.v') },
         @{ Name='tb_audio_wave_scope'; Sources=@('sim/tb_audio_wave_scope.sv','src/audio_wave_scope.v') },
@@ -44,6 +45,10 @@ try {
         if ($case.Name -eq 'tb_audio_xy_scope') {
             & $vvp $outputFile '+attack'
             if ($LASTEXITCODE -ne 0) { throw 'XY attack regression failed.' }
+        }
+        if ($case.Name -eq 'tb_touch_ui') {
+            & $vvp $outputFile '+keyboard'
+            if ($LASTEXITCODE -ne 0) { throw 'Full-width keyboard, velocity and output-selection regression failed.' }
         }
     }
     Write-Host 'All 138K I/O, touch and RGB regression checks passed.'

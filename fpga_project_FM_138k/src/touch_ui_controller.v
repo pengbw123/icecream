@@ -16,6 +16,7 @@ module touch_ui_controller (
     output wire signed [3:0] keyboard_octave,
     output wire [6:0] master_volume,
     output wire visual_mode,
+    output wire headphone_select,
     output wire [6:0] xy_delay_samples,
     output wire display_auto_gain,
     output reg command_valid,output reg [7:0] command,output reg [63:0] command_payload,input wire command_ready,
@@ -70,6 +71,7 @@ module touch_ui_controller (
     assign keyboard_octave=ui_state[11:8];
     assign master_volume=volume;
     assign visual_mode=ui_state[12];
+    assign headphone_select=ui_state[13];
     assign xy_delay_samples=ui_state[22:16];
     // Bit 31 disables display gain. Zero-initialized/legacy firmware defaults
     // to useful quiet-signal visibility without depending on touch detection.
@@ -110,7 +112,7 @@ module touch_ui_controller (
     end
     always @(posedge clk or negedge reset_n) begin
         if(!reset_n)begin
-            i2c_drive<=0;midi_event_data<=0;midi_event_valid<=0;ui_state<=0;volume<=96;
+            i2c_drive<=0;midi_event_data<=0;midi_event_valid<=0;ui_state<=0;volume<=5;
             command_valid<=0;command<=0;command_payload<=0;text_enable<=1'b0;eg_we<=1'b0;eg_addr<=8'd0;eg_data<=9'd0;
             algo_we<=1'b0;algo_addr<=15'd0;algo_data<=8'd0;algo_enable<=1'b0;
     algo_base<=15'd0;algo_word<=32'd0;algo_byte<=2'd0;algo_burst<=1'b0;

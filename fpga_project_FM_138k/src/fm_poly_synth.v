@@ -1009,8 +1009,8 @@ module fm_poly_synth #(
             lfsr <= 16'h1ace;
             lfo_amp_base <= 16'd0;
             global_pitch_ratio <= 17'h10000;
-            master_volume_target <= 7'd96;
-            master_volume_current <= 7'd96;
+            master_volume_target <= 7'd5;
+            master_volume_current <= 7'd5;
             sustain_active <= 1'b0;
             allocation_cursor <= {VOICE_BITS{1'b0}};
             display_voice <= {VOICE_BITS{1'b0}};

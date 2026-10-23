@@ -62,7 +62,7 @@ def render(limit, page):
             for y in range(208):
                 if abs(y-top) <= 1:
                     px[272+x,192+y] = color(4)
-                elif y < top and ((x//2)%64 == 0 or y in (0,128,207)):
+                elif ((x//2)%64 == 0 or y in (0,128,207)):
                     px[272+x,192+y] = color(11)
     font = [int(v,16) for v in (ROOT/'src/generated/font8x16.mem').read_text().split()]
     for address, data in dict(records('menu_cells.txt', limit)).items():

@@ -35,13 +35,13 @@ module tb_touch_ui;
         end
     end
     integer cell_fd,eg_fd,algo_fd,eg6_fd,palette_fd;
-    initial if($test$plusargs("ui_tail")) palette_fd=$fopen("tmp/tail_menu_palette.txt","w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")) palette_fd=$fopen("tmp/tail_menu_palette.txt","w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
     always @(posedge clk)if(dut.palette_write)$fwrite(palette_fd,"%0d %0d %0d\n",dut.palette_index,dut.palette_data,$time);
     reg [9:0] eg6_base;
-    initial if($test$plusargs("ui_tail")) cell_fd=$fopen("tmp/tail_menu_cells.txt","w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
-    initial if($test$plusargs("ui_tail")) eg_fd=$fopen("tmp/tail_eg_curve.txt","w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
-    initial if($test$plusargs("ui_tail")) algo_fd=$fopen("tmp/tail_algo_map.txt","w");else algo_fd=$fopen("tmp/algo_map.txt","w");
-    initial if($test$plusargs("ui_tail")) eg6_fd=$fopen("tmp/tail_eg6_panels.txt","w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")) cell_fd=$fopen("tmp/tail_menu_cells.txt","w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")) eg_fd=$fopen("tmp/tail_eg_curve.txt","w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")) algo_fd=$fopen("tmp/tail_algo_map.txt","w");else algo_fd=$fopen("tmp/algo_map.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")) eg6_fd=$fopen("tmp/tail_eg6_panels.txt","w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
     always @(posedge clk)begin
         if(dut.text_write)
             $fwrite(cell_fd,"%0d %0d %0d\n",dut.text_address,dut.text_data,$time);
@@ -89,6 +89,7 @@ module tb_touch_ui;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
+    initial if($test$plusargs("keyboard"))touch_kind=0;
     integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -100,9 +101,9 @@ module tb_touch_ui;
         integer px,py;
         begin
             px=frame_kind==1?750:40;py=frame_kind==1?200:470;
-            if(frame_kind==6)begin px=168;py=376;end
-            if(frame_kind==7)begin px=480;py=376;end
-            if(frame_kind==8)begin px=650;py=376;end
+            if(frame_kind==6)begin px=750;py=264;end
+            if(frame_kind==7)begin px=736;py=24;end
+            if(frame_kind==8)begin px=650;py=312;end
             if(frame_kind==9)begin px=376;py=376;end
             if(frame_kind==10)begin px=100;py=8;end
             if(frame_kind==11)begin px=64;py=24;end
@@ -140,6 +141,12 @@ module tb_touch_ui;
             if(frame_kind==43)begin px=200;py=450;end
             if(frame_kind==44)begin px=200;py=320;end
             if(frame_kind==45)begin px=500;py=320;end
+            if(frame_kind==46)begin px=200;py=296;end
+            if(frame_kind==47)begin px=200;py=344;end
+            if(frame_kind==48)begin px=600;py=152;end
+            if(frame_kind==49)begin px=600;py=200;end
+            if(frame_kind==50)begin px=600;py=248;end
+            if(frame_kind==51)begin px=799;py=470;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -204,7 +211,15 @@ module tb_touch_ui;
     integer event_count=0;
     always @(posedge clk)if(valid)begin
         $display("UI MIDI %h at %t",event_word,$time);
-        case(event_count)
+        if($test$plusargs("keyboard"))begin
+            case(event_count)
+                0:if(event_word!==32'h00903064)$fatal(1,"Default touch velocity/C3");
+                1:if(event_word!==32'h00803000)$fatal(1,"C3 release");
+                2:if(event_word!==32'h0090487f)$fatal(1,"Rightmost full-width C5/configured velocity");
+                3:if(event_word!==32'h00804800)$fatal(1,"C5 release");
+                default:$fatal(1,"Unexpected keyboard MIDI");
+            endcase
+        end else case(event_count)
             0:if(event_word!==32'h00B01B01)$fatal(1,"Preset button event");
             1:if(event_word!==32'h00903064)$fatal(1,"Touch C3 note-on event");
             2:if(event_word!==32'h00803000)$fatal(1,"Touch release event");
@@ -219,6 +234,20 @@ module tb_touch_ui;
         // Skip its 177 ms only in this firmware/I2C regression.
         force dut.reset_ready=1'b1;
         wait(present);
+        if(volume!==5)$fatal(1,"Power-up volume must be 5");
+        if($test$plusargs("keyboard"))begin
+            #10000000;touch_kind=2;wait(event_count==1);#5000000;
+            touch_kind=0;wait(event_count==2);#5000000;
+            touch_kind=17;wait(menu_page==7);#10000000;
+            touch_kind=0;#10000000;touch_kind=48;#10000000;
+            touch_kind=0;#10000000;touch_kind=37;#10000000;
+            touch_kind=0;#10000000;touch_kind=49;#10000000;
+            touch_kind=0;#10000000;touch_kind=14;wait(dut.headphone_select);#10000000;
+            touch_kind=0;#10000000;touch_kind=11;wait(menu_page==0);#10000000;
+            touch_kind=0;#10000000;touch_kind=51;wait(event_count==3);#5000000;
+            touch_kind=0;wait(event_count==4);#5000000;
+            $display("PASS full-width edge keys, default/custom velocity, volume 5 and headphone selection");$finish;
+        end
         if($test$plusargs("ui_tail"))begin
             touch_kind=0;#10000000;
             touch_kind=15;wait(menu_page==2);#10000000;
@@ -248,6 +277,7 @@ module tb_touch_ui;
         touch_kind=6;wait(visual_mode);#5000000;
         touch_kind=0;#5000000;
         touch_kind=7;wait(menu_page==7);#5000000;
+        touch_kind=0;#5000000;touch_kind=46;#5000000;
         touch_kind=0;#5000000;touch_kind=14;wait(xy_delay==25);#5000000;
         touch_kind=0;#5000000;touch_kind=11;wait(menu_page==0);#5000000;
         if(xy_delay!=25)$fatal(1,"Held delay button repeated");
@@ -256,10 +286,11 @@ module tb_touch_ui;
         if(!visual_mode||xy_delay!=25)$fatal(1,"Negative octave overwrote view/delay bits");
         if(!display_auto_gain)$fatal(1,"Visual AGC not enabled by default");
         touch_kind=0;#5000000;
-        touch_kind=9;wait(!display_auto_gain);#5000000;
-        if(display_auto_gain)$fatal(1,"Held AGC button repeated");
-        touch_kind=0;#5000000;
-        touch_kind=9;wait(display_auto_gain);
+        touch_kind=7;wait(menu_page==7);#5000000;
+        touch_kind=0;#5000000;touch_kind=47;#5000000;
+        touch_kind=0;#5000000;touch_kind=14;wait(!display_auto_gain);#5000000;
+        touch_kind=0;#5000000;touch_kind=14;wait(display_auto_gain);#5000000;
+        touch_kind=0;#5000000;touch_kind=11;wait(menu_page==0);#5000000;
         // ---- Phase 1.1 regression: universal tabs, perf chrome, themes ----
         touch_kind=0;#8000000;
         if(menu_page!==4'd0)$fatal(1,"Performance page should not show the menu");
@@ -375,15 +406,17 @@ module tb_touch_ui;
         touch_kind=0;#8000000;
         if(dut.background_color!==24'hFFFFFF)$fatal(1,"Accent changed independent background");
         if(dut.wave_color!==24'h647A90)$fatal(1,"Accent slider did not reach SLATE");
-        touch_kind=11;wait(menu_page==0);#5000000;
-        touch_kind=0;#8000000;touch_kind=38;#5000000;
-        touch_kind=0;#8000000;touch_kind=39;#5000000;
-        touch_kind=0;#8000000;touch_kind=40;#5000000;
-        touch_kind=0;#8000000;touch_kind=39;#5000000;
-        touch_kind=0;#8000000;touch_kind=41;#5000000;
+        touch_kind=48;#5000000;
+        touch_kind=0;#8000000;touch_kind=37;#5000000;
+        touch_kind=0;#8000000;
+        touch_kind=49;#5000000;
+        touch_kind=0;#8000000;touch_kind=14;#5000000;
+        touch_kind=0;#8000000;
+        if(!dut.headphone_select)$fatal(1,"Headphone output selection did not publish");
+        touch_kind=50;#5000000;
         touch_kind=0;#8000000;touch_kind=39;#5000000;
         touch_kind=0;#8000000;
-        if(event_count!=3)$fatal(1,"Reserved tools emitted MIDI");
+        if(event_count!=3)$fatal(1,"Settings or spectrum entry emitted MIDI");
         touch_kind=15;wait(menu_page==2);#10000000;
         touch_kind=0;#8000000;touch_kind=26;#5000000;
         touch_kind=0;#8000000;

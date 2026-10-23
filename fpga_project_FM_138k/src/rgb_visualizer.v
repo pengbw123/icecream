@@ -270,13 +270,13 @@ module rgb_visualizer #(
             if (y>=351-peak_frame) rgb=wc_frame;
         end
         if (clip_frame && x>=544 && x<576 && y>=80 && y<88) rgb=wc_frame;
-        if (x>=16 && x<616 && y>=400 && y<480) begin
-            key_index=(x-16)/40;
+        if (x<800 && y>=352 && y<480) begin
+            key_index=(x*15)/800;
             rgb=keys_frame[base_note+white_note(key_index)] ? wc_frame : 24'hF5F8FB;
-            if ((x-16)%40==0 || y==479) rgb=bg_frame;
+            if (((x*15)/800!=((x==0?0:x-1)*15)/800) || y==479) rgb=bg_frame;
             for(k=0;k<10;k=k+1)begin
-                bx=16+black_boundary(k)*40;
-                if(x>=bx-12&&x<bx+12&&y<448)
+                bx=(black_boundary(k)*800)/15;
+                if(x>=bx-16&&x<bx+16&&y<432)
                     rgb=keys_frame[base_note+black_note(k)] ? wc_frame : 24'h111820;
             end
         end

@@ -19,8 +19,8 @@
 - SETUP 的 BACKGROUND 和 ACCENT 独立选择，文字及图形随明暗改变。
   背景有 WHITE / COOL GRAY / CHARCOAL / BLACK；主题有 BLUE / CYAN / TEAL / VIOLET / SLATE。
   默认 BLACK + BLUE，配色设置在断电后恢复默认。
-- 主音量仍控制现有扬声器和 ES8388 共同输出，没有新增独立耳机音量。
-- PLAY 的 FFT / ARP / SEQ 当前只有预留入口，提示 RESERVED，不显示伪实时频谱。
+- 主音量默认 5（MIDI 原始值 0..127），控制选定的音频输出；SETUP → AUDIO OUTPUT 在 SPEAKER / HEADPHONE 二选一，未选输出发送数字静音。
+- SETUP 的 SPECTRUM 保留入口，提示 RESERVED；PLAY 已移除 ARP / SEQ / PANIC 与琴键上方控制条。
   后续各自增加内部页即可，不必缩小顶层导航。
 
 ## 实现
@@ -33,7 +33,7 @@
 - 字符 `attr[3]` 新增不透明前景/背景配对：pal 是底色，attr[0]=0 时文字用 palette[1]，
   attr[0]=1 时文字用 palette[9]。原 attr[0..2] 的兼容路径保留。
 - 字符层导出像素域调色板给 RGB 的曲线、算法图、网格使用，避免白底黑图/多色残留。
-- RGB scope=(16,96,512,256)，键盘=(16,400,600,80)。触摸命中区域同步更新。
+- RGB scope=(16,96,512,256)，键盘=(0,352,800,128)。触摸命中区域同步更新。
 - ALGO viewport=(272,144,512,256)；六路 EG 曲线图从 y=208/320 开始，240×80。
 - Pitch EG 沿用 256 样本 RAM，显示为 (272,192,512,208)。对外发布菜单号 8 表示此视口；
   固件编辑页仍为 EG（3），HDMI 的波形/XY模式不受影响。
@@ -52,7 +52,7 @@
 实机还需要确认触摸手感、字体可读性、快速切页、音色保存/恢复和 HDMI 同时显示。
 仿真通过不能替代这些检查。
 
-## 本轮构建
+## 前次 UI 构建（键盘扩大前）
 
 双屏位流生成于 2026-10-23 18:33，固件 40,980 B；BSRAM 278/340，DSP 56.5/298。
 四个时钟域的 setup/hold TNS 均为 0，主域 Fmax 55.564 MHz，RGB 域 39.434 MHz。
@@ -61,3 +61,23 @@
 触摸鲁棒性：菜单重绘期间可能漏掉松手帧。固件记录各触点上次按下位置，
 当复用 ID 的坐标出现明显横向/纵向跳变时重新识别点击；正在拖动底部滑条时保持原拖动。
 真实 I2C 回归模型也按 Goodix 的坐标报告机制锁存同一帧，避免脚本在读字节途中切换触点而制造假坐标。
+
+## 2026-10-23 扩大键盘与输出选择
+
+- 15 个白键覆盖全宽 800 像素，每键 53/54 像素；键盘 y=352..479，高 128。
+  黑键宽 32、高 80，显示与触摸共用相同分界公式。按下/松手仍按音符集合去重。
+- 首页右侧保留主音量、预设、WAVE/XY、八度，删除 PANIC、ARP、SEQ 与键盘上方控制条。
+- SETUP → KEY VELOCITY：1..127，默认 100，仅用于触屏 Note On；不改外部 MIDI 力度。
+  调整后作用于新按下的音符，已有音符不会重触发。设置断电后恢复默认。
+- SETUP → AUDIO OUTPUT：SPEAKER（默认，外部 MAX98357 音响）或 HEADPHONE（ES8388 OUT1）。
+  两路共用同一最终 PCM 和主音量，未选路输出 0 样本；时钟始终运行，选择仅在完整 I2S 帧边界锁存。
+  该选择不影响音源运算、FX、RGB/HDMI 波形输入，也不做插孔自动检测。
+- Pitch EG 先判曲线边缘，再判网格，最后判填充，网格不再被曲线下方的背景填充遮挡。
+- UI 控制寄存器 UI[5] 新增 bit13 headphone_select（0 音响、1 耳机），不改变原 visual_mode bit12。
+- 音源 master_volume_target/current 与 UI 复位值同步改为 5，防止仅改显示但上电仍然大音量。
+- 新测试 `tb_i2s_output_select` 检查两路互斥、左右样本位序、padding 静音及帧中切换。
+
+本次最终双屏位流生成于 2026-10-23 19:38:10，固件 40,820 B；BSRAM 278/340，DSP 57.5/298。
+四个时钟域 setup/hold TNS 均为 0。最终构建日志 `tmp/build_keyboard_delivery.log`；
+全套回归 `tmp/checks_keyboard_release.log`，最终固件完整菜单回归 `tmp/checks_keyboard_final.log`，
+键盘专项 `tmp/checks_keyboard_delivery.log`。位流校验值和实机检查事项见 `AI_HANDOFF.md` 末节。

@@ -177,3 +177,33 @@ DECAY 基础反馈范围 0.50..0.90。原整数 DC 阻断器留下永久尾音�
 - IDE 顶层仍为 `top_138k_hdmi`，43 个 RTL 源文件的 hierarchy 检查通过，结果文件路径对应此双屏构建。
 - 此前各节位流均为历史版本；单 RGB 位流本轮未更新。
 - 尚待实机检查：触摸手感、白底/暗底可读性、快速切页、用户槽保存恢复，以及 RGB/HDMI 同时运行。
+
+## 键盘与音频输出修订（2026-10-23）
+
+- Pitch EG 网格判定优先于曲线下方填充，曲线本身仍具有最高优先级。
+- PLAY 键盘扩大到 x=0..799、y=352..479（800×128），黑键 32×80；RTL 与固件触摸使用相同分界。
+  最右端 x=799 可触发高 C。移除 PANIC、ARP、SEQ 和原键盘上方按钮条，右侧保留音量、预设、
+  WAVE/XY、八度；AUTO RANGE、XY DELAY、频谱预留入口在 SETUP。
+- SETUP 新增 KEY VELOCITY（1..127，默认 100，仅影响后续触屏 Note On，不改变外部 MIDI）。
+  AUDIO OUTPUT 选择 SPEAKER（默认外部音响）或 HEADPHONE（ES8388 OUT1），共用主音量与 PCM。
+  未选接口发送数字静音，时钟持续运行；切换在完整 I2S 帧边界生效，无插孔检测。
+- 音源音量目标、当前值和 UI 初始值统一为 5；首页音量数值支持完整 0..127。
+  设置仍在 RAM 中，掉电恢复默认。
+- UI[5] bit13 为 headphone_select；两款 138K 顶层均已连接到 i2s_tx 输出选择，
+  HDMI/屏幕波形采样点不受输出接口选择影响。i2s_tx 默认参数关闭选择，保留其他旧顶层兼容性。
+- 回归新增 tb_i2s_output_select：左右声道位序、padding、互斥路由、帧中请求不撕裂。
+  tb_eg_curve 检查曲线下方网格；tb_touch_ui 的 +keyboard 场景检查默认音量、默认/自定义力度、
+  屏幕右边缘琴键及耳机设置；完整菜单回归也已覆盖新增设置。
+- 修改前位流备份：impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-23_pre_keyboard.fs。
+- 最终固件 40,820 / 65,536 字节。完整基础回归与 RGB 四场景通过，见 tmp/checks_keyboard_release.log；
+  最后仅补正了首页音量的三位数显示，最终固件完整菜单回归再次通过，见 tmp/checks_keyboard_final.log。
+  重新编译后的键盘专项通过，见 tmp/checks_keyboard_delivery.log（+keyboard +ui_debug）。
+  合计覆盖 19 个 testbench、24 个场景；项目 43 个 RTL 文件的 hierarchy 检查通过。
+- 最终双屏位流：impl/pnr/fm_138k_rgb_hdmi.fs，2026-10-23 19:38:10，42,129,405 字节。
+  SHA256：AC3FC474A7C3FC1C309C02FA85C7276EA8AE618EFF9BE02541AA5C96F84D0824。
+  固件 40,820 B；Logic 26828、Register 14949、BSRAM 278/340、DSP 57.5/298。
+  Fmax：主域 58.563 MHz、RGB 39.336 MHz、HDMI 像素 48.645 MHz、HDMI 串行 194.914 MHz，
+  四域 setup/hold TNS=0。最终构建日志 tmp/build_keyboard_delivery.log；此前 final 日志为中断构建，
+  release 日志为首页音量三位数补正前的中间构建，不作为本次烧录版本。
+- 实机待确认：Pitch EG 网格全域可见、键盘两侧/黑键/多点触控、力度听感、上电音量 5、
+  SPEAKER/HEADPHONE 互斥发声与切换瞬态，以及 RGB/HDMI 同时输出。未执行实机烧录。

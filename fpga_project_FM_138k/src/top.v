@@ -3,6 +3,7 @@
 // BL616 JTAG/UART connection and carries 115200-baud diagnostics/configuration.
 module top #(
     parameter integer USB_HOST_ENABLED = 0,
+    parameter integer OUTPUT_SELECT_ENABLED = 0,
     // 1: keep the DX7 core, MIDI and I2S; bypass the non-DX7 effects/LCD.
     // 0: restore the original chorus/reverb, output meter and SPI display.
     parameter integer FM_AUDIO_ONLY = 1,
@@ -17,6 +18,8 @@ module top #(
 ) (
     input  wire clk,
     input  wire key_s2,
+    input wire headphone_select,
+    output wire headphone_din,
     input  wire uart_rx_pin,
     input wire ui_command_valid,input wire [7:0] ui_command,input wire [63:0] ui_payload,
     output wire ui_command_ready,
@@ -452,8 +455,9 @@ module top #(
             .lcd_dc(lcd_dc), .lcd_data(lcd_data)
         );
     end endgenerate
-    i2s_tx #(.BCLK_HALF_DIV(8)) u_i2s_tx (
+    i2s_tx #(.BCLK_HALF_DIV(8),.OUTPUT_SELECT_ENABLED(OUTPUT_SELECT_ENABLED)) u_i2s_tx (
         .clk(clk), .reset_n(audio_reset_n),
+        .headphone_select(headphone_select),.headphone_din(headphone_din),
         .sample_left(output_sample), .sample_right(output_sample),
         .sample_tick(sample_tick), .i2s_bclk(i2s_bclk),
         .i2s_lrclk(i2s_lrclk), .i2s_din(i2s_din)
