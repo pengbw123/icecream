@@ -1,7 +1,7 @@
 // Independent Primer25K USB-MIDI -> UART bridge. No audio synthesis here.
 module top_bridge #(
     parameter [6:0] KEY_VELOCITY_MIN=7'h00,
-    parameter [6:0] KEY_VELOCITY_MAX=7'h5A
+    parameter [6:0] KEY_VELOCITY_MAX=7'd80
 ) (
     input wire clk, input wire key_s2,
     input wire uart_rx_pin, output wire uart_tx_pin,

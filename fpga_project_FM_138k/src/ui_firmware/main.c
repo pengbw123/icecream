@@ -21,7 +21,7 @@ static int present;
 static int visual_mode;
 static int display_auto_gain=1;
 static int xy_delay=24;
-static u8 touch_velocity=100, headphone_select=0;
+static u8 touch_velocity=100, headphone_select=0,glide_on=0;
 static int slot_note[16];
 static u16 control_down;
 static int control_x[16],control_y[16];
@@ -113,11 +113,12 @@ static u8 ctrl_hold, ctrl_hold_id;
 static u32 ctrl_hold_t, ctrl_hold_count;
 static u32 last_adj;
 static int vol_local=5, preset_local=0;
+static u8 status_preset(u32 st){return (u8)(((st>>7)&31u)|((st>>17)&96u));}
 /* k: 1 preset-, 2 preset+, 3 volume-, 4 volume+, 5 octave-, 6 octave+,
    7 xy-, 8 xy+.  Single tap = one step; repeat starts after 1.5 s. */
 static void perf_step(u8 k){
     if(k==1||k==2){
-        request_rom((u8)((preset_local+(k==1?31:1))&31));
+        request_rom((u8)((preset_local+(k==1?127:1))&127));
     } else if(k==3||k==4){
         int v=vol_local+((k==3)?-5:5);
         if(v<0)v=0;if(v>127)v=127;vol_local=v;
@@ -172,6 +173,7 @@ static void text_r(u8 endcol,u8 row,const char*s,u8 pal,u8 attr){
     u8 n=0;while(s[n]&&n<40)n++;text((u8)(endcol-n),row,s,pal,attr);}
 static void clear_all(void){u8 r,c;for(r=0;r<30;r++)for(c=0;c<100;c++)c_at(c,r,0,0,0);}
 static char nb[8];
+static const char* u3d(u32 v){nb[0]=(char)('0'+(v/100u)%10u);nb[1]=(char)('0'+(v/10u)%10u);nb[2]=(char)('0'+v%10u);nb[3]=0;return nb;}
 static const char* u2d(u32 v){nb[0]=(char)('0'+((v/10u)%10u));nb[1]=(char)('0'+(v%10u));nb[2]=0;return nb;}
 static const char* u1d(u32 v){nb[0]=(char)('0'+(v%10u));nb[1]=0;return nb;}
 static const char* sgn1(int v){
@@ -351,16 +353,7 @@ static void send_scaling(void){
 /* ------------------------------------------------------------------ */
 /* Page drawing                                                        */
 /* ------------------------------------------------------------------ */
-static const char preset_names[32][11]={
-    "BRASS   1 ", "BRASS   2 ", "BRASS   3 ", "STRINGS 1 ",
-    "STRINGS 2 ", "STRINGS 3 ", "ORCHESTRA ", "PIANO   1 ",
-    "PIANO   2 ", "PIANO   3 ", "E.PIANO 1 ", "GUITAR  1 ",
-    "GUITAR  2 ", "SYN-LEAD 1", "BASS    1 ", "BASS    2 ",
-    "E.ORGAN 1 ", "PIPES   1 ", "HARPSICH 1", "CLAV    1 ",
-    "VIBE    1 ", "MARIMBA   ", "KOTO      ", "FLUTE   1 ",
-    "ORCH-CHIME", "TUB BELLS ", "STEEL DRUM", "TIMPANI   ",
-    "REFS WHISL", "VOICE   1 ", "TRAIN     ", "TAKE OFF  "
-};
+#include "../generated/fm_preset_names.h"
 static const char*const tab_names[8]={"PLAY","ALGO","OSC","EG","LFO","FX","PATCH","SETUP"};
 static void apply_theme(u8 t);
 static void draw_tabs(void);
@@ -675,7 +668,7 @@ static void adj_pitch(u8 row,int d){
     draw_page();
 }
 static void name_from_preset(u8 pr){
-    u8 i;pr&=31u;
+    u8 i;pr&=127u;
     for(i=0;i<10&&preset_names[pr][i];i++)cur_name[i]=preset_names[pr][i];
     cur_name[i]=0;
 }
@@ -945,6 +938,7 @@ static int get_sel(int *cur,int *lo,int *hi,int *cyc){
         else if(sel_row==4){*cur=display_auto_gain;*hi=1;*cyc=2;}
         else if(sel_row==5){*cur=touch_velocity;*lo=1;*hi=127;}
         else if(sel_row==6){*cur=headphone_select;*hi=1;*cyc=2;}
+        else if(sel_row==8){*cur=glide_on;*hi=1;*cyc=2;}
         else return 0;return 1;
     }
     return 0;
@@ -1196,13 +1190,13 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
             u32 st=UI[4];
             if(st!=last_status){
                 last_status=st;
-                vol_local=(int)(st&127u);preset_local=(int)((st>>7)&31u);
+                vol_local=(int)(st&127u);preset_local=(int)status_preset(st);
                 draw_status();
                 if(page==PAGE_PERF&&!dialog)draw_perf_controls();
             }
         }
         {
-            u8 pr=(u8)((UI[4]>>7)&31u);
+            u8 pr=status_preset(UI[4]);
             if(pr!=last_preset){
                 last_preset=pr;patch_dirty=0;
                 name_from_preset(pr);

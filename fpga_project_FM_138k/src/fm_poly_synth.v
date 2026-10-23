@@ -184,6 +184,7 @@ module fm_poly_synth #(
                 4'h9: patch_read_data <= fm_algorithm_flags[15:0];
                 4'hA: patch_read_data <= fm_algorithm_flags[31:16];
                 4'hB: patch_read_data <= fm_algorithm_flags[47:32];
+                4'hC: patch_read_data <= {15'd0,(portamento_time!=0)};
                 default: patch_read_data <= 16'd0;
             endcase
         end else if (patch_read_address < 10'h100) begin
@@ -257,6 +258,22 @@ module fm_poly_synth #(
     reg signed [31:0] voice_bus_one [0:VOICE_COUNT-1];
     reg signed [31:0] voice_bus_two [0:VOICE_COUNT-1];
     reg signed [31:0] voice_output [0:VOICE_COUNT-1];
+    // Physical key history excludes sustain and release tails. Voice 0 is the
+    // mono instrument; released top notes return to the latest still-held key.
+    reg mono_mode,event_legato,mono_return_scan,mono_scan_wait;
+    reg [127:0] mono_held;
+    reg [38:0] mono_history[0:127];
+    reg [38:0] mono_history_q;
+    reg [31:0] mono_sequence,mono_best_age;
+    reg [6:0] mono_scan_index,mono_best_note,mono_best_velocity;
+    wire [31:0] mono_scan_age=mono_sequence-mono_history_q[38:7];
+    wire mono_candidate=mono_held[mono_scan_index] && mono_scan_age<mono_best_age;
+    always @(posedge clk)begin
+        mono_history_q<=mono_history[mono_scan_index];
+        if(reset_n && engine_state==ENGINE_IDLE && event_pending && mono_mode &&
+           pending_event[23:20]==4'h9 && pending_event[6:0]!=0)
+            mono_history[pending_event[14:8]]<={mono_sequence,pending_event[6:0]};
+    end
     // 108 bits/slot: phase, increment, Q14 logarithmic envelope, signed
     // output/key/velocity level offset and EG stage.
     // A single dual-port state RAM removes more than nine thousand flip-flops
@@ -556,7 +573,11 @@ module fm_poly_synth #(
 
     // Operator issue combinational path.
     wire [9:0] issue_slot_wide = scheduler_voice * 6 + scheduler_operator;
-    assign operator_state_read_address = issue_slot_wide[6:0];
+    wire event_read_slot=(engine_state==ENGINE_EVENT_INIT || engine_state==ENGINE_EVENT_GAIN_WAIT ||
+        engine_state==ENGINE_EVENT_SCALE_MUL || engine_state==ENGINE_EVENT_SCALE_FINISH ||
+        engine_state==ENGINE_EVENT_GAIN_CAPTURE);
+    assign operator_state_read_address = event_read_slot ?
+        event_target_voice*6+event_init_operator : issue_slot_wide[6:0];
     wire [7:0] issue_flags = patch_algorithm_flags[scheduler_operator];
     wire [1:0] issue_input_bus = issue_flags[5:4];
     wire signed [31:0] issue_bus_value =
@@ -579,6 +600,29 @@ module fm_poly_synth #(
 
     wire [31:0] render_phase = operator_state_read_data[107:76];
     wire [31:0] render_increment = operator_state_read_data[75:44];
+    // Fixed ~168 ms linear-frequency glide (8192 samples), without an onset
+    // interval test. Current increments live in the existing operator RAM.
+    reg [64:0] glide_memory[0:SLOT_COUNT-1];
+    reg [64:0] glide_q;
+    reg [107:0] event_old_state;
+    wire [31:0] glide_target=glide_q[31:0];
+    wire signed [32:0] glide_step=$signed(glide_q[64:32]);
+    wire signed [33:0] glide_sum=$signed({2'b0,render_increment})+$signed(glide_step);
+    wire [31:0] glide_next=(glide_step>0 && glide_sum>=$signed({2'b0,glide_target})) ? glide_target :
+        (glide_step<0 && glide_sum<=$signed({2'b0,glide_target})) ? glide_target :
+        glide_step==0 ? render_increment : glide_sum[31:0];
+    wire signed [32:0] event_glide_delta=$signed({1'b0,event_corrected_increment})-
+                                               $signed({1'b0,event_old_state[75:44]});
+    wire [32:0] event_glide_abs=event_glide_delta[32]?-event_glide_delta:event_glide_delta;
+    wire [32:0] event_glide_magnitude=(event_glide_abs+33'd8191)>>13;
+    wire signed [32:0] event_glide_step=event_glide_delta[32] ?
+        -$signed(event_glide_magnitude):$signed(event_glide_magnitude);
+    always @(posedge clk)begin
+        glide_q<=glide_memory[operator_state_read_address];
+        if(engine_state==ENGINE_EVENT_GAIN_CAPTURE)
+            glide_memory[event_target_voice*6+event_init_operator]<=
+                {event_legato?event_glide_step:33'sd0,event_corrected_increment};
+    end
     wire [25:0] render_env_current = operator_state_read_data[43:18];
     wire signed [15:0] render_level_offset =
         $signed(operator_state_read_data[17:2]);
@@ -795,7 +839,7 @@ module fm_poly_synth #(
     wire [16:0] p1_gain_target_next = p1_block_start
         ? p1_envelope : p1_old_gain_target;
     always @(posedge clk) begin
-        if (engine_state == ENGINE_EVENT_GAIN_CAPTURE)
+        if (engine_state == ENGINE_EVENT_GAIN_CAPTURE && !event_legato)
             operator_gain_state_memory[event_target_voice * 6 +
                                        event_init_operator] <= 48'd0;
         else if (p1_valid)
@@ -976,6 +1020,9 @@ module fm_poly_synth #(
             event_oldest_voice <= {VOICE_BITS{1'b0}};
             event_note <= 7'd60;
             event_velocity <= 7'd100;
+            mono_mode<=0;event_legato<=0;mono_return_scan<=0;mono_scan_wait<=0;mono_held<=0;
+            mono_sequence<=0;mono_best_age<=32'hffffffff;mono_scan_index<=0;mono_best_note<=0;mono_best_velocity<=0;
+            event_old_state<=0;
             event_scale_group <= 0;
             event_scale_depth <= 0;
             event_scale_curve <= 0;
@@ -1176,6 +1223,7 @@ module fm_poly_synth #(
                 patch_algorithm_flags[5] <= fm_algorithm_flags[47:40];
             end
             if (fm_patch_commit) begin
+                mono_held<=0;
                 // Avoid a half-old/half-new timbre. The editor also sends All
                 // Notes Off, but this local guard covers interrupted transfers.
                 for (i = 0; i < VOICE_COUNT; i = i + 1) begin
@@ -1348,7 +1396,7 @@ module fm_poly_synth #(
                 e0_gain_state <= operator_gain_read_data;
                 e0_enabled <= patch_op_enable[operator_read_operator];
                 e0_phase <= render_phase;
-                e0_increment <= render_increment;
+                e0_increment <= glide_next;
                 e0_frequency <= issue_frequency;
                 e0_env_current <= render_env_current;
                 e0_env_target <= issue_env_target;
@@ -1359,7 +1407,10 @@ module fm_poly_synth #(
 
             case (engine_state)
                 ENGINE_IDLE: begin
-                    if (event_pending) begin
+                    if(mono_mode!=(portamento_time!=0))begin
+                        mono_mode<=portamento_time!=0;mono_held<=0;event_legato<=0;
+                        for(i=0;i<VOICE_COUNT;i=i+1)begin voice_active[i]<=0;voice_gate[i]<=0;voice_key_down[i]<=0;end
+                    end else if (event_pending) begin
                         if (((pending_event[23:20] == 4'h9) &&
                              pending_event[6:0] != 0)) begin
                             event_note <= pending_event[14:8];
@@ -1368,7 +1419,14 @@ module fm_poly_synth #(
                             event_free_found <= 1'b0;
                             event_oldest_age <= 24'd0;
                             event_oldest_voice <= allocation_cursor;
-                            engine_state <= ENGINE_EVENT_SCAN;
+                            event_legato<=0;mono_return_scan<=0;
+                            if(mono_mode)begin
+                                mono_held[pending_event[14:8]]<=1;
+                                mono_sequence<=mono_sequence+1'b1;
+                                event_legato<= (|mono_held)&&voice_active[0];
+                                event_target_voice<=0;event_init_operator<=0;
+                                engine_state<=ENGINE_EVENT_INIT;
+                            end else engine_state <= ENGINE_EVENT_SCAN;
                             event_pending <= 1'b0;
                         end else begin
                             // Note Off, CC volume/sustain/all-notes-off are
@@ -1376,7 +1434,17 @@ module fm_poly_synth #(
                             if ((pending_event[23:20] == 4'h8) ||
                                 ((pending_event[23:20] == 4'h9) &&
                                  pending_event[6:0] == 0)) begin
-                                for (i = 0; i < VOICE_COUNT; i = i + 1)
+                                if(mono_mode)begin
+                                    mono_held[pending_event[14:8]]<=0;
+                                    if(voice_note[0]==pending_event[14:8] && mono_held[pending_event[14:8]] &&
+                                       (mono_held & ~(128'd1<<pending_event[14:8]))!=0)begin
+                                        mono_return_scan<=1;mono_scan_wait<=0;mono_scan_index<=0;
+                                        mono_best_age<=32'hffffffff;engine_state<=ENGINE_EVENT_SCAN;
+                                    end else if(voice_note[0]==pending_event[14:8])begin
+                                        voice_key_down[0]<=0;
+                                        if(!sustain_active)begin voice_gate[0]<=0;voice_pitch_stage[0]<=3;end
+                                    end
+                                end else for (i = 0; i < VOICE_COUNT; i = i + 1)
                                     if (voice_active[i] &&
                                         voice_note[i] == pending_event[14:8]) begin
                                         voice_key_down[i] <= 1'b0;
@@ -1397,11 +1465,14 @@ module fm_poly_synth #(
                                                 voice_pitch_stage[i] <= 2'd3;
                                             end
                                 end
-                                if (pending_event[14:8] == 7'd123)
+                                if (pending_event[14:8] == 7'd123 || pending_event[14:8]==7'd120)begin
+                                    mono_held<=0;
                                     for (i = 0; i < VOICE_COUNT; i = i + 1) begin
                                         voice_gate[i] <= 1'b0;
                                         voice_key_down[i] <= 1'b0;
+                                        if(pending_event[14:8]==7'd120)voice_active[i]<=0;
                                     end
+                                end
                             end
                             event_pending <= 1'b0;
                         end
@@ -1413,6 +1484,21 @@ module fm_poly_synth #(
                 end
 
                 ENGINE_EVENT_SCAN: begin
+                    if(mono_return_scan)begin
+                        if(!mono_scan_wait)mono_scan_wait<=1;
+                        else begin
+                            if(mono_candidate)begin
+                                mono_best_age<=mono_scan_age;mono_best_note<=mono_scan_index;mono_best_velocity<=mono_history_q[6:0];
+                            end
+                            mono_scan_wait<=0;
+                            if(mono_scan_index==127)begin
+                                event_note<=mono_candidate?mono_scan_index:mono_best_note;
+                                event_velocity<=mono_candidate?mono_history_q[6:0]:mono_best_velocity;
+                                event_target_voice<=0;event_init_operator<=0;event_legato<=1;
+                                mono_return_scan<=0;engine_state<=ENGINE_EVENT_INIT;
+                            end else mono_scan_index<=mono_scan_index+1'b1;
+                        end
+                    end else begin
                     if (!voice_active[event_scan_voice] && !event_free_found) begin
                         event_free_found <= 1'b1;
                         event_free_voice <= event_scan_voice;
@@ -1422,11 +1508,13 @@ module fm_poly_synth #(
                         event_oldest_voice <= event_scan_voice;
                     end
                     if (event_scan_voice == VOICE_COUNT-1) begin
-                        event_target_voice <= event_free_found
-                            ? event_free_voice : event_oldest_voice;
+                        event_target_voice <= event_free_found ? event_free_voice :
+                            !voice_active[event_scan_voice] ? event_scan_voice :
+                            voice_age[event_scan_voice]>=event_oldest_age ? event_scan_voice :event_oldest_voice;
                         event_init_operator <= 3'd0;
                         engine_state <= ENGINE_EVENT_INIT;
                     end else event_scan_voice <= event_scan_voice + 1'b1;
+                    end
                 end
 
                 ENGINE_EVENT_INIT: begin
@@ -1444,6 +1532,7 @@ module fm_poly_synth #(
                         (event_transposed_note * 11'd15) +
                         patch_op_detune[event_init_operator];
                     if (event_init_operator == 0) begin
+                      if(!event_legato)begin
                         // Dexed/msfa keydown() starts the synced LFO half a
                         // cycle before our former zero-phase reset.  The
                         // starting polarity is audible on voices with a
@@ -1459,11 +1548,6 @@ module fm_poly_synth #(
                             ? dx7_lfo_delay_inc[lfo_delay_table_address][30:23]
                             : 8'd0;
                         lfo_delay_block_sample <= 6'd0;
-                        voice_active[event_target_voice] <= 1'b1;
-                        voice_gate[event_target_voice] <= 1'b1;
-                        voice_key_down[event_target_voice] <= 1'b1;
-                        voice_note[event_target_voice] <= event_note;
-                        voice_velocity[event_target_voice] <= event_velocity;
                         voice_age[event_target_voice] <= 24'd0;
                         voice_eg_block_position[event_target_voice] <= 6'd0;
                         voice_pitch_level[event_target_voice] <= patch_pitch_target[3];
@@ -1471,6 +1555,9 @@ module fm_poly_synth #(
                         voice_pitch_stage[event_target_voice] <= 2'd0;
                         voice_feedback_old[event_target_voice] <= 28'sd0;
                         voice_feedback_new[event_target_voice] <= 28'sd0;
+                      end
+                        voice_active[event_target_voice]<=1;voice_gate[event_target_voice]<=1;voice_key_down[event_target_voice]<=1;
+                        voice_note[event_target_voice]<=event_note;voice_velocity[event_target_voice]<=event_velocity;
                         display_voice <= event_target_voice;
                     end
                     event_scale_group <= event_scale_group_wire;
@@ -1482,6 +1569,7 @@ module fm_poly_synth #(
                 end
 
                 ENGINE_EVENT_GAIN_WAIT: begin
+                    event_old_state<=operator_state_read_data;
                     event_base_increment <= event_operator_increment;
                     event_scale_product <= event_scale_source * event_scale_depth;
                     engine_state <= ENGINE_EVENT_SCALE_MUL;
@@ -1512,13 +1600,13 @@ module fm_poly_synth #(
                     operator_state_write_address <=
                         event_target_voice * 6 + event_init_operator;
                     operator_state_write_data <= pack_operator_state(
-                        (fm_osc_sync ? 32'd0 : lfo_phase),
-                        event_corrected_increment,
+                        event_legato ? event_old_state[107:76] : (fm_osc_sync ? 32'd0 : lfo_phase),
+                        event_legato ? event_old_state[75:44] : event_corrected_increment,
                         // Q14 envelope state is 26 bits. The former 24-bit
                         // field made the old concatenation only 106 bits wide.
-                        26'd0,
+                        event_legato ? event_old_state[43:18] : 26'd0,
                         event_level_offset_latched,
-                        2'd0
+                        event_legato ? event_old_state[1:0] : 2'd0
                     );
                     if (event_init_operator == 5) begin
                         allocation_cursor <= (event_target_voice == VOICE_COUNT-1)
@@ -1665,5 +1753,5 @@ module fm_poly_synth #(
     end
 
     wire [6:0] unused_brightness = midi_event_brightness;
-    wire [4:0] unused_glide_shift = glide_shift(portamento_time);
+
 endmodule

@@ -55,7 +55,7 @@ module tb_rgb_visualizer;
     wire [5:0] g;
     rgb_visualizer dut(.clk(clk),.reset_n(reset_n),.sample_tick(tick),.audio_sample(pcm),
         .midi_event_data(event_word),.midi_event_valid(event_valid),.active_voice_count(5'd3),
-        .preset_index(5'd10),.algorithm(5'd4),.operator_envelopes(48'hB090603080D0),
+        .preset_index(7'd10),.algorithm(5'd4),.operator_envelopes(48'hB090603080D0),
         .touch_present(1'b1),.keyboard_octave(4'sd0),.master_volume(7'd96),
         .visual_mode(!show_wave),.spectrum_enable(spectrum_case),.spectrum_write(spectrum_write),.spectrum_address(spectrum_address),.spectrum_data(spectrum_data),.xy_delay_samples(7'd24),
         .display_auto_gain(1'b1),.menu_page(4'd0),.algorithm_flags(48'd0),

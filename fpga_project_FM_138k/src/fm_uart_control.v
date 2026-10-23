@@ -15,7 +15,7 @@ module fm_uart_control (
     input wire [63:0] local_payload,
     output wire local_command_ready,
     input  wire        preset_select_valid,
-    input  wire [4:0]  preset_select,
+    input  wire [6:0]  preset_select,
 
     output reg  [31:0] midi_event_data,
     output reg         midi_event_valid,
@@ -94,7 +94,7 @@ module fm_uart_control (
 
     output reg         packet_received,
     output reg         packet_error,
-    output reg  [4:0]  current_preset
+    output reg  [6:0]  current_preset
 );
 
     localparam [3:0] WAIT_A5  = 4'd0;
@@ -133,12 +133,12 @@ module fm_uart_control (
     reg  [9:0] read_address;
     reg  [1:0] read_wait;
 
-    reg [63:0] preset_global_memory [0:31];
-    reg [63:0] preset_operator_memory [0:191];
-    reg [39:0] preset_scaling_memory [0:191];
-    reg [23:0] preset_envelope_memory [0:767];
-    reg [39:0] preset_pitch_memory [0:127];
-    reg [47:0] preset_algorithm_memory [0:31];
+    reg [63:0] preset_global_memory [0:127];
+    reg [63:0] preset_operator_memory [0:767];
+    reg [39:0] preset_scaling_memory [0:767];
+    reg [23:0] preset_envelope_memory [0:3071];
+    reg [39:0] preset_pitch_memory [0:511];
+    reg [47:0] preset_algorithm_memory [0:127];
     // Public DX7 routing rows.  Selecting an algorithm (0x60) installs the
     // matching routing flags so the audible routing and the displayed algorithm
     // number can never disagree; 0x67 stays available as an explicit override.
@@ -157,9 +157,9 @@ module fm_uart_control (
     reg [4:0] preset_eg_index;
     reg [2:0] preset_pitch_index;
     reg       preset_read_wait;
-    wire [7:0] preset_op_address = current_preset * 6 + preset_op_index;
-    wire [9:0] preset_eg_address = current_preset * 24 + preset_eg_index;
-    wire [6:0] preset_pitch_address = current_preset * 4 + preset_pitch_index;
+    wire [9:0] preset_op_address = current_preset * 6 + preset_op_index;
+    wire [11:0] preset_eg_address = current_preset * 24 + preset_eg_index;
+    wire [8:0] preset_pitch_address = current_preset * 4 + preset_pitch_index;
     wire [63:0] preset_global_word = preset_global_memory[current_preset];
     wire [63:0] preset_operator_word = preset_operator_memory[preset_op_address];
     wire [39:0] preset_scaling_word = preset_scaling_memory[preset_op_address];
@@ -249,7 +249,7 @@ module fm_uart_control (
             fx_cfg_addr <= 6'd0;
             fx_cfg_value <= 16'd0;
             fx_cfg_write <= 1'b0;
-            current_preset <= 5'd0;
+            current_preset <= 7'd0;
             preset_load_state <= 6'd1;
             preset_op_index <= 3'd0;
             preset_eg_index <= 5'd0;
@@ -446,7 +446,7 @@ module fm_uart_control (
                 endcase
             end
 
-            // The physical TRANSPOSE knob selects one of the 32 ROM1A
+            // The physical TRANSPOSE knob selects one of the 128 factory
             // patches. Loading takes under 100 clocks and first silences the
             // old patch, so no voice can hear a half-old/half-new parameter
             // set. UART patch editing remains available while idle.

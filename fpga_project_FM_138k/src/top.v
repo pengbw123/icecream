@@ -10,10 +10,10 @@ module top #(
     parameter integer PRO_FX_ENABLED = 0,
     // 1: use the new parameterised post-mix FX chain (audio_fx.v).
     parameter integer FX2_ENABLED = 0,
-    // USB key velocity calibration endpoints: 0x00 -> 0, 0x5A -> 127.
+    // USB key velocity calibration endpoints: 0x00 -> 0, 80 -> 127.
     // Compile-time knobs; pads (channel 10) and UART are not rescaled.
     parameter [6:0] USB_KEY_VELOCITY_MIN = 7'h00,
-    parameter [6:0] USB_KEY_VELOCITY_MAX = 7'h5A,
+    parameter [6:0] USB_KEY_VELOCITY_MAX = 7'd80,
     parameter       USB_KEY_VELOCITY_CALIBRATE = 1'b1
 ) (
     input  wire clk,
@@ -44,7 +44,7 @@ module top #(
     output wire [31:0] monitor_midi_event_data,
     output wire monitor_midi_event_valid,
     output wire [4:0] monitor_voice_count,
-    output wire [4:0] monitor_preset,
+    output wire [6:0] monitor_preset,
     output wire [4:0] monitor_algorithm,
     output wire [47:0] monitor_operator_envelopes,
     output wire [15:0] readback_data,
@@ -195,7 +195,7 @@ module top #(
     wire [6:0] vibrato_depth, vibrato_rate, portamento_time;
     wire [6:0] chorus_mix, delay_mix, delay_time, reverb_mix;
     wire preset_select_valid;
-    wire [4:0] preset_select;
+    wire [6:0] preset_select;
     midi_performance_control u_midi_performance_control (
         .clk(clk), .reset_n(audio_reset_n),
         .midi_event_data(synth_midi_event_data),
@@ -251,7 +251,7 @@ module top #(
     wire [9:0] fm_note_gain_address;
     wire [15:0] fm_note_gain_value;
     wire fm_patch_commit;
-    wire [4:0] current_preset;
+    wire [6:0] current_preset;
     wire [9:0] fm_patch_read_address;
     wire [15:0] fm_patch_read_data;
 

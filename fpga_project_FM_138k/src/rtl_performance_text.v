@@ -4,14 +4,15 @@
 module rtl_performance_text(
     input wire pclk,reset_n,enabled,
     input wire [10:0] h,input wire [9:0] v,
-    input wire [4:0] preset,voices,algorithm,
+    input wire [6:0] preset,
+    input wire [4:0] voices,algorithm,
     input wire [6:0] volume,delay_samples,
     input wire signed [3:0] octave,
     input wire touch_ok,auto_gain,
     output wire ink,output wire [23:0] color
 );
     reg [7:0] font[0:2047];
-    reg [7:0] names[0:319];
+    reg [7:0] names[0:1279];
     initial begin
         $readmemh("src/generated/font8x16.mem",font);
         $readmemh("src/generated/fm_rom1a_names.mem",names);

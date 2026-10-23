@@ -44,9 +44,9 @@ static void row_box(u8 c,u8 r,u8 w,u8 h,const char *label,const char *value,int 
 static void draw_tabs(void){u8 i;rect_cells(0,0,100,3,12);
     for(i=0;i<8;i++)button_box((u8)(2+i*12),0,12,3,tab_names[i],page==i);
 }
-static void draw_status(void){u8 i;u32 st=UI[4];u8 pr=(u8)((st>>7)&31u);
+static void draw_status(void){u8 i;u32 st=UI[4];u8 pr=status_preset(st);
     rect_cells(0,3,100,2,5);
-    pair_text(2,3,"ROM",5,0);pair_text(5,3,u2d(pr+1u),5,0);
+    pair_text(2,3,"ROM",5,0);pair_text(5,3,u3d(pr+1u),5,0);
     pair_text(8,3,cur_name[0]?cur_name:preset_names[pr],5,0);
     if(patch_dirty)pair_text(28,3,"EDIT",5,0);
     pair_text(38,3,"ALG",5,0);pair_text(42,3,u2d(((st>>12)&31u)+1u),5,0);
@@ -128,9 +128,9 @@ static void draw_fx(void){u8 i;u8 type=fx_type_reg[fx_sel];
     for(i=0;i<3;i++)if(fx_p_reg[fx_sel][i]!=255)row_box(32,(u8)(12+i*4),66,3,fx_p_names[fx_sel][i],fx_value(i),sel_row==3+i);
     if(fx_sel==2)text(32,24,"TIME 20..1000 ms",2,0);
 }
-static void draw_name(void){u8 i;char label[12];text(2,6,"ROM1A / 32 VOICES",2,0);
+static void draw_name(void){u8 i;char label[12];text(2,6,"ROM1+2 / 128",2,0);
     text(52,6,"USER RAM / 8 SLOTS",2,0);text(52,7,"POWER OFF = LOST",4,0);
-    for(i=0;i<5;i++){u8 n=(u8)(patch_rom_page*5+i);if(n<32)row_box(2,(u8)(8+i*3),46,3,u2d(n+1u),preset_names[n],n==patch_pick);}
+    for(i=0;i<5;i++){u8 n=(u8)(patch_rom_page*5+i);if(n<128)row_box(2,(u8)(8+i*3),46,3,u3d(n+1u),preset_names[n],n==patch_pick);}
     for(i=0;i<4;i++){u8 n=(u8)(patch_bank*4+i);row_box(52,(u8)(8+i*3),46,3,u2d(n+1u),slots[n].magic==SLOT_MAGIC?slots[n].name:"-- EMPTY --",slot_sel==n);}
     button_box(2,23,24,3,"< PREV",0);button_box(26,23,22,3,"NEXT >",0);
     button_box(52,21,22,3,"LOAD RAM",0);button_box(76,21,22,3,"STORE RAM",0);
@@ -138,17 +138,16 @@ static void draw_name(void){u8 i;char label[12];text(2,6,"ROM1A / 32 VOICES",2,0
     button_box(2,27,46,3,"LOAD ROM",1);button_box(52,27,22,3,"RENAME",0);button_box(76,27,22,3,"PLAY",0);
     (void)label;
 }
-static const char *const setup_labels[8]={"BACKGROUND","ACCENT","DISPLAY","XY DELAY","AUTO RANGE","KEY VELOCITY","AUDIO OUTPUT","SPECTRUM"};
+static const char *const setup_labels[9]={"BACKGROUND","ACCENT","DISPLAY","XY DELAY","AUTO RANGE","KEY VELOCITY","AUDIO OUTPUT","SPECTRUM","GLIDE MONO"};
 static const char *setup_value(u8 n){if(n==0)return bg_labels[bg_pick];if(n==1)return ac_labels[accent_pick];
     if(n==2)return visual_mode==2?"SPECTRUM":visual_mode==1?"XY":"WAVE";if(n==3)return u2d(xy_delay);
     if(n==4)return display_auto_gain?"ON":"OFF";if(n==5){
         nb[0]=(char)('0'+touch_velocity/100);nb[1]=(char)('0'+(touch_velocity/10)%10);nb[2]=(char)('0'+touch_velocity%10);nb[3]=0;return nb;}
-    if(n==6)return headphone_select?"HEADPHONE":"SPEAKER";return "OPEN >";}
+    if(n==6)return headphone_select?"HEADPHONE":"SPEAKER";if(n==8)return glide_on?"ON":"OFF";return "OPEN >";}
 static void draw_theme(void){u8 i;text(2,6,"DISPLAY",2,0);text(52,6,"KEYBOARD / AUDIO",2,0);
     for(i=0;i<5;i++)row_box(2,(u8)(8+i*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
-    for(i=5;i<8;i++)row_box(52,(u8)(8+(i-5)*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
-    text(54,19,"Fs 48.828 kHz",2,0);text(54,21,"RAM SLOTS: VOLATILE",2,0);
-    text(54,23,"HDMI: WAVE / XY / FFT",2,0);
+    for(i=5;i<9;i++)row_box(52,(u8)(8+(i-5)*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
+    text(54,22,"Fs 48.828 kHz",2,0);text(54,24,"RAM SLOTS: VOLATILE",2,0);
 }
 static const char *selected_label(void){if(page==1){static const char *const a[4]={"ALGORITHM","FEEDBACK","OSC SYNC","TRANSPOSE"};return a[sel_row];}
     if(page==2)return osc_labels[sel_row];if(page==3)return sel_row<4?"RATE":"LEVEL";
@@ -194,7 +193,7 @@ static void load_selected_rom(void){release_all();emit(0xb0,27,patch_pick);prese
 static void request_rom(u8 n){patch_pick=n;if(patch_dirty){dialog=5;draw_page();}else load_selected_rom();}
 static void perf_control(int x,int y,u8 id){u8 k=0;u32 t=now();
     if(y>=128&&y<176&&x>=608)k=x<696?3:4;
-    else if(y>=176&&y<224&&x>=608){request_rom((u8)((preset_local+(x<696?31:1))&31));return;}
+    else if(y>=176&&y<224&&x>=608){request_rom((u8)((preset_local+(x<696?127:1))&127));return;}
     else if(y>=240&&y<288&&x>=608){visual_mode=x<672?0:x<736?1:2;publish();draw_page();return;}
     else if(y>=288&&y<336&&x>=608)k=x<696?5:6;
     if(!k)return;if(ctrl_last[k]&&(u32)(t-ctrl_last[k])<300000u)return;
@@ -205,8 +204,9 @@ static void page_enter(u8 p){if(p==page&&p!=0)return;release_all();ctrl_hold=0;h
     if(p==1){load_globals();load_flags();algo_map_dirty=1;}
     else if(p==2){osc_group=0;cache_operator_switches();load_op(sel_op);load_flags();}
     else if(p==3){load_op(sel_op);load_all_eg();build_all_eg();upload_eg6();if(eg_mode)load_pitch();}
+    else if(p==7)glide_on=rd(0x00c)!=0;
     else if(p==4)load_globals();else if(p==5){load_fx();sel_row=3;}
-    else if(p==6){patch_pick=(u8)((UI[4]>>7)&31u);patch_rom_page=patch_pick/5;}
+    else if(p==6){patch_pick=status_preset(UI[4]);patch_rom_page=patch_pick/5;}
     publish();draw_page();
 }
 static void adj_setup(u8 r,int d){int n;
@@ -216,6 +216,7 @@ static void adj_setup(u8 r,int d){int n;
     else if(r==4)display_auto_gain=!display_auto_gain;
     else if(r==5){n=touch_velocity+d;if(n<1)n=1;if(n>127)n=127;touch_velocity=(u8)n;}
     else if(r==6)headphone_select=!headphone_select;
+    else if(r==8){glide_on=!glide_on;emit(0xb0,22,glide_on?127:0);}
     publish();draw_page();
 }
 static int menu_press(int x,int y){int i,n;
@@ -234,9 +235,9 @@ static int menu_press(int x,int y){int i,n;
         if(page!=6){page_enter(0);return 1;}}
     if(page==6){
         if(y>=80&&y<128&&x>=688){patch_bank^=1;slot_sel=patch_bank*4;}
-        else if(y>=128&&y<368&&x>=16&&x<384){n=patch_rom_page*5+(y-128)/48;if(n<32)patch_pick=(u8)n;}
+        else if(y>=128&&y<368&&x>=16&&x<384){n=patch_rom_page*5+(y-128)/48;if(n<128)patch_pick=(u8)n;}
         else if(y>=128&&y<320&&x>=416&&x<784)slot_sel=(u8)(patch_bank*4+(y-128)/48);
-        else if(y>=368&&y<416&&x>=16&&x<384){patch_rom_page=(u8)((patch_rom_page+(x<208?6:1))%7);}
+        else if(y>=368&&y<416&&x>=16&&x<384){patch_rom_page=(u8)((patch_rom_page+(x<208?25:1))%26);}
         else if(y>=336&&y<384&&x>=416){if(x>=608){if(slots[slot_sel].magic==SLOT_MAGIC)dialog=6;else slot_save();}
             else if(slots[slot_sel].magic==SLOT_MAGIC){if(patch_dirty)dialog=7;else{slot_load();patch_dirty=0;}}}
         else if(y>=432){if(x<384)request_rom(patch_pick);else if(x>=416&&x<592){dialog=4;name_pos=0;}else if(x>=608)page_enter(0);}
@@ -254,6 +255,6 @@ static int menu_press(int x,int y){int i,n;
         else if(x>=256&&x<784&&y>=128&&y<176&&fx_type_reg[fx_sel]!=255){n=(x-256)/176;fx_write(fx_type_reg[fx_sel],(u16)n);}
         else if(x>=256&&x<784&&y>=192&&y<368){i=(y-192)/64;if(i<3&&fx_p_reg[fx_sel][i]!=255)sel_row=(u8)(3+i);}}
     else if(page==7&&y>=128&&y<368){if(x>=16&&x<384)sel_row=(u8)((y-128)/48);
-        else if(x>=416&&x<784&&y<272){sel_row=(u8)(5+(y-128)/48);if(sel_row==7){visual_mode=2;page_enter(0);publish();return 1;}}}
+        else if(x>=416&&x<784&&y<320){sel_row=(u8)(5+(y-128)/48);if(sel_row==7){visual_mode=2;page_enter(0);publish();return 1;}}}
     draw_page();return 1;
 }

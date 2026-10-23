@@ -17,7 +17,7 @@ module midi_performance_control (
     output reg  [6:0]  delay_time,
     output reg  [6:0]  reverb_mix,
     output reg         preset_select_valid,
-    output reg  [4:0]  preset_select
+    output reg  [6:0]  preset_select
 );
 
     wire [7:0] status = midi_event_data[23:16];
@@ -35,7 +35,7 @@ module midi_performance_control (
             delay_time      <= 7'd64;
             reverb_mix      <= 7'd0;
             preset_select_valid <= 1'b0;
-            preset_select <= 5'd0;
+            preset_select <= 7'd0;
         end else begin
             preset_select_valid <= 1'b0;
             if (midi_event_valid) begin
@@ -50,16 +50,14 @@ module midi_performance_control (
                     // The keyboard's eight knobs send CC20..CC27.  CC20 is
                     // already master volume inside midi_poly_synth.
                     7'd21: chorus_mix      <= data2; // OCT knob
-                    7'd22: portamento_time <= data2; // LATCH knob; zero=off
+                    7'd22: portamento_time <= data2; // LATCH: zero=off, nonzero=mono legato
                     7'd23: delay_mix       <= data2; // GATE knob
                     7'd24: reverb_mix      <= data2; // SWING knob
                     7'd25: delay_time      <= data2; // TEMPO knob
                     7'd26: vibrato_rate    <= data2; // RATE knob
-                    // TRANSPOSE knob: direct values 0..31 select ROM1A's
-                    // 32 power-on voices. Values 32..127 are ignored so the
-                    // encoder cannot unexpectedly wrap to another patch.
-                    7'd27: if (data2 <= 7'd31) begin
-                        preset_select <= data2[4:0];
+                    // TRANSPOSE knob: 0..127 select the four factory banks.
+                    7'd27: begin
+                        preset_select <= data2;
                         preset_select_valid <= 1'b1;
                     end
 

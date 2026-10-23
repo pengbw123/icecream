@@ -3,7 +3,7 @@
 module fm_status_lcd (
     input  wire clk, input wire reset_n, input wire sample_tick,
     input  wire signed [15:0] audio_sample,
-    input  wire [4:0] active_voice_count, input wire [4:0] preset_index,
+    input  wire [4:0] active_voice_count, input wire [6:0] preset_index,
     input  wire [4:0] algorithm, input wire [47:0] algorithm_flags,
     input  wire [47:0] operator_envelope_levels,
     input  wire [7:0] peak_level, input wire clip_active,
@@ -15,12 +15,12 @@ module fm_status_lcd (
                ST_PIXEL_HI=3'd6, ST_PIXEL_LO=3'd7;
 
     reg [11:0] init_memory [0:87];
-    reg [7:0] preset_name_memory [0:319];
+    reg [7:0] preset_name_memory [0:1279];
     initial begin
         $readmemh("src/generated/st7735_160x80_init.mem", init_memory);
         $readmemh("src/generated/fm_rom1a_names.mem", preset_name_memory);
     end
-    reg [8:0] name_address;
+    reg [10:0] name_address;
     reg [7:0] name_character;
     always @(posedge clk) name_character <= preset_name_memory[name_address];
 
@@ -171,7 +171,7 @@ module fm_status_lcd (
 
     wire [7:0] next_pixel_x=(pixel_x==159)?0:pixel_x+1'b1;
     wire [6:0] next_pixel_y=(pixel_x==159)?((pixel_y==79)?0:pixel_y+1'b1):pixel_y;
-    wire [8:0] next_name_address=preset_index*10+(next_pixel_x>>2);
+    wire [10:0] next_name_address=preset_index*10+(next_pixel_x>>2);
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             state<=ST_RESET; delay_counter<=0; init_index<=0; pixel_x<=0;

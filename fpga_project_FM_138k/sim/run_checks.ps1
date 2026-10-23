@@ -7,6 +7,7 @@ try {
     $vvp = if ($IverilogDirectory) { Join-Path $IverilogDirectory 'vvp.exe' } else { 'vvp' }
     New-Item -ItemType Directory -Force -Path 'tmp' | Out-Null
     $cases = @(
+        @{ Name='tb_velocity80'; Sources=@('sim/tb_velocity80.sv','../fpga_midi_bridge_25k/src/top_bridge.v','../fpga_midi_bridge_25k/src/midi_frame_tx.v','src/midi_performance_control.v') },
         @{ Name='tb_audio_spectrum'; Sources=@('sim/tb_audio_spectrum.sv','src/audio_spectrum_analyzer.v') },
         @{ Name='tb_spectrum_snapshot'; Sources=@('sim/tb_spectrum_snapshot.sv','src/audio_spectrum_snapshot.v') },
         @{ Name='tb_i2s_output_select'; Sources=@('sim/tb_i2s_output_select.sv','src/i2s_tx.v') },
@@ -54,11 +55,17 @@ try {
             & $vvp $outputFile '+spectrum'
             if ($LASTEXITCODE -ne 0) { throw 'HDMI spectrum raster regression failed.' }
         }
+        if ($case.Name -eq 'tb_fm_readback') {
+            & $vvp $outputFile '+legato'
+            if ($LASTEXITCODE -ne 0) { throw 'Mono legato regression failed.' }
+        }
         if ($case.Name -eq 'tb_touch_ui') {
             & $vvp $outputFile '+keyboard'
             if ($LASTEXITCODE -ne 0) { throw 'Full-width keyboard, velocity and output-selection regression failed.' }
             & $vvp $outputFile '+spectrum'
             if ($LASTEXITCODE -ne 0) { throw 'Spectrum UI mode/shortcut regression failed.' }
+            & $vvp $outputFile '+performance'
+            if ($LASTEXITCODE -ne 0) { throw '128 presets and glide menu regression failed.' }
         }
     }
     Write-Host 'All 138K I/O, touch and RGB regression checks passed.'

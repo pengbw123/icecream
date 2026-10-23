@@ -126,5 +126,389 @@
   {
     "index": 31,
     "name": "TAKE OFF"
+  },
+  {
+    "index": 32,
+    "name": "PIANO   4"
+  },
+  {
+    "index": 33,
+    "name": "PIANO   5"
+  },
+  {
+    "index": 34,
+    "name": "E.PIANO 2"
+  },
+  {
+    "index": 35,
+    "name": "E.PIANO 3"
+  },
+  {
+    "index": 36,
+    "name": "E.PIANO 4"
+  },
+  {
+    "index": 37,
+    "name": "PIANO 5THS"
+  },
+  {
+    "index": 38,
+    "name": "CELESTE"
+  },
+  {
+    "index": 39,
+    "name": "TOY PIANO"
+  },
+  {
+    "index": 40,
+    "name": "HARPSICH 2"
+  },
+  {
+    "index": 41,
+    "name": "HARPSICH 3"
+  },
+  {
+    "index": 42,
+    "name": "CLAV    2"
+  },
+  {
+    "index": 43,
+    "name": "CLAV    3"
+  },
+  {
+    "index": 44,
+    "name": "E.ORGAN 2"
+  },
+  {
+    "index": 45,
+    "name": "E.ORGAN 3"
+  },
+  {
+    "index": 46,
+    "name": "E.ORGAN 4"
+  },
+  {
+    "index": 47,
+    "name": "E.ORGAN 5"
+  },
+  {
+    "index": 48,
+    "name": "PIPES   2"
+  },
+  {
+    "index": 49,
+    "name": "PIPES   3"
+  },
+  {
+    "index": 50,
+    "name": "PIPES   4"
+  },
+  {
+    "index": 51,
+    "name": "CALIOPE"
+  },
+  {
+    "index": 52,
+    "name": "ACCORDION"
+  },
+  {
+    "index": 53,
+    "name": "SITAR"
+  },
+  {
+    "index": 54,
+    "name": "GUITAR  3"
+  },
+  {
+    "index": 55,
+    "name": "GUITAR  4"
+  },
+  {
+    "index": 56,
+    "name": "GUITAR  5"
+  },
+  {
+    "index": 57,
+    "name": "GUITAR  6"
+  },
+  {
+    "index": 58,
+    "name": "LUTE"
+  },
+  {
+    "index": 59,
+    "name": "BANJO"
+  },
+  {
+    "index": 60,
+    "name": "HARP    1"
+  },
+  {
+    "index": 61,
+    "name": "HARP    2"
+  },
+  {
+    "index": 62,
+    "name": "BASS    3"
+  },
+  {
+    "index": 63,
+    "name": "BASS    4"
+  },
+  {
+    "index": 64,
+    "name": "PICCOLO"
+  },
+  {
+    "index": 65,
+    "name": "FLUTE   2"
+  },
+  {
+    "index": 66,
+    "name": "OBOE"
+  },
+  {
+    "index": 67,
+    "name": "CLARINET"
+  },
+  {
+    "index": 68,
+    "name": "SAX BC"
+  },
+  {
+    "index": 69,
+    "name": "BASSOON"
+  },
+  {
+    "index": 70,
+    "name": "STRINGS 4"
+  },
+  {
+    "index": 71,
+    "name": "STRINGS 5"
+  },
+  {
+    "index": 72,
+    "name": "STRINGS 6"
+  },
+  {
+    "index": 73,
+    "name": "STRINGS 7"
+  },
+  {
+    "index": 74,
+    "name": "STRINGS 8"
+  },
+  {
+    "index": 75,
+    "name": "BRASS   4"
+  },
+  {
+    "index": 76,
+    "name": "BRASS   5"
+  },
+  {
+    "index": 77,
+    "name": "BRASS 6 BC"
+  },
+  {
+    "index": 78,
+    "name": "BRASS   7"
+  },
+  {
+    "index": 79,
+    "name": "BRASS   8"
+  },
+  {
+    "index": 80,
+    "name": "RECORDER"
+  },
+  {
+    "index": 81,
+    "name": "HARMONICA1"
+  },
+  {
+    "index": 82,
+    "name": "HRMNCA2 BC"
+  },
+  {
+    "index": 83,
+    "name": "VOICE   2"
+  },
+  {
+    "index": 84,
+    "name": "VOICE   3"
+  },
+  {
+    "index": 85,
+    "name": "GLOKENSPL"
+  },
+  {
+    "index": 86,
+    "name": "VIBE    2"
+  },
+  {
+    "index": 87,
+    "name": "XYLOPHONE"
+  },
+  {
+    "index": 88,
+    "name": "CHIMES"
+  },
+  {
+    "index": 89,
+    "name": "GONG    1"
+  },
+  {
+    "index": 90,
+    "name": "GONG    2"
+  },
+  {
+    "index": 91,
+    "name": "BELLS"
+  },
+  {
+    "index": 92,
+    "name": "COW BELL"
+  },
+  {
+    "index": 93,
+    "name": "BLOCK"
+  },
+  {
+    "index": 94,
+    "name": "FLEXATONE"
+  },
+  {
+    "index": 95,
+    "name": "LOG DRUM"
+  },
+  {
+    "index": 96,
+    "name": "SYN-LEAD 2"
+  },
+  {
+    "index": 97,
+    "name": "SYN-LEAD 3"
+  },
+  {
+    "index": 98,
+    "name": "SYN-LEAD 4"
+  },
+  {
+    "index": 99,
+    "name": "SYN-LEAD 5"
+  },
+  {
+    "index": 100,
+    "name": "SYN-CLAV 1"
+  },
+  {
+    "index": 101,
+    "name": "SYN-CLAV 2"
+  },
+  {
+    "index": 102,
+    "name": "SYN-CLAV 3"
+  },
+  {
+    "index": 103,
+    "name": "SYN-PIANO"
+  },
+  {
+    "index": 104,
+    "name": "SYNBRASS 1"
+  },
+  {
+    "index": 105,
+    "name": "SYNBRASS 2"
+  },
+  {
+    "index": 106,
+    "name": "SYNORGAN 1"
+  },
+  {
+    "index": 107,
+    "name": "SYNORGAN 2"
+  },
+  {
+    "index": 108,
+    "name": "SYN-VOX"
+  },
+  {
+    "index": 109,
+    "name": "SYN-ORCH"
+  },
+  {
+    "index": 110,
+    "name": "SYN-BASS 1"
+  },
+  {
+    "index": 111,
+    "name": "SYN-BASS 2"
+  },
+  {
+    "index": 112,
+    "name": "HARP-FLUTE"
+  },
+  {
+    "index": 113,
+    "name": "BELL-FLUTE"
+  },
+  {
+    "index": 114,
+    "name": "E.P-BRS BC"
+  },
+  {
+    "index": 115,
+    "name": "T.BL-EXPA"
+  },
+  {
+    "index": 116,
+    "name": "CHIME-STRG"
+  },
+  {
+    "index": 117,
+    "name": "B.DRM-SNAR"
+  },
+  {
+    "index": 118,
+    "name": "SHIMMER"
+  },
+  {
+    "index": 119,
+    "name": "EVOLUTION"
+  },
+  {
+    "index": 120,
+    "name": "WATER GDN"
+  },
+  {
+    "index": 121,
+    "name": "WASP STING"
+  },
+  {
+    "index": 122,
+    "name": "LASER GUN"
+  },
+  {
+    "index": 123,
+    "name": "DESCENT"
+  },
+  {
+    "index": 124,
+    "name": "OCTAVE WAR"
+  },
+  {
+    "index": 125,
+    "name": "GRAND PRIX"
+  },
+  {
+    "index": 126,
+    "name": "ST.HELENS"
+  },
+  {
+    "index": 127,
+    "name": "EXPLOSION"
   }
 ]

@@ -10,7 +10,7 @@
   旧章节中的 PERF/NAME/UTIL、橙色主题和旧控件坐标不再是当前菜单布局。
 - 界面仍为纯 RTL 字符/图形扫描 + RV32I 菜单逻辑，800×480；无逐像素软核 GUI。
 - 新布局单独放在 `src/ui_firmware/menu_layout.h`，修改后仍需重新编译 firmware.hex。
-- FFT / ARP / SEQ 仅预留入口，不能当作已经实现。
+- FFT 已实现，详见 SPECTRUM.md；ARP / SEQ 尚未实现。最新发布状态见本文末尾。
 - 本轮构建/时序与实机状态见文末 UI 发布记录；旧 14:39 位流已备份到
   `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-23_pre_ui.fs`。
 
@@ -236,3 +236,41 @@ DECAY 基础反馈范围 0.50..0.90。原整数 DC 阻断器留下永久尾音�
   HDMI 频谱见 `tmp/checks_spectrum_hdmi.log`。RGB 早期一次性注入在丢锁后失效是测试夹具问题，
   最终改为持续注入并验证恢复；早期 debug 失败日志不是最终发布结果。
 - 实机待确认：谐波/已知频率峰值、主音量对应高度、静音回落、快速切换和两屏同时运行。
+
+## 128 音色、单音滑音与力度修订（2026-10-23）
+
+- 原始 USB 力度校准 0..90 改为 0..80 → 0..127，十进制 20→32；80 以上限幅 127，零保持松键。
+  同时修改 `fpga_midi_bridge_25k/src/top_bridge.v` 与本工程 `top.v` 的直连 USB 默认参数。
+  桥接 UART 不二次缩放；使用 25K USB 桥接板时必须同时更新该板位流。
+- ROM1A、ROM1B、ROM2A、ROM2B 按顺序全部内置，共 128 个，菜单编号 001..128。
+  各库源为 D:/a_files/Cartridges/rom{1a,1b,2a,2b}.syx。历史 `fm_rom1a_*.mem` 文件名保持，内容已扩容。
+  预设 ID 全链路扩为 7 位，CC27 支持 0..127；UI[4] 的高两位 ID 使用 [23:22]，其他既有字段不移动。
+  `fm_preset_names.h` 与参数 ROM 来自同一生成器，首页与 PATCH 支持三位编号、26 页和高库名称。
+- **名称越过 32 错误**：`name_from_preset()` 原残留 `pr &=31u`，现改为 127u。
+  `tb_touch_ui +performance` 的最终测试明确检查第 128 个名字前缀 EX（EXPLOSION），防止只扩编号而名字回绕。
+- SETUP 新增 GLIDE MONO，默认 OFF。ON 为单音后键优先，重叠按键触发、无间隔门限；
+  松开当前键时回到最近仍按住的键，全部松开后下次直接起音。延音踏板与尾音不算物理按住。
+  固定约 168 ms，逐算子相位增量以宽有符号运算线性滑动并钳位到准确终点；连奏保留相位/包络/LFO，
+  固定频率算子维持固定值。CC22=0 关闭、非 0 开启，值大小不改变时间。0x69/0x00C 可读模式。
+  颤音本轮未改。模式切换会清理旧声部/按键历史。分配器最后一个空闲声部漏分配也已修复。
+- 音色和滑音实现/验证见 `LEGATO_AND_FACTORY128.md`。用户持久保存仅方案，优先 SD 卡，
+  见 `USER_PRESETS_PLAN.md`；原理图第 15 页确认 J8 MicroSD 卡座，第 2 页为配置 Flash MX25L12845G。
+  计划 SD SPI + 精简 FAT32、USER 128 槽、FM+FX、原生快照 CRC/A-B 副本，与后续 MIDI 曲库共用驱动。
+  **当前 8 个用户槽仍是 RAM，掉电丢失，未接入 SD/Flash 写入。**
+- 138K 最终位流：impl/pnr/fm_138k_rgb_hdmi.fs，2026-10-23 22:18:58，41,746,941 字节。
+  SHA256：1FC729FBAE5A59EA4847A42D7929C61DC17DF15B0DF513AB43C05576C13F9C3A。
+  固件 42,684/65,536 B，Logic 32218、Register 16667、BSRAM 297/340、DSP 64.5/298。
+  Fmax 主域 54.670、RGB 37.530、HDMI 像素 36.492、串行 154.652 MHz，四域 setup/hold TNS=0。
+  最终构建 tmp/build_legato128_final.log；较早 build_legato128.log 尚未包含高库名称修复，不作发布位流。
+- 25K 桥接最终位流：../fpga_midi_bridge_25k/impl/pnr/midi_bridge_25k.fs，2026-10-23 21:51:30，6,497,336 字节。
+  SHA256：1F9E610D25C44E7509FB1B18A60217B0FA0B741D80AA68A1563EB3B6C1689A6F。
+  clk_50m Fmax 127.883 MHz、USB 47.917 MHz 域 Fmax 80.395 MHz；所有 setup/hold TNS=0，
+  96 MHz 派生时钟被 Gowin 明确报告无数据时序路径。验证器现接受这种显式无路径的报告，仍要求对应 TNS=0。
+- 修改前频谱版备份：impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-23_pre_legato128.fs。
+- 回归全部通过：`tmp/checks_legato128_release.log` 覆盖原功能、128 预设、单音滑音及所有显示场景。
+  最终高库名称修复后的真实 UI 专项见 `tmp/checks_performance_final.log`；实际桥接校准遍历与 CC27 全范围见
+  `tmp/checks_velocity80.log`。FM 音色解析/生成器的 10 项 Python 单测通过。
+  最终 UI 固件 42,684 B；基础回归的长场景先加载名称掩码修正前的固件，随后各新启动场景使用最终固件，
+  最终专项明确检查高库名称、编号、末页、滑音和按键，不以旧名称版测试代替发布检查。
+  45 个工程 RTL 文件 hierarchy 校验通过，两块 FPGA 位流时序检查通过。未执行实机烧录。
+- 实机待确认：四库试听、超过 32 的名称、力度手感、单音连奏与松键回退、踏板和快速开关模式。

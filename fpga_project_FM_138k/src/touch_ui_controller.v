@@ -11,7 +11,8 @@ module touch_ui_controller (
     input wire midi_event_ready,
     input wire [31:0] monitor_event,
     input wire monitor_event_valid,
-    input wire [4:0] preset_index, algorithm, active_voices,
+    input wire [6:0] preset_index,
+    input wire [4:0] algorithm, active_voices,
     output wire touch_present,
     output wire signed [3:0] keyboard_octave,
     output wire [6:0] master_volume,
@@ -103,7 +104,7 @@ module touch_ui_controller (
             1:ui_data=microseconds;
             2:ui_data={31'd0,!midi_event_valid};
             3:ui_data=midi_event_data;
-            4:ui_data={10'd0,active_voices,algorithm,preset_index,volume};
+            4:ui_data={8'd0,preset_index[6:5],active_voices,algorithm,preset_index[4:0],volume};
             5:ui_data=ui_state;
             9:ui_data={31'd0,command_ready&&!command_valid};
             17:ui_data={31'd0,text_enable};

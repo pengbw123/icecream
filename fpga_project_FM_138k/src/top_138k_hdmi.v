@@ -37,7 +37,8 @@ module top_138k_hdmi (
     wire signed [15:0] pcm;
     wire tick, event_valid;
     wire [31:0] event_data;
-    wire [4:0] voices,preset,algorithm;
+    wire [4:0] voices,algorithm;
+    wire [6:0] preset;
     wire [47:0] operator_eg;
     wire [31:0] ui_event;
     wire ui_valid,ui_ready,external_ready,touch_present;

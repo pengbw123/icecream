@@ -14,7 +14,7 @@ module tb_fm_readback;
     reg [63:0] local_payload=0;
     wire local_ready;
     reg preset_select_valid=0;
-    reg [4:0] preset_select=0;
+    reg [6:0] preset_select=0;
     wire [31:0] midi_event_data;
     wire midi_event_valid;
     wire [6:0] midi_event_brightness;
@@ -67,7 +67,7 @@ module tb_fm_readback;
     wire [5:0]  fx_read_index;
     wire [15:0] fx_read_value;
     wire packet_received, packet_error;
-    wire [4:0] current_preset;
+    wire [6:0] current_preset;
 
     fm_uart_control u_ctl (
         .clk(clk), .reset_n(reset_n), .uart_rx_pin(uart_rx),
@@ -124,14 +124,15 @@ module tb_fm_readback;
         .current_preset(current_preset)
     );
 
+    reg test_tick=0,test_valid=0;reg [31:0] test_event=0;reg [6:0] test_porta=0;
     // Real synth readback source (idle engine, sample_tick held low).
     wire signed [15:0] sample_out;
     wire [4:0] active_voice_count;
     wire [47:0] operator_envelope_levels;
     wire synth_midi_ready;
     fm_poly_synth #(.VOICE_COUNT(2)) u_synth (
-        .clk(clk), .reset_n(reset_n), .sample_tick(1'b0),
-        .midi_event_data(32'd0), .midi_event_valid(1'b0),
+        .clk(clk), .reset_n(reset_n), .sample_tick(test_tick),
+        .midi_event_data(test_event), .midi_event_valid(test_valid),
         .midi_event_brightness(7'd0), .midi_event_ready(synth_midi_ready),
         .fm_algorithm(fm_algorithm), .fm_feedback(fm_feedback),
         .fm_osc_sync(fm_osc_sync), .fm_transpose(fm_transpose),
@@ -171,7 +172,7 @@ module tb_fm_readback;
         .fm_patch_commit(fm_patch_commit),
         .patch_read_address(patch_read_address), .patch_read_data(patch_read_data),
         .pitch_bend(14'd0), .vibrato_depth(7'd0), .vibrato_rate(7'd64),
-        .portamento_time(7'd0), .sample_out(sample_out),
+        .portamento_time(test_porta), .sample_out(sample_out),
         .active_voice_count(active_voice_count),
         .operator_envelope_levels(operator_envelope_levels)
     );
@@ -185,7 +186,7 @@ module tb_fm_readback;
 
     localparam CLKS_PER_BIT = 434;
     reg [47:0] expected_flags [0:31];
-    reg [47:0] preset_flags [0:31];
+    reg [47:0] preset_flags [0:127];
     initial begin
         $readmemh("src/generated/fm_algorithm_flags.mem", expected_flags);
         $readmemh("src/generated/fm_rom1a_algorithm.mem", preset_flags);
@@ -255,12 +256,72 @@ module tb_fm_readback;
         end
     endtask
 
+    task key_event(input [7:0] status,input [6:0] note,value);
+        begin
+            wait(synth_midi_ready);@(negedge clk);test_event={8'd0,status,1'b0,note,1'b0,value};test_valid=1;
+            @(negedge clk);test_valid=0;
+            repeat(400)@(negedge clk);
+        end
+    endtask
+    task audio_frame;
+        begin
+            @(negedge clk);test_tick=1;@(negedge clk);test_tick=0;
+            wait(u_synth.engine_state!=0);wait(u_synth.engine_state==0);
+            repeat(2)@(negedge clk);
+        end
+    endtask
+    task check_mono;
+        integer n;reg [31:0] previous,target,phase_before;reg [25:0] env_before;
+        begin
+            test_porta=127;repeat(5)@(negedge clk);
+            key_event(8'h90,60,100);
+            repeat(64)audio_frame();
+            if(active_voice_count!=1)$fatal(1,"Mono first voice count=%d held=%h active=%b gate=%b",active_voice_count,u_synth.mono_held,u_synth.voice_active[0],u_synth.voice_gate[0]);
+            previous=u_synth.operator_state_memory[0][75:44];
+            phase_before=u_synth.operator_state_memory[0][107:76];env_before=u_synth.operator_state_memory[0][43:18];
+            key_event(8'h90,72,90);
+            if(active_voice_count!=1||u_synth.voice_note[0]!=72)$fatal(1,"Mono overlap allocation");
+            if(u_synth.operator_state_memory[0][75:44]!=previous ||
+               u_synth.operator_state_memory[0][107:76]!=phase_before ||
+               u_synth.operator_state_memory[0][43:18]!=env_before)$fatal(1,"Legato jumped pitch/reset phase/envelope");
+            target=u_synth.glide_memory[0][31:0];
+            if(target<=previous)$fatal(1,"Upward glide target");
+            for(n=0;n<8200;n=n+1)begin
+                audio_frame();
+                if(u_synth.operator_state_memory[0][75:44]<previous || u_synth.operator_state_memory[0][75:44]>target)
+                    $fatal(1,"Glide upward wrap/overshoot");
+                previous=u_synth.operator_state_memory[0][75:44];
+            end
+            if(previous!=target)$fatal(1,"Glide failed to settle exactly");
+            key_event(8'h90,67,80);repeat(80)audio_frame();
+            previous=u_synth.operator_state_memory[0][75:44];
+            if(previous>=target)$fatal(1,"Downward glide did not move");
+            key_event(8'h80,67,0);
+            if(u_synth.voice_note[0]!=72 || !u_synth.voice_gate[0])$fatal(1,"Last-held note return");
+            if(u_synth.operator_state_memory[0][75:44]!=previous)$fatal(1,"Return jumped current glide pitch");
+            key_event(8'h80,60,0);if(!u_synth.voice_gate[0])$fatal(1,"Old note-off killed current note");
+            key_event(8'h80,72,0);if(u_synth.voice_gate[0] || u_synth.mono_held!=0)$fatal(1,"Final release stuck");
+            key_event(8'hb0,64,127);key_event(8'h90,60,100);key_event(8'h80,60,0);
+            if(!u_synth.voice_gate[0] || u_synth.mono_held!=0)$fatal(1,"Sustain physical key separation");
+            key_event(8'h90,48,100);
+            if(u_synth.glide_memory[0][64:32]!=0)$fatal(1,"Sustain/release tail incorrectly triggered glide");
+            key_event(8'hb0,120,0);
+            if(active_voice_count!=0 || u_synth.mono_held!=0)$fatal(1,"All sound off left mono keys");
+            test_porta=0;repeat(5)@(negedge clk);
+            key_event(8'h90,60,100);key_event(8'h90,64,100);
+            if(active_voice_count!=2)$fatal(1,"Glide OFF did not restore polyphony");
+            $display("PASS mono legato: overlap, preserved phase/EG, signed glide, exact endpoint, last priority, sustain, panic and poly bypass");
+        end
+    endtask
+    integer bank_n;
     reg [63:0] payload;
     integer race_ok;
     initial begin
         repeat (10) @(posedge clk);
         reset_n = 1;
         repeat (5) @(posedge clk);
+
+        if($test$plusargs("legato"))begin repeat(500)@(negedge clk);check_mono();$finish;end
 
         // 1. operator field write then read back through the synth.
         payload = 64'd0;
@@ -362,6 +423,17 @@ module tb_fm_readback;
         end else
             $display("ok   out-of-range FX address rejected");
 
+        for(bank_n=0;bank_n<128;bank_n=bank_n+1)begin
+            @(negedge clk);preset_select=bank_n;preset_select_valid=1;
+            @(negedge clk);preset_select_valid=0;
+            wait(u_ctl.preset_load_state!=0);wait(u_ctl.preset_load_state==0);
+            repeat(10)@(negedge clk);
+            if(current_preset!=bank_n || fm_algorithm!==u_ctl.preset_global_memory[bank_n][4:0] ||
+               u_synth.patch_op_gain[0]!=={9'd0,u_ctl.preset_operator_memory[bank_n*6][40:34]} ||
+               u_synth.patch_eg_qrate[23]!==u_ctl.preset_envelope_memory[bank_n*24+23][5:0] ||
+               fm_algorithm_flags!==preset_flags[bank_n])$fatal(1,"128 preset load/address failure bank=%d",bank_n);
+        end
+        $display("PASS all 128 factory presets, operator/envelope boundaries and algorithm flags");
         if (errors == 0) $display("PASS 0x69 readback, algorithm install, race and preset load");
         else $display("FAIL %0d checks", errors);
         $finish;
@@ -377,7 +449,7 @@ module tb_fm_readback;
         if (packet_error && u_ctl.command == 8'h70) saw_fx_error <= 1;
     end
     initial begin
-        #40000000; // 40 ms guard: each UART packet is ~0.95 ms at 115200
+        if($test$plusargs("legato"))#500000000;else #40000000; // 40 ms guard: each UART packet is ~0.95 ms at 115200
         $display("FAIL timeout");
         $finish;
     end
