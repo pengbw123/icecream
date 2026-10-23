@@ -20,8 +20,8 @@
   背景有 WHITE / COOL GRAY / CHARCOAL / BLACK；主题有 BLUE / CYAN / TEAL / VIOLET / SLATE。
   默认 BLACK + BLUE，配色设置在断电后恢复默认。
 - 主音量默认 5（MIDI 原始值 0..127），控制选定的音频输出；SETUP → AUDIO OUTPUT 在 SPEAKER / HEADPHONE 二选一，未选输出发送数字静音。
-- SETUP 的 SPECTRUM 保留入口，提示 RESERVED；PLAY 已移除 ARP / SEQ / PANIC 与琴键上方控制条。
-  后续各自增加内部页即可，不必缩小顶层导航。
+- PLAY 提供 WAVE / XY / FFT 三种实时显示；SETUP 的 SPECTRUM 直接打开首页频谱，DISPLAY 也可切换。
+  ARP / SEQ / PANIC 与原琴键上方控制条已移除，后续工具仍可增加内部页。
 
 ## 实现
 
@@ -81,3 +81,11 @@
 四个时钟域 setup/hold TNS 均为 0。最终构建日志 `tmp/build_keyboard_delivery.log`；
 全套回归 `tmp/checks_keyboard_release.log`，最终固件完整菜单回归 `tmp/checks_keyboard_final.log`，
 键盘专项 `tmp/checks_keyboard_delivery.log`。位流校验值和实机检查事项见 `AI_HANDOFF.md` 末节。
+
+## 实时频谱
+
+首页保留 800×128 键盘，右侧 WAVE / XY / FFT 为三个 48 像素高按钮。
+频谱使用 64 个对数频段柱与峰值标记，显示 -72..0 dBFS，主题颜色沿用既有设置。
+RGB 主图 y=96..319，下面标注频率，右侧标注 dBFS；HDMI 同步显示同一份分析数据。
+FFT、平滑、缓存和逐像素绘制均为 RTL，软核只选择模式和绘制菜单文字。
+实现、频率分辨率与验证说明见 `SPECTRUM.md`。

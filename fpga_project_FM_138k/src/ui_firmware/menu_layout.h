@@ -58,13 +58,17 @@ static void draw_status(void){u8 i;u32 st=UI[4];u8 pr=(u8)((st>>7)&31u);
     pair_text(92,3,nb,5,0);
 }
 static void draw_perf_controls(void){
-    text(2,5,visual_mode?"LISSAJOUS":"WAVEFORM",2,0);text(68,5,"OUT",2,0);
+    text(2,5,visual_mode==2?"SPECTRUM / dBFS":visual_mode==1?"LISSAJOUS":"WAVEFORM",2,0);text(68,5,visual_mode==2?"dBFS":"OUT",2,0);
+    if(visual_mode==2){
+        text(2,20,"50",2,0);text(16,20,"200",2,0);text(32,20,"1k",2,0);text(48,20,"5k",2,0);text(61,20,"20k",2,0);
+        text(68,6,"0",2,0);text(68,10,"-24",2,0);text(68,15,"-48",2,0);text(68,19,"-72",2,0);
+    }
     text(76,6,"VOLUME",2,0);
     nb[0]=(char)('0'+vol_local/100);nb[1]=(char)('0'+(vol_local/10)%10);nb[2]=(char)('0'+vol_local%10);nb[3]=0;
     text_r(98,6,nb,1,0);
     button_box(76,8,10,3,"-",0);button_box(88,8,10,3,"+",0);
     button_box(76,11,10,3,"< PREV",0);button_box(88,11,10,3,"NEXT >",0);
-    button_box(76,15,10,3,"WAVE",!visual_mode);button_box(88,15,10,3,"XY",visual_mode);
+    button_box(76,15,7,3,"WAVE",visual_mode==0);button_box(84,15,7,3,"XY",visual_mode==1);button_box(92,15,6,3,"FFT",visual_mode==2);
     button_box(76,18,10,3,"OCT -",0);button_box(88,18,10,3,"OCT +",0);
 }
 static void draw_perf(void){draw_tabs();draw_status();draw_perf_controls();}
@@ -136,15 +140,15 @@ static void draw_name(void){u8 i;char label[12];text(2,6,"ROM1A / 32 VOICES",2,0
 }
 static const char *const setup_labels[8]={"BACKGROUND","ACCENT","DISPLAY","XY DELAY","AUTO RANGE","KEY VELOCITY","AUDIO OUTPUT","SPECTRUM"};
 static const char *setup_value(u8 n){if(n==0)return bg_labels[bg_pick];if(n==1)return ac_labels[accent_pick];
-    if(n==2)return visual_mode?"XY":"WAVE";if(n==3)return u2d(xy_delay);
+    if(n==2)return visual_mode==2?"SPECTRUM":visual_mode==1?"XY":"WAVE";if(n==3)return u2d(xy_delay);
     if(n==4)return display_auto_gain?"ON":"OFF";if(n==5){
         nb[0]=(char)('0'+touch_velocity/100);nb[1]=(char)('0'+(touch_velocity/10)%10);nb[2]=(char)('0'+touch_velocity%10);nb[3]=0;return nb;}
-    if(n==6)return headphone_select?"HEADPHONE":"SPEAKER";return "RESERVED >";}
+    if(n==6)return headphone_select?"HEADPHONE":"SPEAKER";return "OPEN >";}
 static void draw_theme(void){u8 i;text(2,6,"DISPLAY",2,0);text(52,6,"KEYBOARD / AUDIO",2,0);
     for(i=0;i<5;i++)row_box(2,(u8)(8+i*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
     for(i=5;i<8;i++)row_box(52,(u8)(8+(i-5)*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
     text(54,19,"Fs 48.828 kHz",2,0);text(54,21,"RAM SLOTS: VOLATILE",2,0);
-    text(54,23,"HDMI: WAVE / XY",2,0);
+    text(54,23,"HDMI: WAVE / XY / FFT",2,0);
 }
 static const char *selected_label(void){if(page==1){static const char *const a[4]={"ALGORITHM","FEEDBACK","OSC SYNC","TRANSPOSE"};return a[sel_row];}
     if(page==2)return osc_labels[sel_row];if(page==3)return sel_row<4?"RATE":"LEVEL";
@@ -191,7 +195,7 @@ static void request_rom(u8 n){patch_pick=n;if(patch_dirty){dialog=5;draw_page();
 static void perf_control(int x,int y,u8 id){u8 k=0;u32 t=now();
     if(y>=128&&y<176&&x>=608)k=x<696?3:4;
     else if(y>=176&&y<224&&x>=608){request_rom((u8)((preset_local+(x<696?31:1))&31));return;}
-    else if(y>=240&&y<288&&x>=608){visual_mode=x<696?0:1;publish();draw_page();return;}
+    else if(y>=240&&y<288&&x>=608){visual_mode=x<672?0:x<736?1:2;publish();draw_page();return;}
     else if(y>=288&&y<336&&x>=608)k=x<696?5:6;
     if(!k)return;if(ctrl_last[k]&&(u32)(t-ctrl_last[k])<300000u)return;
     ctrl_last[k]=t;perf_step(k);ctrl_hold=k;ctrl_hold_id=id;ctrl_hold_t=t;ctrl_hold_count=0;
@@ -207,7 +211,7 @@ static void page_enter(u8 p){if(p==page&&p!=0)return;release_all();ctrl_hold=0;h
 }
 static void adj_setup(u8 r,int d){int n;
     if(r<2){u8 max=r==0?4:5;u8 *p=r==0?&bg_pick:&accent_pick;n=((int)*p+d+(int)max)%max;*p=(u8)n;apply_theme(0);}
-    else if(r==2)visual_mode=!visual_mode;
+    else if(r==2)visual_mode=(visual_mode+d+3)%3;
     else if(r==3){n=xy_delay+d;if(n<1)n=1;if(n>96)n=96;xy_delay=n;}
     else if(r==4)display_auto_gain=!display_auto_gain;
     else if(r==5){n=touch_velocity+d;if(n<1)n=1;if(n>127)n=127;touch_velocity=(u8)n;}
@@ -250,6 +254,6 @@ static int menu_press(int x,int y){int i,n;
         else if(x>=256&&x<784&&y>=128&&y<176&&fx_type_reg[fx_sel]!=255){n=(x-256)/176;fx_write(fx_type_reg[fx_sel],(u16)n);}
         else if(x>=256&&x<784&&y>=192&&y<368){i=(y-192)/64;if(i<3&&fx_p_reg[fx_sel][i]!=255)sel_row=(u8)(3+i);}}
     else if(page==7&&y>=128&&y<368){if(x>=16&&x<384)sel_row=(u8)((y-128)/48);
-        else if(x>=416&&x<784&&y<272){sel_row=(u8)(5+(y-128)/48);if(sel_row==7){dialog=3;sel_row=6;}}}
+        else if(x>=416&&x<784&&y<272){sel_row=(u8)(5+(y-128)/48);if(sel_row==7){visual_mode=2;page_enter(0);publish();return 1;}}}
     draw_page();return 1;
 }

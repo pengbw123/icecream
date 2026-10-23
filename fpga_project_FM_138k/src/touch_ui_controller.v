@@ -16,6 +16,7 @@ module touch_ui_controller (
     output wire signed [3:0] keyboard_octave,
     output wire [6:0] master_volume,
     output wire visual_mode,
+    output wire spectrum_enable,
     output wire headphone_select,
     output wire [6:0] xy_delay_samples,
     output wire display_auto_gain,
@@ -71,6 +72,7 @@ module touch_ui_controller (
     assign keyboard_octave=ui_state[11:8];
     assign master_volume=volume;
     assign visual_mode=ui_state[12];
+    assign spectrum_enable=ui_state[14];
     assign headphone_select=ui_state[13];
     assign xy_delay_samples=ui_state[22:16];
     // Bit 31 disables display gain. Zero-initialized/legacy firmware defaults

@@ -12,6 +12,8 @@
         <File path="src/audio_output_stage.v" type="file.verilog" enable="1"/>
         <File path="src/audio_phaser.v" type="file.verilog" enable="1"/>
         <File path="src/audio_reverb.v" type="file.verilog" enable="1"/>
+        <File path="src/audio_spectrum_analyzer.v" type="file.verilog" enable="1"/>
+        <File path="src/audio_spectrum_snapshot.v" type="file.verilog" enable="1"/>
         <File path="src/audio_wave_scope.v" type="file.verilog" enable="1"/>
         <File path="src/audio_xy_scope.v" type="file.verilog" enable="1"/>
         <File path="src/dvi_tx/dvi_tx.v" type="file.verilog" enable="0"/>

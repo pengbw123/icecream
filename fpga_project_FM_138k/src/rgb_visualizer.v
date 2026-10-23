@@ -15,6 +15,9 @@ module rgb_visualizer #(
     input wire signed [3:0] keyboard_octave,
     input wire [6:0] master_volume,
     input wire visual_mode,
+    input wire spectrum_enable,spectrum_write,
+    input wire [5:0] spectrum_address,
+    input wire [13:0] spectrum_data,
     input wire [6:0] xy_delay_samples,
     input wire [3:0] menu_page,input wire [47:0] algorithm_flags,
     input wire [23:0] background_color,wave_color,xy_color,
@@ -95,6 +98,15 @@ module rgb_visualizer #(
         .frame_latch(frame_latch),.pixel_address(xy_read_x[8:0]),
         .y_min(wave_min),.y_max(wave_max),.valid(wave_valid)
     );
+    wire [6:0] spectrum_level,spectrum_peak;
+    wire spectrum_valid;
+    audio_spectrum_snapshot u_spectrum_view (
+        .clk(clk),.reset_n(capture_reset_n),.bin_write(spectrum_write),
+        .bin_address(spectrum_address),.bin_data(spectrum_data),
+        .pixel_clk(pclk),.video_reset_n(video_reset_n),.frame_latch(frame_latch),
+        .pixel_address(xy_read_x[8:3]),.level(spectrum_level),.peak(spectrum_peak),.valid(spectrum_valid));
+    wire [9:0] spectrum_height=({3'd0,spectrum_level}*10'd7)/10'd3;
+    wire [9:0] spectrum_peak_height=({3'd0,spectrum_peak}*10'd7)/10'd3;
     always @(posedge pclk or negedge video_reset_n) begin
         if (!video_reset_n) begin hcount<=0; vcount<=0; x<=0; y<=0; end
         else begin
@@ -144,6 +156,8 @@ module rgb_visualizer #(
     reg touch_frame;
     reg [1:0] visual_sync;
     reg visual_frame;
+    reg [1:0] spectrum_sync;
+    reg spectrum_frame;
     reg [1:0] auto_sync;
     reg auto_frame;
     reg [6:0] delay_meta,delay_sync,delay_frame;
@@ -163,6 +177,7 @@ module rgb_visualizer #(
             volume_meta<=96;volume_sync<=96;volume_frame<=96;
             octave_meta<=0;octave_sync<=0;octave_frame<=0;touch_sync<=0;touch_frame<=0;
             visual_sync<=0;visual_frame<=0;delay_meta<=24;delay_sync<=24;delay_frame<=24;
+            spectrum_sync<=0;spectrum_frame<=0;
             auto_sync<=0;auto_frame<=0;
         end else begin
             keys_meta<=keys_down;keys_sync<=keys_meta;
@@ -175,6 +190,7 @@ module rgb_visualizer #(
             octave_meta<=keyboard_octave;octave_sync<=octave_meta;
             touch_sync<={touch_sync[0],touch_present};
             visual_sync<={visual_sync[0],visual_mode};
+            spectrum_sync<={spectrum_sync[0],spectrum_enable};
             auto_sync<={auto_sync[0],display_auto_gain};
             delay_meta<=xy_delay_samples;delay_sync<=delay_meta;
             if (frame_latch) begin
@@ -182,6 +198,7 @@ module rgb_visualizer #(
                 voices_frame<=voices_sync;alg_frame<=alg_sync;peak_frame<=peak_sync;clip_frame<=clip_sync[1];
                 volume_frame<=volume_sync;octave_frame<=octave_sync;touch_frame<=touch_sync[1];
                 visual_frame<=visual_sync[1];delay_frame<=delay_sync;
+                spectrum_frame<=spectrum_sync[1];
                 auto_frame<=auto_sync[1];
             end
         end
@@ -261,11 +278,21 @@ module rgb_visualizer #(
             // One extra row above and below: a 1-pixel trace loses pixels on the
             // real panel and reads as a broken line.  The XY view already draws
             // 2x2 blocks, which is why only the waveform looked discontinuous.
-            if (!visual_frame && wave_valid &&
+            if (!spectrum_frame && !visual_frame && wave_valid &&
                 y>=10'd96+wave_min-1'b1 && y<=10'd96+wave_max+1'b1) rgb=wc_frame;
-            if (visual_frame && xy_pixel) rgb=xc_frame;
+            if (!spectrum_frame && visual_frame && xy_pixel) rgb=xc_frame;
+            if(spectrum_frame)begin
+                rgb=bg_frame;
+                if(y<320)begin
+                    if(x[5:0]==16 || y==96 || y==170 || y==245 || y==319)rgb=ui_grid;
+                    if(spectrum_valid && spectrum_level!=0 && x[2:0]!=7 &&
+                       y>=320-spectrum_height)rgb=wc_frame;
+                    if(spectrum_valid && spectrum_peak!=0 && x[2:0]!=7 &&
+                       y==320-spectrum_peak_height)rgb=ui_dim;
+                end
+            end
         end
-        if (x>=544 && x<576 && y>=96 && y<352) begin
+        if (!spectrum_frame && x>=544 && x<576 && y>=96 && y<352) begin
             rgb=ui_panel;
             if (y>=351-peak_frame) rgb=wc_frame;
         end

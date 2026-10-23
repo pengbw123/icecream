@@ -43,7 +43,13 @@ module top_138k_hdmi (
     wire ui_valid,ui_ready,external_ready,touch_present;
     wire signed [3:0] keyboard_octave;
     wire [6:0] master_volume;
-    wire visual_mode;
+    wire visual_mode,spectrum_enable;
+    wire spectrum_write;
+    wire [5:0] spectrum_address;
+    wire [13:0] spectrum_data;
+    audio_spectrum_analyzer u_spectrum(.clk(clk),.reset_n(reset_n),
+        .sample_tick(tick),.audio_sample(pcm),.bin_write(spectrum_write),
+        .bin_address(spectrum_address),.bin_data(spectrum_data));
     wire headphone_select, headphone_din;
     wire [6:0] xy_delay_samples;
     wire display_auto_gain;
@@ -72,7 +78,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .monitor_event(event_data),.monitor_event_valid(event_valid),
         .preset_index(preset),.algorithm(algorithm),.active_voices(voices),
         .touch_present(touch_present),.keyboard_octave(keyboard_octave),.master_volume(master_volume),
-        .visual_mode(visual_mode),.headphone_select(headphone_select),.xy_delay_samples(xy_delay_samples),.display_auto_gain(display_auto_gain),
+        .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),.headphone_select(headphone_select),.xy_delay_samples(xy_delay_samples),.display_auto_gain(display_auto_gain),
         .menu_page(menu_page),.background_color(background_color),.wave_color(wave_color),.xy_color(xy_color),
         .text_write(text_write),.text_address(text_address),.text_data(text_data),
         .palette_write(palette_write),.palette_index(palette_index),.palette_data(palette_data),
@@ -122,7 +128,8 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .active_voice_count(voices),.preset_index(preset),.algorithm(algorithm),
         .operator_envelopes(operator_eg),.touch_present(touch_present),
         .keyboard_octave(keyboard_octave),.master_volume(master_volume),
-        .visual_mode(visual_mode),.xy_delay_samples(xy_delay_samples),
+        .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),
+        .spectrum_write(spectrum_write),.spectrum_address(spectrum_address),.spectrum_data(spectrum_data),.xy_delay_samples(xy_delay_samples),
         .display_auto_gain(display_auto_gain),.menu_page(menu_page),.algorithm_flags(48'd0),
         .background_color(background_color),.wave_color(wave_color),.xy_color(xy_color),
         .text_write(text_write),.text_address(text_address),.text_data(text_data),
@@ -136,7 +143,8 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire hdmi_video_lock;
     hdmi_scope_tx u_hdmi (
         .clk(clk), .reset_n(reset_n), .sample_tick(tick),
-        .audio_sample(pcm), .visual_mode(visual_mode),
+        .audio_sample(pcm), .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),
+        .spectrum_write(spectrum_write),.spectrum_address(spectrum_address),.spectrum_data(spectrum_data),
         .xy_delay_samples(xy_delay_samples),
         .display_auto_gain(display_auto_gain),
         .background_color(background_color), .wave_color(wave_color),

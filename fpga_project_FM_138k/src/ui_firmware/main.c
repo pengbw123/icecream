@@ -102,7 +102,7 @@ static u32 held_count;
 
 static void publish(void){UI[5]=((u32)((page==3&&eg_mode)?8:page)<<24)|
     (display_auto_gain?0u:0x80000000u)|((u32)xy_delay<<16)|
-    ((u32)headphone_select<<13)|((u32)visual_mode<<12)|((u32)(octave&15)<<8)|(present?1u:0u);}
+    ((u32)(visual_mode==2)<<14)|((u32)headphone_select<<13)|((u32)(visual_mode==1)<<12)|((u32)(octave&15)<<8)|(present?1u:0u);}
 
 /* Performance-page controls, hit boxes shared with draw_perf_controls(). */
 static void draw_status(void);
@@ -940,7 +940,7 @@ static int get_sel(int *cur,int *lo,int *hi,int *cyc){
     if(page==7){
         if(sel_row==0){*cur=bg_pick;*hi=3;*cyc=4;}
         else if(sel_row==1){*cur=accent_pick;*hi=4;*cyc=5;}
-        else if(sel_row==2){*cur=visual_mode;*hi=1;*cyc=2;}
+        else if(sel_row==2){*cur=visual_mode;*hi=2;*cyc=3;}
         else if(sel_row==3){*cur=xy_delay;*lo=1;*hi=96;}
         else if(sel_row==4){*cur=display_auto_gain;*hi=1;*cyc=2;}
         else if(sel_row==5){*cur=touch_velocity;*lo=1;*hi=127;}

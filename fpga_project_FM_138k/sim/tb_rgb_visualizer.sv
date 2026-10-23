@@ -20,6 +20,23 @@ module tb_rgb_visualizer;
     integer quiet_case=0,max_display_height=0,current_height;
     integer messy_case=0;
     reg show_wave=0;
+    reg spectrum_case=0,spectrum_write=0;
+    reg [5:0] spectrum_address=0;
+    reg [13:0] spectrum_data=0;
+    integer spectrum_probes=0,sb;reg [6:0] sl;
+    initial begin
+        spectrum_case=$test$plusargs("spectrum");
+        #10000;
+        if(spectrum_case)forever begin
+          for(sb=0;sb<64;sb=sb+1)begin
+            @(negedge clk);spectrum_address=sb;
+            sl=sb==9?96:sb==23?64:sb==45?32:0;
+            spectrum_data={sl,sl};spectrum_write=1;
+            @(negedge clk);spectrum_write=0;
+          end
+          #1000000;
+        end
+    end
     real phase=0;
     always @(negedge clk)begin
         sample_div=sample_div+1;
@@ -40,7 +57,7 @@ module tb_rgb_visualizer;
         .midi_event_data(event_word),.midi_event_valid(event_valid),.active_voice_count(5'd3),
         .preset_index(5'd10),.algorithm(5'd4),.operator_envelopes(48'hB090603080D0),
         .touch_present(1'b1),.keyboard_octave(4'sd0),.master_volume(7'd96),
-        .visual_mode(!show_wave),.xy_delay_samples(7'd24),
+        .visual_mode(!show_wave),.spectrum_enable(spectrum_case),.spectrum_write(spectrum_write),.spectrum_address(spectrum_address),.spectrum_data(spectrum_data),.xy_delay_samples(7'd24),
         .display_auto_gain(1'b1),.menu_page(4'd0),.algorithm_flags(48'd0),
         .background_color(24'h080D18),.wave_color(24'h40EAD0),.xy_color(24'hFFB95A),
         .text_write(1'b0),.text_address(12'd0),.text_data(16'd0),
@@ -70,7 +87,7 @@ module tb_rgb_visualizer;
         note_on(48);note_on(52);note_on(55);
         repeat(2)begin wait(dut.frame_latch);@(posedge dut.pclk);wait(!dut.frame_latch);end
         wait(!de);@(posedge de);
-        file_handle=$fopen(messy_case?"tmp/rgb_messy_preview.ppm":show_wave?"tmp/rgb_wave_preview.ppm"
+        file_handle=$fopen(spectrum_case?"tmp/rgb_spectrum_preview.ppm":messy_case?"tmp/rgb_messy_preview.ppm":show_wave?"tmp/rgb_wave_preview.ppm"
             :quiet_case?"tmp/rgb_quiet_preview.ppm":"tmp/rgb_preview.ppm","wb");
         $fwrite(file_handle,"P6\n800 480\n255\n");
         pixels=0;
@@ -81,6 +98,16 @@ module tb_rgb_visualizer;
                 if(^{r,g,b}===1'bx)$fatal(1,"Unknown RGB output");
                 $fwrite(file_handle,"%c%c%c",{r,r[4:2]},{g,g[5:4]},{b,b[4:2]});
                 probe_x=pixels%800;probe_y=pixels/800;
+                if(spectrum_case)begin
+                    if((probe_x==91&&probe_y==120)||(probe_x==203&&probe_y==200)||(probe_x==379&&probe_y==280))begin
+                        if({r,g,b}!==WAVE565)$fatal(1,"Missing spectrum bar at %d,%d rgb=%h level=%d peak=%d valid=%b mode=%b x=%d y=%d bank=%b mem9=%h",probe_x,probe_y,{r,g,b},dut.spectrum_level,dut.spectrum_peak,dut.spectrum_valid,dut.spectrum_frame,dut.x,dut.y,dut.u_spectrum_view.display_bank,dut.u_spectrum_view.snapshots[9]);
+                        spectrum_probes=spectrum_probes+1;
+                    end
+                    if((probe_x==95&&probe_y==200)||(probe_x==59&&probe_y==280)||(probe_x==203&&probe_y==150))begin
+                        if({r,g,b}===WAVE565)$fatal(1,"Spectrum gap/height mismatch at %d,%d",probe_x,probe_y);
+                        spectrum_probes=spectrum_probes+1;
+                    end
+                end
                 if(probe_x>=16&&probe_x<528&&probe_y>=96&&probe_y<352)begin
                     plot_x=probe_x-16;wave_pixel={r,g,b}==WAVE565;
                     if(wave_pixel)begin
@@ -103,7 +130,7 @@ module tb_rgb_visualizer;
         end
         if(rows!=479||row_pixels!=800)$fatal(1,"Frame row count %0d",rows);
         for(i=0;i<512;i=i+1)begin
-            if(col_n[i]>0)begin
+            if(!spectrum_case&&col_n[i]>0)begin
                 if(col_n[i]!=col_hi[i]-col_lo[i]+1)
                     $fatal(1,"Wave column %0d has holes: n=%0d lo=%0d hi=%0d",
                         i,col_n[i],col_lo[i],col_hi[i]);
@@ -111,6 +138,7 @@ module tb_rgb_visualizer;
                     $fatal(1,"Wave break between columns %0d and %0d",i,i+1);
             end
         end
+        if(spectrum_case&&spectrum_probes!=6)$fatal(1,"Missing spectrum pixel probes");
         if(quiet_case && max_display_height<30)$fatal(1,"Quiet waveform remained invisible: %d",max_display_height);
         $fclose(file_handle);$display("PASS RGB/XY raster, stable pixels and PLL-loss recovery, quiet=%0d messy=%0d height=%0d",
             quiet_case,messy_case,max_display_height);$finish;

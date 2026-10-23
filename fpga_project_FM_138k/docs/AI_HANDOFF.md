@@ -207,3 +207,32 @@ DECAY 基础反馈范围 0.50..0.90。原整数 DC 阻断器留下永久尾音�
   release 日志为首页音量三位数补正前的中间构建，不作为本次烧录版本。
 - 实机待确认：Pitch EG 网格全域可见、键盘两侧/黑键/多点触控、力度听感、上电音量 5、
   SPEAKER/HEADPHONE 互斥发声与切换瞬态，以及 RGB/HDMI 同时输出。未执行实机烧录。
+
+## 实时频谱（2026-10-23）
+
+- PLAY 右侧 WAVE / XY / FFT 三选一；SETUP → SPECTRUM 直接打开首页频谱，DISPLAY 可循环三种模式。
+  800×128 键盘保留。RGB、HDMI 同步选择，并使用同一份分析数据。
+- `audio_spectrum_analyzer.v`：纯 RTL 1024 点 Hann + radix-2 FFT，18 位复数工作 RAM，逐级 /2。
+  读取最终 FX/主音量之后、输出接口路由之前的 PCM。64 个对数频段约 48 Hz..24.4 kHz，
+  分辨率 47.6837 Hz、约 46 帧/秒，视觉范围 -72..0 dBFS；快速起跳、缓慢回落和峰值保持。
+  窗增益已补偿；幅度是视觉近似、每频段取最大 bin，不宣称计量级精度或频带 RMS。
+- `audio_spectrum_snapshot.v`：每个显示器独立双 bank；只在消隐翻页，应答后复用旧 bank；
+  丢锁恢复必须等到第 0 列，不接收半帧。分析不等待屏幕，不反压音频。
+- UI[5] bit14 = spectrum_enable；FFT 时 bit12 为 0，bit13 耳机选择及负八度字段保持独立。
+  软核只绘制菜单文字/选择模式，FFT 与像素绘制全部为 RTL，无需新增 IP。
+- 表由 `tools/generate_spectrum_tables.py` 生成并跟踪在 `src/generated/spectrum_*.mem`。
+  两个 CLI 构建脚本与 IDE 工程均登记新模块，45 个 RTL 文件的 hierarchy 校验通过。
+- 具体实现、显示坐标、分辨率限制与验证用例见 `docs/SPECTRUM.md`。
+- 当前双屏位流 `impl/pnr/fm_138k_rgb_hdmi.fs`：2026-10-23 20:23:59，41,597,351 字节；
+  SHA256 `644ED30C80B23A98A74177FDDF3BAA0405B9F98BC11A11E36FC7E04155B96CA4`。
+  固件 41,308 / 65,536 B；Logic 29100、Register 16342、BSRAM 286/340、DSP 64.5/298。
+  Fmax：主域 50.545、RGB 35.493、HDMI 像素 36.261、HDMI 串行 145.850 MHz，
+  四域 setup/hold TNS=0；最终构建日志 `tmp/build_spectrum_release.log`。
+  主域余量较小，后续任何 RTL/固件改动重新构建后都必须检查时序，不能只看是否生成 .fs。
+- 修改前键盘版位流备份为 `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-23_pre_spectrum.fs`。
+- 全套回归通过，见 `tmp/checks_spectrum_release.log`；加上单独完成的 RGB/HDMI 频谱光栅场景，
+  共 21 个 testbench、29 个场景。数值加强用例（双音和峰值保持）见 `tmp/checks_spectrum_numeric.log`；
+  频谱入口见 `tmp/checks_spectrum_ui.log`；RGB 频谱见 `tmp/checks_spectrum_rgb_delivery.log`，
+  HDMI 频谱见 `tmp/checks_spectrum_hdmi.log`。RGB 早期一次性注入在丢锁后失效是测试夹具问题，
+  最终改为持续注入并验证恢复；早期 debug 失败日志不是最终发布结果。
+- 实机待确认：谐波/已知频率峰值、主音量对应高度、静音回落、快速切换和两屏同时运行。

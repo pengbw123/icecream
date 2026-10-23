@@ -8,7 +8,7 @@ module tb_touch_ui;
     wire [31:0] event_word;
     wire signed [3:0] octave;
     wire [6:0] volume;
-    wire visual_mode;
+    wire visual_mode,spectrum_enable;
     wire display_auto_gain;
     wire [6:0] xy_delay;
     wire [3:0] menu_page;
@@ -20,7 +20,7 @@ module tb_touch_ui;
         .midi_event_valid(valid),.midi_event_ready(1'b1),.monitor_event(32'd0),
         .monitor_event_valid(1'b0),.preset_index(5'd0),.algorithm(5'd4),.active_voices(5'd0),
         .touch_present(present),.keyboard_octave(octave),.master_volume(volume),
-        .visual_mode(visual_mode),.xy_delay_samples(xy_delay),.display_auto_gain(display_auto_gain),
+        .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),.xy_delay_samples(xy_delay),.display_auto_gain(display_auto_gain),
         .command_ready(1'b1),.fx_read_value(32'd0),
         .menu_page(menu_page),.patch_read_data(pr_data),.patch_read_valid(pr_valid));
     // Minimal 0x69 responder: the real synth answers two clocks after the
@@ -35,13 +35,13 @@ module tb_touch_ui;
         end
     end
     integer cell_fd,eg_fd,algo_fd,eg6_fd,palette_fd;
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")) palette_fd=$fopen("tmp/tail_menu_palette.txt","w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")) palette_fd=$fopen("tmp/tail_menu_palette.txt","w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
     always @(posedge clk)if(dut.palette_write)$fwrite(palette_fd,"%0d %0d %0d\n",dut.palette_index,dut.palette_data,$time);
     reg [9:0] eg6_base;
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")) cell_fd=$fopen("tmp/tail_menu_cells.txt","w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")) eg_fd=$fopen("tmp/tail_eg_curve.txt","w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")) algo_fd=$fopen("tmp/tail_algo_map.txt","w");else algo_fd=$fopen("tmp/algo_map.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")) eg6_fd=$fopen("tmp/tail_eg6_panels.txt","w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")) cell_fd=$fopen("tmp/tail_menu_cells.txt","w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")) eg_fd=$fopen("tmp/tail_eg_curve.txt","w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")) algo_fd=$fopen("tmp/tail_algo_map.txt","w");else algo_fd=$fopen("tmp/algo_map.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")) eg6_fd=$fopen("tmp/tail_eg6_panels.txt","w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
     always @(posedge clk)begin
         if(dut.text_write)
             $fwrite(cell_fd,"%0d %0d %0d\n",dut.text_address,dut.text_data,$time);
@@ -89,7 +89,7 @@ module tb_touch_ui;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
-    initial if($test$plusargs("keyboard"))touch_kind=0;
+    initial if($test$plusargs("keyboard")||$test$plusargs("spectrum"))touch_kind=0;
     integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -101,7 +101,7 @@ module tb_touch_ui;
         integer px,py;
         begin
             px=frame_kind==1?750:40;py=frame_kind==1?200:470;
-            if(frame_kind==6)begin px=750;py=264;end
+            if(frame_kind==6)begin px=700;py=264;end
             if(frame_kind==7)begin px=736;py=24;end
             if(frame_kind==8)begin px=650;py=312;end
             if(frame_kind==9)begin px=376;py=376;end
@@ -147,6 +147,9 @@ module tb_touch_ui;
             if(frame_kind==49)begin px=600;py=200;end
             if(frame_kind==50)begin px=600;py=248;end
             if(frame_kind==51)begin px=799;py=470;end
+            if(frame_kind==52)begin px=750;py=264;end
+            if(frame_kind==53)begin px=640;py=264;end
+            if(frame_kind==54)begin px=200;py=248;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -235,6 +238,21 @@ module tb_touch_ui;
         force dut.reset_ready=1'b1;
         wait(present);
         if(volume!==5)$fatal(1,"Power-up volume must be 5");
+        if($test$plusargs("spectrum"))begin
+            #10000000;touch_kind=52;wait(spectrum_enable);#5000000;
+            if(visual_mode)$fatal(1,"FFT set XY mode bit");
+            touch_kind=0;#8000000;touch_kind=6;wait(visual_mode);#5000000;
+            if(spectrum_enable)$fatal(1,"XY left FFT enabled");
+            touch_kind=0;#8000000;touch_kind=53;wait(!visual_mode);#5000000;
+            if(spectrum_enable)$fatal(1,"WAVE left FFT enabled");
+            touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
+            touch_kind=0;#8000000;touch_kind=50;wait(menu_page==0&&spectrum_enable);#5000000;
+            touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
+            touch_kind=0;#8000000;touch_kind=54;#5000000;
+            touch_kind=0;#8000000;touch_kind=14;wait(!spectrum_enable);#5000000;
+            if(visual_mode||event_count!=0)$fatal(1,"DISPLAY cycle wrap or spurious MIDI");
+            $display("PASS real UI WAVE/XY/FFT, SETUP spectrum shortcut, DISPLAY cycle and MIDI isolation");$finish;
+        end
         if($test$plusargs("keyboard"))begin
             #10000000;touch_kind=2;wait(event_count==1);#5000000;
             touch_kind=0;wait(event_count==2);#5000000;
