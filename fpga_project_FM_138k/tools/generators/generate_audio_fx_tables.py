@@ -8,6 +8,7 @@
   fx_dist_makeup.mem 100 x unsigned 16-bit, 1/tanh(drive) in Q2.14
   fx_dist_initial_gain.mem 100 x unsigned 16-bit, tanh(drive)/drive in Q1.15
   fx_tanh_lut.mem    512 x signed 16-bit, tanh(z) for z = 0..8 in Q1.15
+  fx_phaser_coeff.mem 256 x signed 16-bit, allpass corners 120..4500 Hz
 """
 import math
 from pathlib import Path
@@ -76,8 +77,16 @@ phaser_hz = [0.05 * (3.0 / 0.05) ** (i / (N - 1)) for i in range(N)]
 (GEN / 'fx_chorus_inc.mem').write_text('\n'.join(f'{lfo_inc(f):08X}' for f in chorus_hz) + '\n')
 (GEN / 'fx_phaser_inc.mem').write_text('\n'.join(f'{lfo_inc(f):08X}' for f in phaser_hz) + '\n')
 
-# Delay time: 40 ms .. 670 ms (32768-sample line), feedback and reverb decay.
-delay_len = [round((40.0 + i * (670.0 - 40.0) / (N - 1)) * FS / 1000.0) for i in range(N)]
+# First-order allpass y=a*x+x[-1]-a*y[-1]. Negative a places the
+# corner in the audio midrange. Interpolate this logarithmic sweep in RTL.
+phaser_corners = [120.0 * (4500.0 / 120.0) ** (i / 255.0) for i in range(256)]
+phaser_coeff = [round((math.tan(math.pi * f / FS) - 1.0) /
+                      (math.tan(math.pi * f / FS) + 1.0) * 32768.0)
+                for f in phaser_corners]
+(GEN / 'fx_phaser_coeff.mem').write_text('\n'.join(hx16(v) for v in phaser_coeff) + '\n')
+
+# Delay time: 20 ms .. 1000 ms (65536-sample line).
+delay_len = [round((20.0 + i * (1000.0 - 20.0) / (N - 1)) * FS / 1000.0) for i in range(N)]
 delay_fb = [round((0.30 + i * 0.60 / (N - 1)) * 32768.0) for i in range(N)]
 reverb_fb = [round((0.50 + i * 0.40 / (N - 1)) * 32768.0) for i in range(N)]
 (GEN / 'fx_delay_len.mem').write_text('\n'.join(f'{v & 0xFFFF:04X}' for v in delay_len) + '\n')

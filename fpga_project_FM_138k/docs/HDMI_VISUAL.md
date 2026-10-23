@@ -1,5 +1,12 @@
 # ACG720 双屏波形与李萨如输出
 
+2026-10-23 更新：双屏顶层已加入板载 ES8388 耳机监听，仍与 RGB、HDMI 同时运行。
+最新 `impl/pnr/fm_138k_rgb_hdmi.fs` 为 2026-10-23 14:39 构建；Logic 26755、Register 15055、
+BSRAM 277/340、DSP 56.5/298。主域/RGB/HDMI 像素/HDMI 串行 Fmax 分别为
+51.412/42.790/51.690/177.671 MHz，四域 setup/hold TNS 均为 0。
+本次还修正 delay/phaser 和参数平滑端点，详见 `ES8388_AUDIO.md`、`EFFECTS_SPEC.md`。
+下文 2026-10-22 的资源与位流日期保留为历史记录。
+
 ## 实现
 
 - 原 800×480 RGB 触摸屏保持 `top_138k` / `build_cli.tcl`，继续由 `rgb_visualizer.v` 输出。

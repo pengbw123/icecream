@@ -2,6 +2,7 @@
 # Run this script from the project root so $readmemh relative paths resolve.
 
 add_file -type verilog "src/i2s_tx.v"
+add_file -type verilog "src/es8388_output.v"
 add_file -type verilog "src/uart_rx.v"
 add_file -type verilog "src/fm_uart_control.v"
 add_file -type verilog "src/fm_poly_synth.v"
@@ -48,5 +49,10 @@ set_option -verilog_std sysv2017
 set_option -use_sspi_as_gpio 1
 set_option -use_cpu_as_gpio 1
 
+# Keep CLI placement/routing algorithms aligned with the IDE configuration.
+set_option -place_option 3
+set_option -route_option 2
+set_option -timing_driven 1
 run all
+puts [exec python tools/check_timing.py fm_138k_rgb]
 

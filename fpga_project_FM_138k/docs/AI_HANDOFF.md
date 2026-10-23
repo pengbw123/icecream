@@ -1,15 +1,51 @@
 # 给后续 AI 的工程交接说明
 
-更新时间：2026-10-22（合唱、混响代码检查与优化）。目标是让接手者从当前代码和硬件状态继续，
+更新时间：2026-10-23（ES8388 耳机监听、delay/phaser 检查与修正）。目标是让接手者从当前代码和硬件状态继续，
 不要把计划、候选代码或仿真结果误写成已交付功能。
+
+## 2026-10-23 增量交接
+
+- 新增 `src/es8388_output.v`：板载 OUT1 接 ES8388，从模式接收现有最终 I2S 流；
+  MCLK=12.5 MHz、BCLK=3.125 MHz、Fs=48.828125 kHz。数字/模拟增益固定 0 dB，
+  与 MAX98357 共用现有主音量，不新增耳机音量。详见 `docs/ES8388_AUDIO.md`。
+- ES8388 初始化检查三字节 ACK、支持时钟拉伸与超时、NACK 重试和九时钟总线恢复；
+  确认从模式 ACK 前释放 BCLK/LRCK，防止上电默认主模式导致时钟争用。
+- `top_138k` / `top_138k_hdmi`、两套 RGB CST、两个构建脚本均已接入；
+  `fpga_project.gprj` 加入模块，IDE 顶层仍为 `top_138k_hdmi`。
+- DELAY：65536 样本、20..1000 ms、512 间隔双抽头时间淡化、Q12 反馈低通；
+  负反馈向零截断，修复负一个最低位永久循环；两个抽头独立抑制上电未知 RAM。
+- PHASER：负全通系数对应 120..4500 Hz，中频扫动；16 位三角 LFO、系数插值和平滑；
+  Q8 + 保护位状态；MIX=99 改为 50% 干 + 50% 全通声，保留典型抵消陷波。
+  仍为四级，FREQ 仍为 0.05..3 Hz，不要求照搬旧文档的六级候选方案。
+- 连续参数平滑补齐向上收敛的最后一个 Q8 单位，避免 UI 显示 99、内部永久停在 98；
+  `tb_audio_fx` 增加 delay/phaser 控制的 0/99 端点与最大延迟请求检查。
+- 扩容后全工程布局暴露原音源正弦插值长路径，`fm_poly_synth.v` 将窄位宽插值修正与
+  基值的符号处理并行，再相加；无新增音源流水级。`tb_fm_sine_interpolation` 穷举
+  512 段 × 2048 小数相位 × 4 象限，与原算式逐位相同（4,194,304 项）。
+- 新增 `tb_delay_phaser`、`tb_es8388_output`、`tb_es8388_i2c_faults` 并加入全量回归；
+  耳机模拟音质、输出响度、复位爆音及效果器听感仍待实机检查。
+- 最终双屏位流：`impl/pnr/fm_138k_rgb_hdmi.fs`（2026-10-23 14:39）；
+  Logic 26755/138240、Register 15055/139095、BSRAM 277/340、DSP 56.5/298。
+  Fmax：主域 51.412、RGB 42.790、HDMI 像素 51.690、HDMI 串行 177.671 MHz，
+  四域 setup/hold TNS 均为 0。旧双屏位流备份到
+  `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-22_2208_pre_codec.fs`。
+- 两个 CLI 构建脚本增加 `tools/check_timing.py` 后置检查：Gowin 即使时序失败也可能
+  生成位流并返回成功，必须检查 TNS 与 Fmax，不能仅看 `.fs` 是否存在。
+- 最终回归：18 个 testbench，加 XY 起音及 RGB 多种显示模式，共 22 个场景全部通过；
+  日志 `tmp/checks_codec_fx_release.log`、`tmp/build_codec_fx_release.log`、
+  `tmp/timing_codec_fx_release.log`。Hierarchy 源文件检查通过，IDE 的本地结果文件链接
+  已同步到双屏构建；当前仅交付更新后的双屏位流，单 RGB 位流需自行重建。
+
+以下旧章节中的 2026-10-22 单 RGB 位流/资源记录属于历史版本；最新构建记录以本节为准。
 
 ## 1. 工程位置与当前状态
 
 - 仓库根：`D:\a_My_projects\Gowin_publish`，工程目录：`fpga_project_FM_138k/`。
-- 板卡：ACG720（GW5AT-LV138PG484AC1/I0，Arora V），Gowin V1.9.12.03；顶层 `top_138k`。
-- 构建：`build_cli.tcl` → `impl/pnr/fm_138k_rgb.fs`；烧录用 Gowin Programmer。
-- 当前可烧录：`impl/pnr/fm_138k_rgb.fs`（合唱/混响优化，2026-10-22 20:28；尚未实机验证）。旧位流在
-  `impl/pnr/backup/`（上一版为 `fm_138k_rgb_2026-10-22_1821_pre_agc.fs`），
+- 板卡：ACG720（GW5AT-LV138PG484AC1/I0，Arora V），Gowin V1.9.12.03；当前顶层 `top_138k_hdmi`。
+- 当前构建：`build_cli_hdmi.tcl` → `impl/pnr/fm_138k_rgb_hdmi.fs`；烧录用 Gowin Programmer。
+  单屏入口 `top_138k` / `build_cli.tcl` 仍保留，但旧 `fm_138k_rgb.fs` 未包含本次耳机改动。
+- 当前可烧录：`impl/pnr/fm_138k_rgb_hdmi.fs`（2026-10-23 14:39；耳机与效果器改动尚未实机验证）。旧位流在
+  `impl/pnr/backup/`，
   IDE 目录里的旧 `fpga_project.fs` 不要烧。
 - 标签：`phase0-done`…`phase2d-done`、`phase2e-done`、`phase3a-done`、`phase3b-done`、`phase3c-done`、`phase3d-done`、`phase4-done`、`phase4b-done`、`phase4c-done`、`phase4d-done`、`phase4e-done`、`phase4f-done`、`phase4g-done`、`phase4h-done`。回退：`git reset --hard <tag>`。
 - **进度账本**：`docs/PRO_MENU_PROGRESS.md`。

@@ -21,6 +21,7 @@
         <File path="src/gt9147_reset.v" type="file.verilog" enable="1"/>
         <File path="src/hdmi_scope_tx.v" type="file.verilog" enable="1"/>
         <File path="src/hdmi_scope_video.v" type="file.verilog" enable="1"/>
+        <File path="src/es8388_output.v" type="file.verilog" enable="1"/>
         <File path="src/i2s_tx.v" type="file.verilog" enable="1"/>
         <File path="src/midi_bridge_rx.v" type="file.verilog" enable="1"/>
         <File path="src/midi_performance_control.v" type="file.verilog" enable="1"/>

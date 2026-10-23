@@ -82,7 +82,10 @@ module audio_fx (
             // Keep the shift and addition signed. With unsigned cur in the
             // original expression, a negative d shifted as a large positive
             // number, so lowering a parameter made its Q8 state wrap.
-            step = d >>> 8;
+            // An upward difference smaller than one Q8 parameter unit
+            // otherwise rounds to zero forever (99 stops at integer 98).
+            // Move one fractional LSB until the exact target is reached.
+            step = (d > 25'sd0 && d < 25'sd256) ? 25'sd1 : (d >>> 8);
             next_value = $signed({1'b0, cur}) + step;
             smooth24 = next_value[23:0];
         end

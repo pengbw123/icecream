@@ -7,6 +7,8 @@ module top_138k_hdmi (
     output wire uart_tx_pin,
     input wire bridge_uart_rx_pin,
     output wire i2s_bclk, i2s_lrclk, i2s_din,
+    output wire aud_mclk, aud_bclk, aud_lrclk, aud_dacdat,
+    inout wire codec_scl, codec_sda,
     output wire ws2812_data,
     output wire lcd_pclk,lcd_de,lcd_hsync,lcd_vsync,lcd_bl,
     output wire [4:0] lcd_r,lcd_b,
@@ -97,6 +99,15 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .monitor_voice_count(voices),.monitor_preset(preset),
         .monitor_algorithm(algorithm),.monitor_operator_envelopes(operator_eg),
         .readback_data(readback_data),.readback_valid(readback_valid)
+    );
+    // Mirror the final, master-volume-controlled I2S stream to OUT1.
+    wire codec_ready, codec_init_error;
+    es8388_output u_codec (
+        .clk(clk),.reset_n(reset_n),
+        .i2s_bclk(i2s_bclk),.i2s_lrclk(i2s_lrclk),.i2s_data(i2s_din),
+        .aud_mclk(aud_mclk),.aud_bclk(aud_bclk),.aud_lrclk(aud_lrclk),
+        .aud_dacdat(aud_dacdat),.codec_scl(codec_scl),.codec_sda(codec_sda),
+        .ready(codec_ready),.init_error(codec_init_error)
     );
     ws2812_keys u_leds (
         .clk(clk),.reset_n(reset_n),.midi_event_data(event_data),

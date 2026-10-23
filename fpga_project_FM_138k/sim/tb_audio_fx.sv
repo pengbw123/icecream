@@ -70,6 +70,28 @@ module tb_audio_fx;
         expect_reg(6'd6, 16'd20, "distortion gain default");
         expect_reg(6'd24, 16'd30, "reverb mix default");
 
+        // Both ends of the smoothed controls must reach the requested
+        // integer. Upward Q8 truncation used to strand RATE/FREQ/DEPTH/MIX
+        // one UI count below 99, despite readback reporting the requested 99.
+        wr(6'd19,16'd99);wr(6'd14,16'd99);
+        wr(6'd15,16'd99);wr(6'd16,16'd99);
+        repeat(4096) run_sample(0);
+        if(dut.sm_drate !== (24'd99<<8) || dut.sm_pfreq !== (24'd99<<8) ||
+           dut.sm_pdepth !== (24'd99<<8) || dut.sm_pmix !== (24'd99<<8))
+            $fatal(1,"smoothed delay/phaser controls did not reach 99");
+        if(dut.u_delay.delay_a !== dut.u_delay.len_tab[99] &&
+           dut.u_delay.delay_b !== dut.u_delay.len_tab[99])
+            $fatal(1,"delay RATE=99 did not request the maximum delay");
+        wr(6'd19,16'd0);wr(6'd14,16'd0);
+        wr(6'd15,16'd0);wr(6'd16,16'd0);
+        repeat(4096) run_sample(0);
+        if(dut.sm_drate !== 0 || dut.sm_pfreq !== 0 ||
+           dut.sm_pdepth !== 0 || dut.sm_pmix !== 0)
+            $fatal(1,"smoothed delay/phaser controls did not reach zero");
+        @(negedge clk);reset_n=0;
+        repeat(5) @(negedge clk);
+        reset_n=1;repeat(5) @(negedge clk);
+
         // register write/readback
         wr(6'd3, 16'h4321);
         expect_reg(6'd3, 16'h4321, "register write");

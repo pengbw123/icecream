@@ -815,15 +815,18 @@ module fm_poly_synth #(
     wire [18:0] p1_sine_delta_product =
         p1_sine_delta * p1_sine_fraction;
     wire [7:0] p1_sine_delta_step = p1_sine_delta_product[18:11];
-    wire [16:0] p1_sine_rising_value =
-        {1'b0, p1_sine_base} + {9'd0, p1_sine_delta_step};
-    wire [16:0] p1_sine_falling_value =
-        {1'b0, p1_sine_base} + {9'd0, p1_sine_delta} -
-        {9'd0, p1_sine_delta_step};
-    wire [16:0] p1_sine_magnitude = p1_sine_reverse
-        ? p1_sine_falling_value : p1_sine_rising_value;
-    wire signed [16:0] p1_sine_interpolated = p1_sine_negative
-        ? -$signed(p1_sine_magnitude) : $signed(p1_sine_magnitude);
+    // delta_step <= delta, so the reverse correction fits in eight bits.
+    // Apply polarity to base and correction in parallel, then add once.
+    // This is bit-identical modulo 17 bits to +/- (base + delta - step),
+    // but removes cascaded wide add/subtract/negate chains after the ROM/DSP.
+    wire [7:0] p1_sine_correction = p1_sine_reverse
+        ? (p1_sine_delta - p1_sine_delta_step) : p1_sine_delta_step;
+    wire signed [16:0] p1_sine_signed_base = p1_sine_negative
+        ? -$signed({1'b0,p1_sine_base}) : $signed({1'b0,p1_sine_base});
+    wire signed [8:0] p1_sine_signed_correction = p1_sine_negative
+        ? -$signed({1'b0,p1_sine_correction}) : $signed({1'b0,p1_sine_correction});
+    wire signed [16:0] p1_sine_interpolated =
+        p1_sine_signed_base + p1_sine_signed_correction;
 
     reg        p3_valid;
     reg [VOICE_BITS-1:0] p3_voice;
