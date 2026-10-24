@@ -22,12 +22,22 @@ module tb_touch_ui;
     integer cmd_69=0,cmd_60=0,cmd_61=0,cmd_62=0,cmd_63=0,cmd_64=0,cmd_65=0,cmd_70=0,text_cells=0,pal_writes=0;
     touch_ui_controller dut(.clk(clk),.reset_n(reset_n),.tp_scl(scl),.tp_sda(sda),
         .tp_int(int_pin),.tp_rst(rst_pin),.uart_tx(uart),.midi_event_data(event_word),
-        .midi_event_valid(valid),.midi_event_ready(1'b1),.monitor_event(32'd0),
+        .midi_event_valid(valid),.midi_event_ready(arp_test_ready),.monitor_event(32'd0),
         .monitor_event_valid(1'b0),.preset_index(performance_case?model_preset:7'd0),.algorithm(5'd4),.active_voices(5'd0),
         .touch_present(present),.keyboard_octave(octave),.master_volume(volume),
         .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),.xy_delay_samples(xy_delay),.display_auto_gain(display_auto_gain),
         .command_ready(1'b1),.fx_read_value(32'd0),
         .menu_page(menu_page),.patch_read_data(pr_response),.patch_read_valid(pr_valid));
+    wire [159:0] test_arp_config=dut.arp_config;
+    wire [31:0] test_arp_status;
+    wire [127:0] test_arp_notes;
+    wire [31:0] arp_test_out;wire arp_test_valid,arp_test_ready;
+    midi_arpeggiator test_arp(.clk(clk),.reset_n(reset_n),.config_data(test_arp_config),
+        .suspend(dut.lesson_state[16]),.sync_step(1'b0),.sync_restart(1'b0),.external_sync(1'b0),
+        .in_data(event_word),.in_brightness(event_word[6:0]),.in_valid(valid),.in_ready(arp_test_ready),
+        .out_data(arp_test_out),.out_brightness(),.out_valid(arp_test_valid),.out_ready(1'b1),
+        .status(test_arp_status),.chord_notes(test_arp_notes));
+    initial begin force dut.arp_status=test_arp_status;force dut.arp_notes=test_arp_notes;end
     // Minimal 0x69 responder: the real synth answers two clocks after the
     // address is presented; the firmware only needs a valid response.
     reg [1:0] pr_wait=0;
@@ -40,13 +50,13 @@ module tb_touch_ui;
         end
     end
     integer cell_fd,eg_fd,algo_fd,eg6_fd,palette_fd;
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")) palette_fd=$fopen("tmp/tail_menu_palette.txt","w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")) palette_fd=$fopen("tmp/tail_menu_palette.txt","w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
     always @(posedge clk)if(dut.palette_write)$fwrite(palette_fd,"%0d %0d %0d\n",dut.palette_index,dut.palette_data,$time);
     reg [9:0] eg6_base;
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")) cell_fd=$fopen("tmp/tail_menu_cells.txt","w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")) eg_fd=$fopen("tmp/tail_eg_curve.txt","w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")) algo_fd=$fopen("tmp/tail_algo_map.txt","w");else algo_fd=$fopen("tmp/algo_map.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")) eg6_fd=$fopen("tmp/tail_eg6_panels.txt","w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")) cell_fd=$fopen("tmp/tail_menu_cells.txt","w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")) eg_fd=$fopen("tmp/tail_eg_curve.txt","w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")) algo_fd=$fopen("tmp/tail_algo_map.txt","w");else algo_fd=$fopen("tmp/algo_map.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")) eg6_fd=$fopen("tmp/tail_eg6_panels.txt","w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
     always @(posedge clk)begin
         if(dut.text_write)captured_cells[dut.text_address]<=dut.text_data;
         if(dut.text_write)
@@ -95,7 +105,7 @@ module tb_touch_ui;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
-    initial if($test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson"))touch_kind=0;
+    initial if($test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp"))touch_kind=0;
     integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -167,6 +177,16 @@ module tb_touch_ui;
             if(frame_kind==64)begin px=400;py=104;end
             if(frame_kind==65)begin px=640;py=104;end
             if(frame_kind==66)begin px=540;py=104;end
+            if(frame_kind==67)begin px=100;py=104;end
+            if(frame_kind==68)begin px=80;py=104;end
+            if(frame_kind==69)begin px=240;py=104;end
+            if(frame_kind==70)begin px=750;py=104;end
+            if(frame_kind==71)begin px=360;py=152;end
+            if(frame_kind==72)begin px=750;py=152;end
+            if(frame_kind==73)begin px=750;py=200;end
+            if(frame_kind==74)begin px=360;py=248;end
+            if(frame_kind==75)begin px=750;py=248;end
+            if(frame_kind==76)begin px=400;py=104;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -229,9 +249,11 @@ module tb_touch_ui;
         endcase
     end
     integer event_count=0;
-    always @(posedge clk)if(valid)begin
+    always @(posedge clk)if(valid&&arp_test_ready)begin
         $display("UI MIDI %h at %t",event_word,$time);
-        if($test$plusargs("lesson"))begin
+        if($test$plusargs("arp"))begin
+            if(event_word[23:16]==8'hb0&&event_word[14:8]==22)model_glide<=event_word[6:0]!=0;
+        end else if($test$plusargs("lesson"))begin
             if(event_word!==32'h00b04000&&event_word!==32'h00903064&&event_word!==32'h00803000)
                 $fatal(1,"Unexpected lesson UI MIDI %h",event_word);
         end else if(performance_case)begin
@@ -262,6 +284,31 @@ module tb_touch_ui;
         force dut.reset_ready=1'b1;
         wait(present);
         if(volume!==5)$fatal(1,"Power-up volume must be 5");
+        if($test$plusargs("arp"))begin
+            #10000000;touch_kind=17;wait(menu_page==7);#10000000;
+            touch_kind=0;#8000000;touch_kind=67;wait(menu_page==10);#10000000;
+            if(captured_cells[775][7:0]!="A")$fatal(1,"ARP transport missing");
+            touch_kind=0;#8000000;touch_kind=68;wait(dut.arp_config[0]);#5000000;
+            if(dut.arp_config[63:32]!=250000||dut.arp_config[127:96]!=175000)$fatal(1,"ARP default timing");
+            touch_kind=0;#8000000;touch_kind=69;wait(dut.arp_config[1]);#5000000;
+            touch_kind=0;#8000000;touch_kind=70;wait(dut.arp_config[63:32]<250000);#5000000;
+            touch_kind=0;#8000000;touch_kind=71;wait(dut.arp_config[63:32]<150000);#5000000;
+            touch_kind=0;#8000000;touch_kind=72;wait(dut.arp_config[5:3]==1);#5000000;
+            touch_kind=0;#8000000;touch_kind=73;wait(dut.arp_config[127:96]>dut.arp_config[63:32]*70/100);#5000000;
+            touch_kind=0;#8000000;touch_kind=74;wait(dut.arp_config[2]);#5000000;
+            touch_kind=0;#8000000;touch_kind=75;wait(dut.arp_config[63:32]>dut.arp_config[95:64]);#5000000;
+            touch_kind=0;#8000000;touch_kind=2;wait(test_arp_notes[48]);#5000000;
+            touch_kind=0;#8000000;
+            if(!test_arp_notes[48])$fatal(1,"UI HOLD failed");
+            touch_kind=76;wait(test_arp_notes==0);#5000000;
+            touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);#5000000;
+            if(!dut.arp_config[0])$fatal(1,"Leaving ARP disabled playback");
+            touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
+            touch_kind=0;#8000000;touch_kind=61;wait(menu_page==9);wait(!test_arp_status[1]);#5000000;
+            touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);wait(test_arp_status[1]);#5000000;
+            if(test_arp_notes!=0)$fatal(1,"Leaving lesson restarted old chord");
+            $display("PASS real UI ARP entry, defaults, HOLD, tempo/rate/order/gate/velocity/swing, keyboard, STOP, persistent enable and practice suspend");$finish;
+        end
         if($test$plusargs("lesson"))begin
             #10000000;touch_kind=17;wait(menu_page==7);#10000000;
             touch_kind=0;#8000000;touch_kind=61;wait(menu_page==9);#10000000;

@@ -322,7 +322,7 @@ module rgb_visualizer #(
         // Menu pages are a flat panel drawn entirely by the character layer;
         // hide the performance-page graphics behind it.  page_frame is latched
         // at the frame boundary, so this switch is tear-free.
-        if(page_frame!=0)begin rgb=bg_frame;font_enable=0;end
+        if(page_frame!=0&&!(page_frame==10&&y>=352))begin rgb=bg_frame;font_enable=0;end
         if(page_frame==9&&lesson_ink)rgb=lesson_color;
         if (!de) rgb=0;
     end

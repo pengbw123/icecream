@@ -42,7 +42,7 @@ static void row_box(u8 c,u8 r,u8 w,u8 h,const char *label,const char *value,int 
     pair_text((u8)(c+w-2-str_len(value)),(u8)(r+h/2),value,bg,0);
 }
 static void draw_tabs(void){u8 i;rect_cells(0,0,100,3,12);
-    for(i=0;i<8;i++)button_box((u8)(2+i*12),0,12,3,tab_names[i],page==i||(page==PAGE_LESSON&&i==0));
+    for(i=0;i<8;i++)button_box((u8)(2+i*12),0,12,3,tab_names[i],page==i||((page==PAGE_LESSON||page==PAGE_ARP)&&i==0));
 }
 static void draw_status(void){u8 i;u32 st=UI[4];u8 pr=status_preset(st);
     if(page==PAGE_LESSON){draw_lesson_status();return;}
@@ -64,6 +64,7 @@ static void draw_perf_controls(void){
         text(2,20,"50",2,0);text(16,20,"200",2,0);text(32,20,"1k",2,0);text(48,20,"5k",2,0);text(61,20,"20k",2,0);
         text(68,6,"0",2,0);text(68,10,"-24",2,0);text(68,15,"-48",2,0);text(68,19,"-72",2,0);
     }
+    text(76,5,arp_on?"ARP ON":"",2,0);
     text(76,6,"VOLUME",2,0);
     nb[0]=(char)('0'+vol_local/100);nb[1]=(char)('0'+(vol_local/10)%10);nb[2]=(char)('0'+vol_local%10);nb[3]=0;
     text_r(98,6,nb,1,0);
@@ -177,13 +178,14 @@ static void lesson_press(int x,int y){
     else if(x>=600&&x<688){if(lesson_speed<150)lesson_speed+=25;lesson_control(0);}
     draw_lesson_controls();draw_lesson_status();
 }
+#include "arp_menu.h"
 static const char *const setup_labels[10]={"BACKGROUND","ACCENT","DISPLAY","XY DELAY","AUTO RANGE","KEY VELOCITY","AUDIO OUTPUT","SPECTRUM","GLIDE MONO","PRACTICE"};
 static const char *setup_value(u8 n){if(n==0)return bg_labels[bg_pick];if(n==1)return ac_labels[accent_pick];
     if(n==2)return visual_mode==2?"SPECTRUM":visual_mode==1?"XY":"WAVE";if(n==3)return u2d(xy_delay);
     if(n==4)return display_auto_gain?"ON":"OFF";if(n==5){
         nb[0]=(char)('0'+touch_velocity/100);nb[1]=(char)('0'+(touch_velocity/10)%10);nb[2]=(char)('0'+touch_velocity%10);nb[3]=0;return nb;}
     if(n==6)return headphone_select?"HEADPHONE":"SPEAKER";if(n==8)return glide_on?"ON":"OFF";return "OPEN >";}
-static void draw_theme(void){u8 i;text(2,6,"DISPLAY",2,0);text(52,6,"KEYBOARD / AUDIO",2,0);
+static void draw_theme(void){u8 i;button_box(2,5,46,3,"ARPEGGIATOR >",arp_on);text(52,6,"KEYBOARD / AUDIO",2,0);
     for(i=0;i<5;i++)row_box(2,(u8)(8+i*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
     for(i=5;i<10;i++)row_box(52,(u8)(8+(i-5)*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
     text(54,24,"RAM SLOTS: VOLATILE",2,0);
@@ -193,7 +195,7 @@ static const char *selected_label(void){if(page==1){static const char *const a[4
     if(page==4)return lfo_labels[sel_row];if(page==5)return sel_row>=3?fx_p_names[fx_sel][sel_row-3]:"CONTROL";
     if(page==7)return setup_labels[sel_row];return "VALUE";}
 static void draw_bottom(void){int cur,lo,hi,cyc,norm;u8 c;
-    if(page==0||page==6||page==PAGE_LESSON)return;
+    if(page==0||page==6||page==PAGE_LESSON||page==PAGE_ARP)return;
     rect_cells(0,26,100,4,12);
     button_box(2,27,28,3,page==5?((fx_regs[0]&1)?"FX MASTER ON":"FX MASTER OFF"):page==3?(eg_mode?"PITCH EG":"OPERATOR EG"):"PLAY",0);
     button_box(32,27,8,3,"-1",0);button_box(90,27,8,3,"+1",0);
@@ -223,7 +225,7 @@ static void draw_dialog(void){
         button_box(14,19,30,3,"CANCEL",0);button_box(54,19,30,3,dialog==6?"STORE":"LOAD",1);}
 }
 static void draw_page(void){draw_header();
-    if(page==PAGE_LESSON)draw_lesson_controls();else if(page==0)draw_perf_controls();else if(page==1)draw_algo();else if(page==2)draw_osc();
+    if(page==PAGE_ARP)draw_arp();else if(page==PAGE_LESSON)draw_lesson_controls();else if(page==0)draw_perf_controls();else if(page==1)draw_algo();else if(page==2)draw_osc();
     else if(page==3)draw_eg();else if(page==4)draw_lfo();else if(page==5)draw_fx();else if(page==6)draw_name();else draw_theme();
     draw_bottom();if(dialog)draw_dialog();
 }
@@ -260,7 +262,7 @@ static void adj_setup(u8 r,int d){int n;
     else if(r==4)display_auto_gain=!display_auto_gain;
     else if(r==5){n=touch_velocity+d;if(n<1)n=1;if(n>127)n=127;touch_velocity=(u8)n;}
     else if(r==6)headphone_select=!headphone_select;
-    else if(r==8){glide_on=!glide_on;emit(0xb0,22,glide_on?127:0);}
+    else if(r==8){if(arp_on){arp_enable(0);glide_on=1;}else glide_on=!glide_on;emit(0xb0,22,glide_on?127:0);}
     publish();draw_page();
 }
 static int menu_press(int x,int y){int i,n;
@@ -273,6 +275,8 @@ static int menu_press(int x,int y){int i,n;
             else if(x>=432&&x<672){u8 d=dialog;dialog=0;if(d==5)load_selected_rom();else if(d==6)slot_save();else{slot_load();patch_dirty=0;draw_page();}}}return 1;
     }
     if(y<48){i=(x-16)/96;if(x>=16&&x<784)page_enter((u8)i);return 1;}
+    if(page==PAGE_ARP){arp_press(x,y);return 1;}
+    if(page==7&&x>=16&&x<384&&y>=80&&y<128){page_enter(PAGE_ARP);return 1;}
     if(page==PAGE_LESSON){lesson_press(x,y);return 1;}
     if(page==0){perf_control(x,y,0);return 1;}
     if(y>=432&&x>=16&&x<240){

@@ -18,6 +18,8 @@ module top #(
 ) (
     input  wire clk,
     input  wire key_s2,
+    input wire [159:0] arp_config,input wire arp_suspend,
+    output wire [31:0] arp_status,output wire [127:0] arp_notes,
     input wire headphone_select,
     output wire headphone_din,
     input  wire uart_rx_pin,
@@ -334,8 +336,17 @@ module top #(
         ? midi_event_latched[6:0] : external_midi_event_valid
         ? external_midi_event_data[6:0] : uart_midi_event_brightness;
     wire [6:0] synth_midi_event_brightness;
-    midi_owner_queue u_note_queue(.clk(clk),.reset_n(audio_reset_n),
+    wire [31:0] arp_midi_data;
+    wire [6:0] arp_brightness;
+    wire arp_valid,arp_ready;
+    midi_arpeggiator u_arp(.clk(clk),.reset_n(audio_reset_n),
+        .config_data(arp_config),.suspend(arp_suspend),
+        .sync_step(1'b0),.sync_restart(1'b0),.external_sync(1'b0),
         .in_data(selected_midi_data),.in_brightness(selected_brightness),.in_valid(selected_midi_valid),.in_ready(ingress_ready),
+        .out_data(arp_midi_data),.out_brightness(arp_brightness),.out_valid(arp_valid),.out_ready(arp_ready),
+        .status(arp_status),.chord_notes(arp_notes));
+    midi_owner_queue u_note_queue(.clk(clk),.reset_n(audio_reset_n),
+        .in_data(arp_midi_data),.in_brightness(arp_brightness),.in_valid(arp_valid),.in_ready(arp_ready),
         .out_data(synth_midi_event_data),.out_brightness(synth_midi_event_brightness),
         .out_valid(synth_midi_event_valid),.out_ready(synth_midi_event_ready));
     assign raw_midi_event_ready = ingress_ready &

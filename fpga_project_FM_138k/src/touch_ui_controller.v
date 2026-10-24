@@ -29,12 +29,14 @@ module touch_ui_controller (
     output reg eg2_we,output reg [9:0] eg2_addr,output reg [7:0] eg2_data,output reg eg2_enable,
     output wire fx_write,output wire [3:0] fx_index,output wire [31:0] fx_value,input wire [31:0] fx_read_value,
     output reg [31:0] numeric_display,
+    output reg [159:0] arp_config,input wire [31:0] arp_status,input wire [127:0] arp_notes,
     output wire [31:0] lesson_state,
     output reg lesson_bank,output reg [7:0] lesson_count,
     output wire lesson_write,output wire [6:0] lesson_address,output wire [31:0] lesson_data,
     // 0x69 readback results from the synth (registers 14/15).
     input wire [15:0] patch_read_data,input wire patch_read_valid
 );
+    reg [127:0] arp_timing_shadow;
     wire [31:0] address,write_data,read_data;
     wire [1:0] request;
     wire write_en=request==2'b01;
@@ -139,6 +141,16 @@ module touch_ui_controller (
             17:ui_data={31'd0,text_enable};
             14:ui_data={16'd0,readback_value};
             15:ui_data={31'd0,readback_ready};
+            36:ui_data=arp_config[31:0];
+            37:ui_data=arp_timing_shadow[31:0];
+            38:ui_data=arp_timing_shadow[63:32];
+            39:ui_data=arp_timing_shadow[95:64];
+            40:ui_data=arp_timing_shadow[127:96];
+            41:ui_data=arp_status;
+            42:ui_data=arp_notes[31:0];
+            43:ui_data=arp_notes[63:32];
+            44:ui_data=arp_notes[95:64];
+            45:ui_data=arp_notes[127:96];
             28:ui_data=lesson_status;
             29:ui_data=lesson_state;
             30:ui_data={lesson_end,7'd0,lesson_bank,lesson_count};
@@ -148,6 +160,8 @@ module touch_ui_controller (
     end
     always @(posedge clk or negedge reset_n) begin
         if(!reset_n)begin
+            arp_timing_shadow<={32'd175000,32'd175000,32'd250000,32'd250000};
+            arp_config<={32'd175000,32'd175000,32'd250000,32'd250000,32'h00006000};
             lesson_bank<=0;lesson_count<=42;lesson_end<=1664;
             upload_address<=0;upload_count<=0;uploading<=0;upload_error<=0;upload_end<=0;
             i2c_drive<=0;fw_data<=0;fw_valid<=0;ui_state<=0;volume<=5;
@@ -207,6 +221,11 @@ module touch_ui_controller (
                 25:begin eg2_base<=write_data[9:0];eg2_burst<=1'b0;end
                 26:begin eg2_word<=write_data;eg2_byte<=2'd0;eg2_burst<=1'b1;end
                 27:eg2_enable<=write_data[0];
+                    36:arp_config<={arp_timing_shadow,write_data&32'h0000ffff};
+                    37:arp_timing_shadow[31:0]<=write_data;
+                    38:arp_timing_shadow[63:32]<=write_data;
+                    39:arp_timing_shadow[95:64]<=write_data;
+                    40:arp_timing_shadow[127:96]<=write_data;
                     31:if(!lesson_state[16]&&!lesson_status[5])begin
                         uploading<=write_data[0];upload_error<=0;upload_count<=0;upload_end<=0;
                         if(write_data[1])begin lesson_bank<=0;lesson_count<=42;lesson_end<=1664;end
