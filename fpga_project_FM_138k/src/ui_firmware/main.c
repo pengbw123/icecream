@@ -646,7 +646,7 @@ static const unsigned short pitch_rate_tab[100]={
 
 /* eg_mode: 0 = operator amp EG, 1 = pitch EG; declared with UI state. */
 static u8 p_rate[4],p_lev[4];
-static u8 name_pos,slot_sel;
+static u8 name_pos,slot_sel,name_changed;
 static u8 last_preset=0;
 static void draw_page(void);
 static const char name_chars[]="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.- ";
@@ -696,10 +696,14 @@ static void name_from_preset(u8 pr){
     cur_name[i]=0;
 }
 static void name_cycle(int d){
-    char c=cur_name[name_pos];u8 i,idx=0;
+    char c;u8 i,j,idx=0;
+    /* Extend short names with spaces so editing beyond their old NUL is visible. */
+    for(i=0;i<10;i++)if(!cur_name[i]){for(j=i;j<10;j++)cur_name[j]=' ';break;}
+    cur_name[10]=0;c=cur_name[name_pos];
     for(i=0;i<NAME_CHAR_COUNT;i++)if(name_chars[i]==c){idx=i;break;}
     idx=(u8)((idx+(d>0?1:NAME_CHAR_COUNT-1))%NAME_CHAR_COUNT);
     cur_name[name_pos]=name_chars[idx];
+    name_changed=1;
 }
 /* User slots keep the complete parameter image: 9 globals, 6x17 operator
    words and 12 pitch-EG words, read through 0x69 and written back through
@@ -710,6 +714,14 @@ static struct slot_t slots[8];
 static void slot_read_all(struct slot_t *s);
 typedef char slot_size_check[(sizeof(struct slot_t)==260)?1:-1];
 #include "sd_patch_store.h"
+static void name_commit(void){u8 i;
+    if(!name_changed)return;
+    if(slots[slot_sel].magic==SLOT_MAGIC){
+        /* Rename metadata only: keep the selected slot's saved parameters. */
+        for(i=0;i<11;i++)slots[slot_sel].name[i]=cur_name[i];
+    }
+    sd_message="NAME EDITED / SD NOT UPDATED";name_changed=0;
+}
 static struct slot_t sd_slots[8];
 static void sd_bank_action(u8 store){u8 i;
     sd_message="SD: WORKING...";draw_page();
@@ -1110,7 +1122,7 @@ static void menu_repeat(void){
         u32 dt=(u32)(now()-held_t);
         u32 start=(page==PAGE_ARP||page==PAGE_SEQ)?450000u:1500000u;
         if(dt>=start){
-            u32 period=(page==PAGE_ARP||page==PAGE_SEQ)?100000u:150000u;
+            u32 period=(page==PAGE_ARP||page==PAGE_SEQ)?50000u:150000u;
             u32 n=1u+(dt-start)/period;
             if(n>held_count){held_count=n;adj(held_row,held_kind==1?-1:1);}
         }

@@ -274,7 +274,7 @@ static void adj_setup(u8 r,int d){int n;
 static int menu_press(int x,int y){int i,n;
     if(dialog){
         if(dialog<=3){if(y>=288&&y<336){dialog=0;draw_page();}return 1;}
-        if(dialog==4){if(y>=304){dialog=0;draw_page();return 1;}
+        if(dialog==4){if(y>=304){name_commit();dialog=0;draw_page();return 1;}
             if(y>=224&&y<272){if(x>=96&&x<160)name_pos=(name_pos+9)%10;else if(x>=176&&x<240)name_pos=(name_pos+1)%10;
                 else if(x>=560&&x<624){name_cycle(-1);patch_dirty=1;}else if(x>=640&&x<704){name_cycle(1);patch_dirty=1;}draw_page();}return 1;}
         if(y>=304&&y<352){if(x>=112&&x<352){dialog=0;draw_page();}
@@ -304,7 +304,7 @@ static int menu_press(int x,int y){int i,n;
         else if(y>=368&&y<416&&x>=16&&x<384){patch_rom_page=(u8)((patch_rom_page+(x<208?25:1))%26);}
         else if(y>=336&&y<384&&x>=416){if(x>=608){if(slots[slot_sel].magic==SLOT_MAGIC)dialog=6;else slot_save();}
             else if(slots[slot_sel].magic==SLOT_MAGIC){if(patch_dirty)dialog=7;else{slot_load();patch_dirty=0;}}}
-        else if(y>=432){if(x<384)request_rom(patch_pick);else if(x>=416&&x<592){dialog=4;name_pos=0;}else if(x>=608)page_enter(0);}
+        else if(y>=432){if(x<384)request_rom(patch_pick);else if(x>=416&&x<592){dialog=4;name_pos=0;name_changed=0;}else if(x>=608)page_enter(0);}
         draw_page();return 1;
     }
     if(page==1&&x>=16&&x<240&&y>=96&&y<352){i=(y-96)/64;if(i<4)sel_row=(u8)i;}

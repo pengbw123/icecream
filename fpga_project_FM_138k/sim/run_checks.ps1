@@ -110,6 +110,8 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'ARP/SEQ tap and hold regression failed.' }
             & $vvp $outputFile '+sd'
             if ($LASTEXITCODE -ne 0) { throw 'SD patch UI regression failed.' }
+            & $vvp $outputFile '+rename'
+            if ($LASTEXITCODE -ne 0) { throw 'User slot rename display regression failed.' }
             & $vvp $outputFile '+lesson'
             if ($LASTEXITCODE -ne 0) { throw 'Assisted performance UI regression failed.' }
 

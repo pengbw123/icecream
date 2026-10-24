@@ -2,10 +2,11 @@
 
 ## 2026-10-24 琶音即兴与 SD 用户音色
 
-- ARP/SEQ加减：点按一步，按住450 ms后每100 ms重复。开关、START、STOP等仍只执行一次。
+- ARP/SEQ加减：点按一步，按住450 ms后每50 ms重复（每秒20步）。开关、START、STOP等仍只执行一次。
 - ARP页设置和弦并开启HOLD后，切到PLAY等页面可在伴奏上即兴。返回ARP页再按琴键可编辑和弦。
 - 当前音源仍共用音色和效果；独立伴奏音色尚未实现，见 `ACCOMPANIMENT_PATCH_PLAN.md`。
 - PATCH新增READ SD和STORE SD。SD保存需要先在FAT32卡根目录创建FMUSER.BIN，步骤见 `SD_USER_PATCHES.md`。
+- RENAME点DONE后，当前音色名与选中非空USER槽名称立即同步；槽的音源参数保持原值。SD文件需STORE SD才更新，重命名本身不自动写卡。
 
 ## 2026-10-24 USB 键盘接入
 

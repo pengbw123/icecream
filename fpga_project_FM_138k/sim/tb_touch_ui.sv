@@ -133,7 +133,7 @@ module tb_touch_ui;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
-    initial if($test$plusargs("sd")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
+    initial if($test$plusargs("rename")||$test$plusargs("sd")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
     integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -236,6 +236,7 @@ module tb_touch_ui;
             if(frame_kind==96)begin px=500;py=408;end
             if(frame_kind==97)begin px=700;py=408;end
             if(frame_kind==98)begin px=550;py=320;end
+            if(frame_kind==100)begin px=664;py=248;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -334,6 +335,23 @@ module tb_touch_ui;
         force dut.reset_ready=1'b1;
         wait(present);
         if(volume!==5)$fatal(1,"Power-up volume must be 5");
+        if($test$plusargs("rename"))begin
+            #10000000;touch_kind=22;wait(menu_page==6);#10000000;
+            touch_kind=0;#8000000;touch_kind=24;
+            wait(captured_cells[9*128+86][7:0]=="B");#5000000;
+            touch_kind=0;#8000000;touch_kind=23;
+            wait(captured_cells[13*128+34][7:0]=="B");#5000000;
+            touch_kind=0;#8000000;touch_kind=100;
+            wait(captured_cells[13*128+34][7:0]=="C");#5000000;
+            touch_kind=0;#8000000;touch_kind=39;
+            wait(captured_cells[9*128+86][7:0]=="C");#5000000;
+            if(captured_cells[3*128+8][7:0]!="C")$fatal(1,"Rename missed current header");
+            touch_kind=0;#8000000;touch_kind=25;#10000000;
+            touch_kind=0;#8000000;touch_kind=45;wait(cmd_64>=6&&cmd_65>=4);#10000000;
+            if(captured_cells[9*128+86][7:0]!="C"||captured_cells[3*128+8][7:0]!="C")$fatal(1,"Reload lost renamed slot metadata");
+            if(event_count||!dut.u_sd_spi.cs_n)$fatal(1,"Rename changed MIDI or started SD I/O");
+            $display("PASS real UI rename immediately updates USER row/header, persists in RAM reload, restores parameters and performs no SD write");$finish;
+        end
         if($test$plusargs("sd"))begin
             #10000000;touch_kind=22;wait(menu_page==6);#10000000;
             touch_kind=0;#8000000;touch_kind=96;#12000000;
@@ -438,7 +456,7 @@ module tb_touch_ui;
                 // simulating tens of millions of idle clocks.
                 @(negedge clk);dut.microseconds=dut.microseconds+410000;
                 wait(dut.arp_config[63:32]==60000000/(122*2));
-                @(negedge clk);dut.microseconds=dut.microseconds+100000;
+                @(negedge clk);dut.microseconds=dut.microseconds+50000;
                 wait(dut.arp_config[63:32]==60000000/(123*2));
                 touch_kind=0;#10000000;
                 @(negedge clk);dut.microseconds=dut.microseconds+200000;
@@ -453,7 +471,7 @@ module tb_touch_ui;
                 if(dut.seq_timing[31:0]!=60000000/(123*8))$fatal(1,"SEQ right-side short press repeated");
                 @(negedge clk);dut.microseconds=dut.microseconds+410000;
                 wait(dut.seq_timing[31:0]==60000000/(123*3));
-                $display("PASS real UI ARP/SEQ tap one step, right-hand controls, 450 ms hold, 100 ms repeat and release");$finish;
+                $display("PASS real UI ARP/SEQ tap one step, right-hand controls, 450 ms hold, 50 ms repeat and release");$finish;
             end
             touch_kind=0;#8000000;touch_kind=68;wait(dut.arp_config[0]);#5000000;
             if(dut.arp_config[63:32]!=250000||dut.arp_config[127:96]!=175000)$fatal(1,"ARP default timing");

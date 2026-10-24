@@ -1,6 +1,30 @@
 # 给后续 AI 的工程交接说明
 
-## 2026-10-24 ARP/SEQ 交互、HOLD 即兴与 SD 用户音色（最新发布）
+## 2026-10-24 长按提速与用户槽重命名（最新发布）
+
+- 用户要求加快ARP/SEQ长按增减，重复周期100→**50 ms**，约每秒20步；触发门槛仍450 ms，点按仍一步。
+  普通编辑页与PLAY控制条不变。固件和真实I2C/RV32I触摸回归已同步更新。
+- 用户实机反馈：RENAME后PATCH右侧USER槽仍显示旧名，再STORE SD才更新。
+  原因是RENAME只修改cur_name，槽列表读取slots[].name；STORE SD才将完整快照同步回RAM槽。
+  修复为DONE时同步当前名称与选中非空USER槽的名称，**只改槽的名称字段、不覆盖其音源参数、不自动写SD**。
+  状态提示NAME EDITED / SD NOT UPDATED；落盘仍需STORE SD。补齐短名称末尾字符编辑的空格扩展，避免旧NUL遮住新字符。
+- 真实固件回归通过：USER行与顶部立即更新、LOAD RAM后保留新名、原缩放/Pitch EG等参数可恢复、重命名无MIDI/SD写入。
+  最终固件 **68,240/81,920 B**，firmware.hex与firmware_high.hex已同次更新。
+- 用户第三问仅讨论双音色的时序代价，本轮没有实现双音色或扩生产复音。建议先单流水线32复音双part，参数选择设置寄存边界；
+  当前主域余量很小，双核不能直接解决FFT/XY/控制长路径。详见 `DUAL_TIMBRE_TIMING.md`。
+- 仅在独立testbench探测64复音：`tb_fm_readback -Ptb_fm_readback.TEST_VOICES=64 +metrics`，
+  render778、response779 clocks，65次逐帧起音/采样和一次抢音通过；这不是固定1024周期密集输入、整机PnR或实机验收。
+  生产配置仍32复音单音色。用户已撤回本轮SD载入操作说明的问题，不需重复展开。
+- 双屏发布位流 `impl/pnr/fm_138k_rgb_hdmi.fs`，2026-10-24 **21:28:02**（北京时间），42,234,791 B。
+  SHA256 `4E27772A325A0BF21FDB22A46FF05045F16D00A438F005FF7AF87BF3930BAD47`。
+  最终构建 `tmp/build_repeat50_rename.log`，四域setup/hold TNS=0；Fmax主域50.139、RGB37.323、
+  HDMI pixel33.800、serial331.798MHz。资源与20:15版相同：Logic53648、FF27898、BSRAM316/340、DSP65.5/298。
+  未自动烧录、未实机验证，本轮只重建双屏位流。
+  期间仅提速的首次构建已在收到重命名补充后中止；最终构建包括两项修改。
+  20:15版备份 `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-24_pre_repeat50.fs`。
+- 测试日志 `tmp/check_repeat50_final.log`、`tmp/check_rename50.log`、`tmp/check_probe64.log`。
+
+## 2026-10-24 ARP/SEQ 交互、HOLD 即兴与 SD 用户音色（20:15历史发布）
 
 - ARP/SEQ 参数加减：点按一步，450 ms 后每100 ms连续一步；其他编辑页仍1.5 s/150 ms。
   修复该页新按键未初始化 held_x、被错误当成坐标跳变反复点按的问题；ARP八度加减也接入统一重复逻辑。
