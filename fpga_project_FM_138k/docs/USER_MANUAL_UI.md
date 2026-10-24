@@ -1,5 +1,12 @@
 # FM 合成器触摸屏使用说明（零基础版）
 
+## 2026-10-24 琶音即兴与 SD 用户音色
+
+- ARP/SEQ加减：点按一步，按住450 ms后每100 ms重复。开关、START、STOP等仍只执行一次。
+- ARP页设置和弦并开启HOLD后，切到PLAY等页面可在伴奏上即兴。返回ARP页再按琴键可编辑和弦。
+- 当前音源仍共用音色和效果；独立伴奏音色尚未实现，见 `ACCOMPANIMENT_PATCH_PLAN.md`。
+- PATCH新增READ SD和STORE SD。SD保存需要先在FAT32卡根目录创建FMUSER.BIN，步骤见 `SD_USER_PATCHES.md`。
+
 ## 2026-10-24 USB 键盘接入
 
 新版使用外接 CH376S 模块的 USB-A 接键盘，SPI 接 138K，不再需要 25K 中转。

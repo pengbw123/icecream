@@ -129,3 +129,13 @@ IO_LOC "status_led[6]" H22;
 IO_PORT "status_led[6]" IO_TYPE=LVCMOS33 DRIVE=8;
 IO_LOC "status_led[7]" M21;
 IO_PORT "status_led[7]" IO_TYPE=LVCMOS33 DRIVE=8;
+
+// Onboard microSD, SPI mode; board pin assignment table.
+IO_LOC "sd_cs_n" K6;
+IO_PORT "sd_cs_n" IO_TYPE=LVCMOS33;
+IO_LOC "sd_clk" N3;
+IO_PORT "sd_clk" IO_TYPE=LVCMOS33;
+IO_LOC "sd_mosi" N4;
+IO_PORT "sd_mosi" IO_TYPE=LVCMOS33;
+IO_LOC "sd_miso" R1;
+IO_PORT "sd_miso" IO_TYPE=LVCMOS33 PULL_MODE=UP;

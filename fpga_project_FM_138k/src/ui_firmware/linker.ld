@@ -33,12 +33,10 @@ SECTIONS
     } > RAM
 
     _end = .;
-    /* The RV32I fetches instructions with a 14-bit word address, so the load
-       image must stay inside the low 64 KiB (16 384 words).  The build script
-       enforces the same limit on firmware.bin; this assertion catches a link
-       that would otherwise wrap silently.  .bss is not part of the image and
-       may use the rest of the 128 KiB data memory. */
-    ASSERT(SIZEOF(.text) + SIZEOF(.data) <= 65536,
-           "Firmware image exceeds the 64 KiB instruction ROM")
+    /* The UI fetch port has a 64 KiB base and a 16 KiB extension.  The build
+       script emits both ROM images and enforces this same 80 KiB boundary.
+       .bss resides only in the separate 128 KiB writable data memory. */
+    ASSERT(SIZEOF(.text) + SIZEOF(.data) <= 81920,
+           "Firmware image exceeds the 80 KiB instruction ROM")
     ASSERT(_end <= ORIGIN(RAM) + LENGTH(RAM), "Firmware exceeds 128 KiB data memory")
 }

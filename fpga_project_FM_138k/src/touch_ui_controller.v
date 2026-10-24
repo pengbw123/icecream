@@ -5,6 +5,7 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
     input wire clk, input wire reset_n,
     inout wire tp_scl, tp_sda, tp_int,
     output wire tp_rst,
+    output wire sd_cs_n,sd_clk,sd_mosi,input wire sd_miso,
     output wire uart_tx,
     output wire [31:0] midi_event_data,
     output wire midi_event_valid,
@@ -138,7 +139,8 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
     assign palette_index=write_data[27:24];assign palette_data=write_data[23:0];
     wire fx_select=address[31:8]==24'h250000;
     assign fx_write=fx_select&&write_en;assign fx_index=address[5:2];assign fx_value=write_data;
-    RV32I #(.FIRMWARE_FILE("src/ui_firmware/firmware.hex")) u_cpu (
+    RV32I #(.FIRMWARE_FILE("src/ui_firmware/firmware.hex"),
+        .FIRMWARE_HIGH_FILE("src/ui_firmware/firmware_high.hex")) u_cpu (
         .CLK(clk),.RST_X(reset_n),.w_mic_addr(address),.w_data(read_data),
         .w_mic_wdata(write_data),.w_mic_req(request),.w_mic_ctrl(),.w_stall(1'b0)
     );
@@ -147,7 +149,12 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
         .m_addr(address[5:2]),.m_data_i(write_data),.m_data_o(uart_data),
         .m_read(read_en),.m_write(write_en),.uart_rx(1'b1),.uart_tx(uart_tx)
     );
-    assign read_data=uart_select ? uart_data : fx_select?fx_read_value:ui_select ? ui_data : 32'd0;
+    wire sd_select=address[31:8]==24'h260000;
+    wire [31:0] sd_read_data;
+    sd_spi_byte u_sd_spi(.clk(clk),.reset_n(reset_n),.select(sd_select),.write_en(write_en),
+        .address(address[3:2]),.write_data(write_data),.read_data(sd_read_data),
+        .cs_n(sd_cs_n),.sck(sd_clk),.mosi(sd_mosi),.miso(sd_miso));
+    assign read_data=uart_select ? uart_data : sd_select?sd_read_data:fx_select?fx_read_value:ui_select ? ui_data : 32'd0;
     always @* begin
         case(address[7:2])
             0:ui_data={23'd0,reset_ready,6'd0,pins_sync};
@@ -263,7 +270,7 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
                     51:seq_timing[63:32]<=write_data;
                     52:seq_timing[95:64]<=write_data;
                     53:seq_timing[127:96]<=write_data;
-                    36:arp_config<={arp_timing_shadow,write_data&32'h0000ffff};
+                    36:arp_config<={arp_timing_shadow,write_data&32'h0001ffff};
                     37:arp_timing_shadow[31:0]<=write_data;
                     38:arp_timing_shadow[63:32]<=write_data;
                     39:arp_timing_shadow[95:64]<=write_data;

@@ -76,6 +76,16 @@ module tb_midi_arpeggiator;
         if(notes!=((128'd1<<60)|(128'd1<<64)|(128'd1<<67)))$fatal(1,"HOLD did not retain chord");
         midi(8'h90,72,100);midi(8'h90,76,100);
         if(notes!=((128'd1<<72)|(128'd1<<76)))$fatal(1,"HOLD replacement");
+        // Leave editor with HOLD enabled: live notes bypass chord capture,
+        // while chord-key releases and later returning to editor remain safe.
+        config_data[16]=1;before_on=ons;
+        midi(8'h80,72,0);midi(8'h80,76,0);
+        midi(8'h90,95,85);wait(sounding[95]);
+        if(notes!=((128'd1<<72)|(128'd1<<76)))$fatal(1,"Solo changed HOLD chord");
+        config_data[16]=0;midi(8'h80,95,0);wait(!sounding[95]);
+        wait(ons>=before_on+3);
+        if(notes!=((128'd1<<72)|(128'd1<<76))||!status[2])$fatal(1,"Solo interrupted ARP");
+        midi(8'h90,72,100);midi(8'h90,76,100);
         @(negedge clk);config_data[1]=0;
         midi(8'h80,72,0);midi(8'h80,76,0);wait(!status[2]&&!status[3]);
         start_mode(0,1,0);before_on=ons;config_data[2]=1;config_data[14:8]=77;

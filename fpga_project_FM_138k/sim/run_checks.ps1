@@ -7,6 +7,7 @@ try {
     $vvp = if ($IverilogDirectory) { Join-Path $IverilogDirectory 'vvp.exe' } else { 'vvp' }
     New-Item -ItemType Directory -Force -Path 'tmp' | Out-Null
     $cases = @(
+        @{ Name='tb_sd_spi_byte'; Sources=@('sim/tb_sd_spi_byte.sv','src/sd_spi_byte.v') },
         @{ Name='tb_ch376_units'; Sources=@('sim/tb_ch376_units.sv','src/ch376/usb_midi_config_parser.v','src/ch376/usb_midi_event_decode.v','src/ch376/midi_event_arbiter3.v') },
         @{ Name='tb_ch376_midi_host'; Sources=@('sim/tb_ch376_midi_host.sv','sim/ch376_usb_model.sv','src/ch376/ch376_midi_host.v','src/ch376/ch376_control_transfer.v','src/ch376/ch376_spi_command.v','src/ch376/usb_midi_config_parser.v','src/ch376/usb_midi_event_decode.v') },
         @{ Name='tb_ch376_input_path'; Sources=@('sim/tb_ch376_input_path.sv','src/ch376/usb_midi_event_decode.v','src/ch376/midi_event_arbiter3.v','src/ch376/midi_input_queue.v') },
@@ -42,6 +43,7 @@ try {
         @{ Name='tb_rgb_visualizer'; Sources=@('sim/tb_rgb_visualizer.sv','src/lesson_view.v','src/lesson_score_memory.v','src/rgb_visualizer.v','src/audio_spectrum_snapshot.v','src/audio_xy_scope.v','src/audio_wave_scope.v','src/rtl_performance_text.v','src/rtl_char_display.v','src/ui_eg_curve.v','src/ui_algo_map.v','src/ui_eg_multi.v') }
     )
     foreach ($case in $cases) {
+        if ($case.Sources -contains 'src/touch_ui_controller.v') { $case.Sources += 'src/sd_spi_byte.v' }
         $outputFile = 'tmp/' + $case.Name + '.vvp'
         $arguments = @('-g2012','-s',$case.Name,'-o',$outputFile) + $case.Sources
         & $iverilog @arguments
@@ -104,6 +106,10 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Delayed glide readback across automatic tools failed.' }
             & $vvp $outputFile '+arp'
             if ($LASTEXITCODE -ne 0) { throw 'Arpeggiator UI regression failed.' }
+            & $vvp $outputFile '+arp' '+repeat'
+            if ($LASTEXITCODE -ne 0) { throw 'ARP/SEQ tap and hold regression failed.' }
+            & $vvp $outputFile '+sd'
+            if ($LASTEXITCODE -ne 0) { throw 'SD patch UI regression failed.' }
             & $vvp $outputFile '+lesson'
             if ($LASTEXITCODE -ne 0) { throw 'Assisted performance UI regression failed.' }
 

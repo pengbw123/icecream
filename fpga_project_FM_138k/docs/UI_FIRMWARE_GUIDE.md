@@ -1,5 +1,10 @@
 # UI 软核与菜单固件说明
 
+2026-10-24 SD 用户音色版：UI 指令窗口扩为 **80 KiB（64+16）**，数据 RAM 仍128 KiB；
+`build_firmware.ps1` 使用 `-Oz` 并同时生成 `firmware.hex` 和 `firmware_high.hex`。
+旧章节中的64 KiB指令上限已不适用于此版。ARP/SEQ 加减点按一步，450 ms 后每100 ms重复；
+HOLD离开ARP页锁定和弦并直通即兴按键。SD说明见 `SD_USER_PATCHES.md`；双音色仍为方案，见 `ACCOMPANIMENT_PATCH_PLAN.md`。
+
 2026-10-24 32 复音版：声部计数高 3 位新增到 UI[4][26:24]，音色高位仍在 [23:22]，
 UI[59] 只读返回声部容量。必须使用 `status_voices()`，不能继续仅取 5 位。
 当前固件 60,604 / 65,536 B；详见 [POLYPHONY_32.md](POLYPHONY_32.md)。

@@ -1,6 +1,12 @@
 # 资源与流水线分析（2026-10-24）
 
-USB 移植后最新实测：Logic 52,763（39%）、FF 27,727（20%）、BSRAM 314/340（93%）、
+20:15 ARP/HOLD/SD版最新PnR：Logic **53,648（39%）**、FF **27,898（21%）**、
+BSRAM **316/340（93%）**、DSP **65.5/298（22%）**；四域setup/hold TNS=0。
+Fmax：主域 **50.139**、RGB **37.323**、HDMI pixel **33.800**、serial **331.798 MHz**。
+UI指令ROM扩为64+16KiB，数据RAM仍128KiB，代码/常量镜像67,988B；未用高段被裁剪，实际增加2块BSRAM。
+UI综合RAM原语从96变98；其余主要消费者分布不变。详细发布状态见AI_HANDOFF.md最新记录。
+
+以下为18:16 USB移植历史版本：Logic 52,763（39%）、FF 27,727（20%）、BSRAM 314/340（93%）、
 DSP 65.5/298（22%）；主域 Fmax 50.162MHz，最紧 slack约0.065ns（FFT real_mem→band_max），
 RGB/HDMI pixel/HDMI serial Fmax为36.544/30.148/242.673MHz；四域 setup/hold TNS均0。
 这是整体布局布线结果，不能将频率变化全部归因于某一条代码改动。

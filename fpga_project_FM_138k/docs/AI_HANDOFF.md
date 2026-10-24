@@ -1,6 +1,42 @@
 # 给后续 AI 的工程交接说明
 
-## 2026-10-24 CH376S USB MIDI 移植（最新发布）
+## 2026-10-24 ARP/SEQ 交互、HOLD 即兴与 SD 用户音色（最新发布）
+
+- ARP/SEQ 参数加减：点按一步，450 ms 后每100 ms连续一步；其他编辑页仍1.5 s/150 ms。
+  修复该页新按键未初始化 held_x、被错误当成坐标跳变反复点按的问题；ARP八度加减也接入统一重复逻辑。
+- ARP config bit16表示离开编辑页，touch_ui_controller 的 UI[36] 写掩码同步扩到17位。
+  HOLD且离开ARP页时锁住和弦，新音符直通即兴；返回编辑页后仍能正确松开即兴音符。
+  midi_note_owners 将bit30 ARP与bit31自动演奏一并纳入人手/自动所有权保护。
+  同音仍共享一个音源声部；当前踏板全局共享，HOLD即兴时不将踏板按下传给音源，避免破坏ARP门限。
+- **伴奏独立音色本轮未实现**：用户允许复杂时先给方案。当前换音色仍会改变伴奏。
+  双part参数、LFO、Pitch EG、分配器及Pattern快照方案见 `ACCOMPANIMENT_PATCH_PLAN.md`。
+- 板载SD卡槽：SPI CS# K6、CLK N3、MOSI N4、MISO R1，LVCMOS33。新增sd_spi_byte（200kHz/5MHz）和0x26000000 MMIO。
+  PATCH新增READ SD（确认后整体恢复八个RAM槽，再LOAD RAM应用）和STORE SD（确认后保存当前音色至选中槽）。
+  FAT32 SDHC/SDXC，根目录预置FMUSER.BIN，支持碎片簇链；不写FAT或目录、不分配簇。
+  每槽两个CRC32/generation记录，写另一副本并读回验证，CRC16检查SD数据。
+  空白库 `assets/sd/FMUSER.BIN`，生成器 `tools/prepare_sd_user_bank.py`，操作/格式/限制见 `SD_USER_PATCHES.md`。
+- UI固件 **67,988/81,920 B**，改-Oz，指令ROM64+16KiB，数据RAM仍128KiB。
+  .text67940、.data48、.bss39600，静态结束0x1001a444，剩余23484B供栈使用。
+  firmware.hex和firmware_high.hex必须同次生成；共享CPU默认仍64KiB，仅UI启用高段。
+- 已过针对性验证：ARP单元、原自动所有权/队列及ARP同音、SEQ单元；真实固件/I2C的
+  ARP/SEQ点按与450ms/100ms长按、HOLD离页同音即兴、SEQ录制/切页/参数/清除、SD确认/无卡返回、
+  普通菜单EG/LFO/Pitch/命名/用户槽/FX回归。未重跑全量回归矩阵。
+  SD生产C协议/文件系统模型及RTL移位器通过；覆盖两种簇大小、活动FAT、碎片/无分区卷、
+  八槽、CRC标准向量、坏链、坏头、无卡、数据CRC和写入中断恢复。实卡兼容性和掉电行为待实机。
+- IDE启用59个RTL文件均存在，两份CLI和两套CST同步，无重复引脚。800×480 PATCH字符层预览已检查。
+- 最终双屏位流 `impl/pnr/fm_138k_rgb_hdmi.fs`，2026-10-24 **20:15:04**（北京时间），42,234,791 B。
+  SHA256 `630246611F79A2E723B81FB89A2172644FA63ABC5DBCD8D3013C9E21764C8764`。
+  Logic **53,648/138,240（39%）**、FF **27,898/139,095（21%）**、BSRAM **316/340（93%）**、DSP **65.5/298（22%）**。
+  Fmax：主域 **50.139**、RGB **37.323**、HDMI pixel **33.800**、serial **331.798 MHz**；四域setup/hold TNS=0。
+  主域余量仍小，不能据此直接提升主时钟；新增UI指令区实际仅增加两块物理BSRAM。
+  构建日志 `tmp/build_sd_arp_release.log`；未自动烧录、未实机验收，只重建双屏位流。
+  首次构建在发现UI[36]掩码漏位后中止，最终构建已包含修正；旧位流备份
+  `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-24_pre_sd_arp.fs`。
+- 验证日志：`tmp/check_sd_store.log`、`tmp/check_ui_repeat_sd.log`、`tmp/check_ui_hold_sd.log`、
+  `tmp/check_ui_seq_sd.log`、`tmp/check_ui_sd_entry.log`、`tmp/check_ui_base_sd.log`。
+  `tmp/sd_patch_menu_preview.png`为真实固件字符/调色板写入日志渲染，数据来自仿真模型，不是实机照片。
+
+## 2026-10-24 CH376S USB MIDI 移植（历史发布）
 
 - 移植队友 `tlemon229/Gowin-Instrument-138K` 提交 `7bc0f80a8fd6eb9835cd11b5081097794c8b2048`
   的六个 CH376/SPI/USB MIDI 模块，未导入其蓝牙、手机、曲谱或 UI/音源实现。

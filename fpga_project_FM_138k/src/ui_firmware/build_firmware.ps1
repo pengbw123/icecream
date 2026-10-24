@@ -31,7 +31,7 @@ $hex = Join-Path $firmwareDir 'firmware.hex'
     -target riscv32-freestanding-none `
     -mcpu=generic_rv32 `
     -mabi=ilp32 `
-    -Os `
+    -Oz `
     -ffreestanding `
     -fno-builtin `
     -fno-pic `
@@ -54,11 +54,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Firmware link failed.' }
 if ($LASTEXITCODE -ne 0) { throw 'Firmware objcopy failed.' }
 
 $bytes = [System.IO.File]::ReadAllBytes($binary)
-# Instruction fetch uses a 14-bit word address (64 KiB window).  Keep the whole
-# load image below that limit; .bss is not part of the image and may use the
-# remaining data RAM.
-if ($bytes.Length -gt 65536) {
-    throw "Firmware load image is $($bytes.Length) bytes, larger than the 64 KiB instruction ROM window."
+# UI instruction fetch has a 64 KiB base plus a 16 KiB extension. .bss is
+# not part of the image and uses only the separate data RAM.
+if ($bytes.Length -gt 81920) {
+    throw "Firmware load image is $($bytes.Length) bytes, larger than the 80 KiB instruction ROM window."
 }
 
 # Pad to the full 128 KiB data-memory image.  The soft core loads the same hex
@@ -75,6 +74,7 @@ for ($offset = 0; $offset -lt 131072; $offset += 4) {
     $lines.Add($word.ToString('X8'))
 }
 [System.IO.File]::WriteAllLines($hex, $lines, [System.Text.Encoding]::ASCII)
+[System.IO.File]::WriteAllLines((Join-Path $firmwareDir 'firmware_high.hex'), $lines.GetRange(16384,4096), [System.Text.Encoding]::ASCII)
 
-Write-Host "Touch/UI firmware: $($bytes.Length) / 65536 instruction-ROM bytes"
+Write-Host "Touch/UI firmware: $($bytes.Length) / 81920 instruction-ROM bytes"
 Write-Host "Generated: $hex"

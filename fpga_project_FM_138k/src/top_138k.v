@@ -8,6 +8,7 @@ module top_138k #(parameter integer LEGACY_BRIDGE_ENABLED=0) (
     input wire bridge_uart_rx_pin,
     output wire ch376_cs_n,ch376_sck,ch376_mosi,
     input wire ch376_miso,ch376_int_n,
+    output wire sd_cs_n,sd_clk,sd_mosi,input wire sd_miso,
     output wire i2s_bclk, i2s_lrclk, i2s_din,
     output wire aud_mclk, aud_bclk, aud_lrclk, aud_dacdat,
     inout wire codec_scl, codec_sda,
@@ -110,7 +111,8 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .lesson_state(lesson_state),.lesson_bank(lesson_bank),.lesson_count(lesson_count),
         .lesson_write(lesson_write),.lesson_address(lesson_address),.lesson_data(lesson_data),
 
-        .clk(clk),.reset_n(reset_n),.tp_scl(tp_scl),.tp_sda(tp_sda),.tp_int(tp_int),.tp_rst(tp_rst),
+        .clk(clk),.reset_n(reset_n),.sd_cs_n(sd_cs_n),.sd_clk(sd_clk),.sd_mosi(sd_mosi),.sd_miso(sd_miso),
+        .tp_scl(tp_scl),.tp_sda(tp_sda),.tp_int(tp_int),.tp_rst(tp_rst),
         .uart_tx(uart_tx_pin),.midi_event_data(ui_event),.midi_event_valid(ui_valid),.midi_event_ready(ui_ready),
         .monitor_event(event_data),.monitor_event_valid(event_valid),
         .preset_index(preset),.algorithm(algorithm),.active_voices(voices),

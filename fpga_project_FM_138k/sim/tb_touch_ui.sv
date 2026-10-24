@@ -49,7 +49,7 @@ module tb_touch_ui;
     touch_ui_controller dut(.clk(clk),.reset_n(reset_n),.tp_scl(scl),.tp_sda(sda),
         .perf_data(perf_model[perf_index]),.perf_index(perf_index),.perf_snapshot(perf_snap),.perf_clear(perf_clear),
         .tp_int(int_pin),.tp_rst(rst_pin),.uart_tx(uart),.midi_event_data(event_word),
-        .midi_event_valid(valid),.midi_event_ready(arp_test_ready),.monitor_event($test$plusargs("seq")?event_word:32'd0),
+        .sd_miso(1'b1),.midi_event_valid(valid),.midi_event_ready(arp_test_ready),.monitor_event($test$plusargs("seq")?event_word:32'd0),
         .monitor_event_valid($test$plusargs("seq")?valid&&arp_test_ready:1'b0),.preset_index($test$plusargs("poly32")?7'd127:performance_case?model_preset:7'd0),.algorithm(5'd4),.active_voices($test$plusargs("poly32")?model_voices:8'd0),
         .touch_present(present),.keyboard_octave(octave),.master_volume(volume),
         .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),.xy_delay_samples(xy_delay),.display_auto_gain(display_auto_gain),
@@ -133,7 +133,7 @@ module tb_touch_ui;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
-    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
+    initial if($test$plusargs("sd")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
     integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -233,6 +233,9 @@ module tb_touch_ui;
             if(frame_kind==93)begin px=100;py=390;end
             if(frame_kind==94)begin px=350;py=450;end
             if(frame_kind==95)begin px=650;py=450;end
+            if(frame_kind==96)begin px=500;py=408;end
+            if(frame_kind==97)begin px=700;py=408;end
+            if(frame_kind==98)begin px=550;py=320;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -331,6 +334,17 @@ module tb_touch_ui;
         force dut.reset_ready=1'b1;
         wait(present);
         if(volume!==5)$fatal(1,"Power-up volume must be 5");
+        if($test$plusargs("sd"))begin
+            #10000000;touch_kind=22;wait(menu_page==6);#10000000;
+            touch_kind=0;#8000000;touch_kind=96;#12000000;
+            if(captured_cells[9*128+14][7:0]!="R")$fatal(1,"SD bank overwrite confirmation missing");
+            touch_kind=0;#8000000;touch_kind=98;
+            wait(!dut.u_sd_spi.cs_n);wait(dut.u_sd_spi.cs_n);#20000000;
+            if(captured_cells[7*128+56][7:0]!="N")$fatal(1,"Missing SD card error not shown");
+            touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);#5000000;
+            if(event_count)$fatal(1,"Failed SD read changed sound");
+            $display("PASS real UI SD read confirmation, no-card timeout message and responsive return without MIDI changes");$finish;
+        end
         if($test$plusargs("poly32"))begin
             #12000000;
             if(captured_cells[3*128+58][7:0]!="3"||captured_cells[3*128+59][7:0]!="2"||
@@ -416,6 +430,31 @@ module tb_touch_ui;
             #10000000;touch_kind=17;wait(menu_page==7);#10000000;
             touch_kind=0;#8000000;touch_kind=67;wait(menu_page==10);#10000000;
             if(captured_cells[775][7:0]!="A")$fatal(1,"ARP transport missing");
+            if($test$plusargs("repeat"))begin
+                touch_kind=0;#8000000;touch_kind=70;
+                wait(dut.arp_config[63:32]==60000000/(121*2));#50000000;
+                if(dut.arp_config[63:32]!=60000000/(121*2))$fatal(1,"ARP short press repeated");
+                // Advance the real firmware timer to test holds without
+                // simulating tens of millions of idle clocks.
+                @(negedge clk);dut.microseconds=dut.microseconds+410000;
+                wait(dut.arp_config[63:32]==60000000/(122*2));
+                @(negedge clk);dut.microseconds=dut.microseconds+100000;
+                wait(dut.arp_config[63:32]==60000000/(123*2));
+                touch_kind=0;#10000000;
+                @(negedge clk);dut.microseconds=dut.microseconds+200000;
+                #10000000;if(dut.arp_config[63:32]!=60000000/(123*2))$fatal(1,"Released button repeated");
+                touch_kind=72;wait(dut.arp_config[5:3]==1);#30000000;
+                if(dut.arp_config[5:3]!=1)$fatal(1,"Right-side ARP button retriggered");
+                touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#10000000;
+                touch_kind=0;#8000000;touch_kind=77;wait(menu_page==11);#10000000;
+                touch_kind=0;#8000000;touch_kind=83;#10000000;
+                touch_kind=0;#8000000;touch_kind=90;
+                wait(dut.seq_timing[31:0]==60000000/(123*8));#50000000;
+                if(dut.seq_timing[31:0]!=60000000/(123*8))$fatal(1,"SEQ right-side short press repeated");
+                @(negedge clk);dut.microseconds=dut.microseconds+410000;
+                wait(dut.seq_timing[31:0]==60000000/(123*3));
+                $display("PASS real UI ARP/SEQ tap one step, right-hand controls, 450 ms hold, 100 ms repeat and release");$finish;
+            end
             touch_kind=0;#8000000;touch_kind=68;wait(dut.arp_config[0]);#5000000;
             if(dut.arp_config[63:32]!=250000||dut.arp_config[127:96]!=175000)$fatal(1,"ARP default timing");
             touch_kind=0;#8000000;touch_kind=69;wait(dut.arp_config[1]);#5000000;
@@ -428,6 +467,13 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=2;wait(test_arp_notes[48]);#5000000;
             touch_kind=0;#8000000;
             if(!test_arp_notes[48])$fatal(1,"UI HOLD failed");
+            touch_kind=11;wait(menu_page==0);wait(dut.arp_config[16]);#5000000;
+            touch_kind=0;#8000000;touch_kind=2;wait(test_arp.live_notes[48]);#5000000;
+            if(test_arp_notes!=(128'd1<<48))$fatal(1,"PLAY solo changed background chord");
+            touch_kind=0;#8000000;if(test_arp.live_notes!=0||!test_arp_notes[48])$fatal(1,"Solo release changed ARP");
+            touch_kind=17;wait(menu_page==7);#5000000;
+            touch_kind=0;#8000000;touch_kind=67;wait(menu_page==10);wait(!dut.arp_config[16]);#5000000;
+            touch_kind=0;#8000000;
             touch_kind=76;wait(test_arp_notes==0);#5000000;
             touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);#5000000;
             if(!dut.arp_config[0])$fatal(1,"Leaving ARP disabled playback");

@@ -44,6 +44,8 @@ int __modsi3(int a,int b){unsigned ua,ub,r;
 /* Shift-add multiply: the RV32I core has no M extension and the C compiler
    emits libcalls for some non-power-of-two products used by the EG scaling. */
 u32 __mulsi3(u32 a,u32 b){u32 r=0;while(b){if(b&1u)r+=a;a<<=1;b>>=1;}return r;}
+void *memcpy(void *dst,const void *src,u32 n){u8 *d=dst;const u8 *s=src;
+    while(n--)*d++=*s++;return dst;}
 
 static u32 now(void){return UI[1];}
 static void delay_us(u32 us){u32 start=now();while((u32)(now()-start)<us){}}
@@ -705,6 +707,27 @@ static void name_cycle(int d){
 #define SLOT_MAGIC 0x5A5Au
 struct slot_t {u16 magic;char name[11];u16 globals[9];u16 op[6][17];u16 pitch[12];};
 static struct slot_t slots[8];
+static void slot_read_all(struct slot_t *s);
+typedef char slot_size_check[(sizeof(struct slot_t)==260)?1:-1];
+#include "sd_patch_store.h"
+static struct slot_t sd_slots[8];
+static void sd_bank_action(u8 store){u8 i;
+    sd_message="SD: WORKING...";draw_page();
+    release_all();
+    if(!sd_mount())return;
+    if(store){
+        slot_read_all(&sd_slots[0]);
+        if(!sd_slot(slot_sel,(u8 *)&sd_slots[0],1))return;
+        slots[slot_sel]=sd_slots[0];sd_message="SD: SLOT SAVED + VERIFIED";
+    }else{
+        for(i=0;i<8;i++){
+            if(!sd_slot(i,(u8 *)&sd_slots[i],0))return;
+            sd_slots[i].name[10]=0;
+        }
+        for(i=0;i<8;i++)slots[i]=sd_slots[i];
+        sd_message="SD: BANK READ / SELECT LOAD";
+    }
+}
 static void slot_read_all(struct slot_t *s){
     u8 i,j;
     s->magic=SLOT_MAGIC;
@@ -1085,11 +1108,11 @@ static void menu_repeat(void){
     if(page==PAGE_PERF||held_id==0xFF)return;
     if(held_kind==1||held_kind==2){
         u32 dt=(u32)(now()-held_t);
-        /* Single tap = one step.  Continuous stepping starts only after a
-           deliberate 1.5 s hold, then repeats every 150 ms. */
-        if(dt>1500000u){
-            u32 n=1u+(dt-1500000u)/150000u;
-            if(n>held_count&&n<40u){held_count=n;adj(held_row,held_kind==1?-1:1);}
+        u32 start=(page==PAGE_ARP||page==PAGE_SEQ)?450000u:1500000u;
+        if(dt>=start){
+            u32 period=(page==PAGE_ARP||page==PAGE_SEQ)?100000u:150000u;
+            u32 n=1u+(dt-start)/period;
+            if(n>held_count){held_count=n;adj(held_row,held_kind==1?-1:1);}
         }
     }
 }
@@ -1159,7 +1182,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
             control_x[id]=px[id];control_y[id]=py[id];
             
             if(page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ){
-                if(next[id]<0){held_id=(u8)id;held_kind=0;menu_press(px[id],py[id]);}
+                if(next[id]<0){held_id=(u8)id;held_kind=0;held_x=px[id];menu_press(px[id],py[id]);}
             }else if(page==PAGE_PERF){
                 if(dialog||py[id]<48){menu_press(px[id],py[id]);}
                 else if(next[id]<0)perf_control(px[id],py[id],(u8)id);

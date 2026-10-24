@@ -12,7 +12,8 @@ static void arp_publish(void){
     UI[37]=even;UI[38]=odd;UI[39]=even*arp_gate/100u;UI[40]=odd*arp_gate/100u;
     /* Control write atomically commits all four shadow timing words. */
     UI[36]=arp_on|((u32)arp_hold<<1)|((u32)arp_fixed<<2)|((u32)arp_order<<3)|
-        ((u32)(arp_octaves-1u)<<6)|((u32)arp_velocity<<8)|((u32)arp_stop<<15);
+        ((u32)(arp_octaves-1u)<<6)|((u32)arp_velocity<<8)|((u32)arp_stop<<15)|
+        ((u32)(page!=PAGE_ARP)<<16);
 }
 static void arp_enable(u8 enable){u32 t;u8 from_sequence=(u8)(enable&&seq_is_active());
     if(enable)seq_stop();
@@ -51,7 +52,7 @@ static void draw_arp(void){
     arp_row(2,11,"OCTAVES",u1d(arp_octaves));arp_row(52,11,"GATE %",u2d(arp_gate));
     arp_row(2,14,"VELOCITY",arp_fixed?u3d(arp_velocity):"INPUT");arp_row(52,14,"SWING %",u2d(arp_swing));
     button_box(2,17,14,3,"OCT -",0);row_box(18,17,14,3,"VIEW",sgn1(octave),0);button_box(34,17,14,3,"OCT +",0);
-    text(53,17,"HOLD: RELEASE, THEN NEW CHORD",2,0);
+    text(53,17,"HOLD: LEAVE PAGE TO PLAY SOLO",2,0);
     text(53,18,"VELOCITY: TAP VALUE TO SWITCH",2,0);
     draw_arp_status();
 }
@@ -63,6 +64,7 @@ static void arp_adj(u8 row,int d){int v;
     else if(row==4){v=arp_gate+d;if(v<10)v=10;if(v>95)v=95;arp_gate=(u8)v;}
     else if(row==5){v=arp_velocity+d;if(v<1)v=1;if(v>127)v=127;arp_velocity=(u8)v;arp_fixed=1;}
     else if(row==6){v=arp_swing+d;if(v<50)v=50;if(v>75)v=75;arp_swing=(u8)v;}
+    else if(row==7){release_all();octave+=d;if(octave< -3)octave=-3;if(octave>3)octave=3;publish();draw_status();}
     arp_publish();seq_publish();draw_arp();
 }
 static void arp_press(int x,int y){u8 row=0;int local,d=0;
@@ -80,8 +82,7 @@ static void arp_press(int x,int y){u8 row=0;int local,d=0;
         }
     }else if(y>=272&&y<320){
         if((x>=16&&x<128)||(x>=272&&x<384)){
-            release_all();octave+=x<128?-1:1;if(octave< -3)octave=-3;if(octave>3)octave=3;
-            publish();draw_status();draw_arp();
+            row=7;d=x<128?-1:1;
         }
     }
     if(d){held_row=row;held_kind=d<0?1:2;held_t=now();held_count=0;arp_adj(row,d);}

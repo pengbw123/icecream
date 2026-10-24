@@ -1,3 +1,4 @@
+add_file -type verilog "src/sd_spi_byte.v"
 add_file -type verilog "src/ch376/ch376_spi_command.v"
 add_file -type verilog "src/ch376/ch376_control_transfer.v"
 add_file -type verilog "src/ch376/ch376_midi_host.v"

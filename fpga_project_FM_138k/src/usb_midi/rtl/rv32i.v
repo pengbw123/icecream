@@ -181,7 +181,8 @@ endmodule
 //    addr 0x10000000-0x1fffffff is local memory, code must be here
 //
 module RV32I #(
-    parameter FIRMWARE_FILE = "src/usb_midi/firmware/firmware.hex"
+    parameter FIRMWARE_FILE = "src/usb_midi/firmware/firmware.hex",
+    parameter FIRMWARE_HIGH_FILE = ""
 ) (
     input  wire         CLK,          // clock
 `ifdef USB_USE_DUAL_CLOCK_BRAM_HACK
@@ -363,7 +364,7 @@ module RV32I #(
                                 (w_mic_ctrl[1:0]==1)                            ? w_we_sh : w_we_sb;
 
     // BRAM local memory
-    m_lm_mc #(.FIRMWARE_FILE(FIRMWARE_FILE)) lm_mc
+    m_lm_mc #(.FIRMWARE_FILE(FIRMWARE_FILE),.FIRMWARE_HIGH_FILE(FIRMWARE_HIGH_FILE)) lm_mc
     (
         CLK, 
 `ifdef USB_USE_DUAL_CLOCK_BRAM_HACK
@@ -389,7 +390,8 @@ endmodule
 
 `ifndef USB_USE_DUAL_CLOCK_BRAM_HACK
 module m_lm_mc #(
-    parameter FIRMWARE_FILE = "src/usb_midi/firmware/firmware.hex"
+    parameter FIRMWARE_FILE = "src/usb_midi/firmware/firmware.hex",
+    parameter FIRMWARE_HIGH_FILE = ""
 )(
     input  wire                         CLK,
 
@@ -419,9 +421,20 @@ module m_lm_mc #(
         $readmemh(FIRMWARE_FILE, data_mem);
     end
 
-    always @(posedge CLK) begin
-        r_odata1 <= instruction_mem[w_addr1[13:0]];
-    end
+    generate if(FIRMWARE_HIGH_FILE!="")begin:g_instruction_high
+        // Extend only the UI image to 80 KiB (eight more 18-Kbit blocks),
+        // retaining synchronous reads and the existing CPU fetch latency.
+        reg [31:0] extra_mem[0:4095];
+        reg [31:0] lo,hi;reg high_select;
+        initial $readmemh(FIRMWARE_HIGH_FILE,extra_mem);
+        always @(posedge CLK)begin
+            lo<=instruction_mem[w_addr1[13:0]];
+            hi<=extra_mem[w_addr1[11:0]];high_select<=w_addr1[14];
+        end
+        always @* r_odata1=high_select?hi:lo;
+    end else begin:g_instruction_base
+        always @(posedge CLK)r_odata1<=instruction_mem[w_addr1[13:0]];
+    end endgenerate
 
     always @(posedge CLK) begin
         if (|w_we) begin

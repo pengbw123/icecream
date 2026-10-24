@@ -131,11 +131,12 @@ static void draw_fx(void){u8 i;u8 type=fx_type_reg[fx_sel];
     if(fx_sel==2)text(32,24,"TIME 20..1000 ms",2,0);
 }
 static void draw_name(void){u8 i;char label[12];text(2,6,"ROM1+2 / 128",2,0);
-    text(52,6,"USER RAM / 8 SLOTS",2,0);text(52,7,"POWER OFF = LOST",4,0);
+    text(52,6,"USER / 8 SLOTS",2,0);text(52,7,sd_message,4,0);
     for(i=0;i<5;i++){u8 n=(u8)(patch_rom_page*5+i);if(n<128)row_box(2,(u8)(8+i*3),46,3,u3d(n+1u),preset_names[n],n==patch_pick);}
     for(i=0;i<4;i++){u8 n=(u8)(patch_bank*4+i);row_box(52,(u8)(8+i*3),46,3,u2d(n+1u),slots[n].magic==SLOT_MAGIC?slots[n].name:"-- EMPTY --",slot_sel==n);}
     button_box(2,23,24,3,"< PREV",0);button_box(26,23,22,3,"NEXT >",0);
     button_box(52,21,22,3,"LOAD RAM",0);button_box(76,21,22,3,"STORE RAM",0);
+    button_box(52,24,22,3,"READ SD",0);button_box(76,24,22,3,"STORE SD",0);
     button_box(86,5,12,3,patch_bank?"5-8 >":"1-4 >",0);
     button_box(2,27,46,3,"LOAD ROM",1);button_box(52,27,22,3,"RENAME",0);button_box(76,27,22,3,"PLAY",0);
     (void)label;
@@ -190,7 +191,7 @@ static const char *setup_value(u8 n){if(n==0)return bg_labels[bg_pick];if(n==1)r
 static void draw_theme(void){u8 i;button_box(2,5,46,3,"ARPEGGIATOR >",arp_on);button_box(52,5,46,3,"STEP SEQUENCER >",0);
     for(i=0;i<5;i++)row_box(2,(u8)(8+i*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
     for(i=5;i<10;i++)row_box(52,(u8)(8+(i-5)*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
-    button_box(2,23,46,3,"PERFORMANCE >",0);text(54,24,"RAM SLOTS: VOLATILE",2,0);
+    button_box(2,23,46,3,"PERFORMANCE >",0);text(54,24,"PATCH: SD USER BANK",2,0);
 }
 static const char *selected_label(void){if(page==1){static const char *const a[4]={"ALGORITHM","FEEDBACK","OSC SYNC","TRANSPOSE"};return a[sel_row];}
     if(page==2)return osc_labels[sel_row];if(page==3)return sel_row<4?"RATE":"LEVEL";
@@ -218,13 +219,13 @@ static void draw_bottom(void){int cur,lo,hi,cyc,norm;u8 c;
 }
 static void draw_dialog(void){
     rect_cells(10,8,80,15,5);
-    pair_text(14,9,dialog==1?"ARPEGGIATOR":dialog==2?"STEP SEQUENCER":dialog==3?"SPECTRUM":dialog==4?"RENAME":dialog==5?"LOAD ROM":dialog==6?"OVERWRITE RAM":"LOAD RAM",5,0);
+    pair_text(14,9,dialog==8?"STORE SD SLOT":dialog==9?"READ SD BANK":dialog==1?"ARPEGGIATOR":dialog==2?"STEP SEQUENCER":dialog==3?"SPECTRUM":dialog==4?"RENAME":dialog==5?"LOAD ROM":dialog==6?"OVERWRITE RAM":"LOAD RAM",5,0);
     if(dialog<=3){pair_text(14,12,"RESERVED / NOT AVAILABLE YET",5,0);button_box(30,18,40,3,"BACK",1);}
     else if(dialog==4){pair_text(34,13,cur_name,5,0);button_box(12,14,8,3,"<",0);button_box(22,14,8,3,">",0);
         button_box(70,14,8,3,"-",0);button_box(80,14,8,3,"+",0);button_box(30,19,40,3,"DONE",1);
         c_at((u8)(34+name_pos),14,'^',4,0);}
-    else{pair_text(14,12,dialog==6?"REPLACE SELECTED SLOT?":"REPLACE CURRENT EDITS?",5,0);
-        button_box(14,19,30,3,"CANCEL",0);button_box(54,19,30,3,dialog==6?"STORE":"LOAD",1);}
+    else{pair_text(14,12,dialog==9?"REPLACE ALL RAM SLOTS FROM SD?":dialog==8?"SAVE CURRENT PATCH TO SD SLOT?":dialog==6?"REPLACE SELECTED SLOT?":"REPLACE CURRENT EDITS?",5,0);
+        button_box(14,19,30,3,"CANCEL",0);button_box(54,19,30,3,(dialog==6||dialog==8)?"STORE":"LOAD",1);}
 }
 static void draw_page(void){draw_header();
     if(page==PAGE_METRICS)draw_metrics();else if(page==PAGE_SEQ)draw_seq();else if(page==PAGE_ARP)draw_arp();else if(page==PAGE_LESSON)draw_lesson_controls();else if(page==0)draw_perf_controls();else if(page==1)draw_algo();else if(page==2)draw_osc();
@@ -249,6 +250,7 @@ static void page_enter(u8 p){if(p==page&&p!=0)return;release_all();ctrl_hold=0;h
         lesson_saved_glide=(u8)(rd(0x00c)!=0);if(lesson_saved_glide)set_glide(0);
         emit(0xb0,64,0);lesson_run=0;lesson_control(1);lesson_last_status=~0u;}
     dialog=0;page=p;sel_row=0;last_adj=0;
+    arp_publish();
     if(p==PAGE_METRICS){metrics_frozen=0;metrics_last_poll=now();metrics_read();}
     if(p==PAGE_SEQ){seq_confirm=0;seq_select();seq_cache();}
     if(p==1){load_globals();load_flags();algo_map_dirty=1;}
@@ -276,7 +278,7 @@ static int menu_press(int x,int y){int i,n;
             if(y>=224&&y<272){if(x>=96&&x<160)name_pos=(name_pos+9)%10;else if(x>=176&&x<240)name_pos=(name_pos+1)%10;
                 else if(x>=560&&x<624){name_cycle(-1);patch_dirty=1;}else if(x>=640&&x<704){name_cycle(1);patch_dirty=1;}draw_page();}return 1;}
         if(y>=304&&y<352){if(x>=112&&x<352){dialog=0;draw_page();}
-            else if(x>=432&&x<672){u8 d=dialog;dialog=0;if(d==5)load_selected_rom();else if(d==6)slot_save();else{slot_load();patch_dirty=0;draw_page();}}}return 1;
+            else if(x>=432&&x<672){u8 d=dialog;dialog=0;if(d==8||d==9){sd_bank_action(d==8);draw_page();}else if(d==5)load_selected_rom();else if(d==6)slot_save();else{slot_load();patch_dirty=0;draw_page();}}}return 1;
     }
     if(y<48){i=(x-16)/96;if(x>=16&&x<784)page_enter((u8)i);return 1;}
     if(page==PAGE_METRICS){metrics_press(x,y);return 1;}
@@ -291,6 +293,11 @@ static int menu_press(int x,int y){int i,n;
         if(page==5){adj_fx(0,1);return 1;}if(page==3){eg_mode=!eg_mode;if(eg_mode)load_pitch();publish();draw_page();return 1;}
         if(page!=6){page_enter(0);return 1;}}
     if(page==6){
+        if(y>=384&&y<432&&x>=416&&x<784){
+            if(x>=608){dialog=8;}
+            else {dialog=9;}
+            draw_page();return 1;
+        }
         if(y>=80&&y<128&&x>=688){patch_bank^=1;slot_sel=patch_bank*4;}
         else if(y>=128&&y<368&&x>=16&&x<384){n=patch_rom_page*5+(y-128)/48;if(n<128)patch_pick=(u8)n;}
         else if(y>=128&&y<320&&x>=416&&x<784)slot_sel=(u8)(patch_bank*4+(y-128)/48);

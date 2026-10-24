@@ -5,7 +5,8 @@ module midi_arpeggiator #(
 )(
     input wire clk,reset_n,
     // cfg: enable, hold, fixed velocity, order[5:3], octaves-1[7:6],
-    // velocity[14:8], stop toggle[15]. Timing words are microseconds.
+    // velocity[14:8], stop toggle[15], live playing outside editor[16].
+    // Timing words are microseconds.
     input wire [159:0] config_data,input wire suspend,
     input wire sync_step,sync_restart,input wire external_sync,
     input wire [31:0] in_data,input wire [6:0] in_brightness,
@@ -21,6 +22,8 @@ module midi_arpeggiator #(
     wire wanted=cfg[0]&&!suspend;
     reg enabled,stop_seen,hold_seen,pedal,running,active,external_pending;
     reg [127:0] physical,chord;
+    reg [127:0] live_notes;
+    wire live_mode=cfg[1]&&cfg[16];
     // Synth allocator also merges channels by pitch. Duplicate Note Ons
     // update velocity; a Note Off removes that pitch from the input set.
     reg [6:0] velocity[0:127];
@@ -61,7 +64,7 @@ module midi_arpeggiator #(
     always @(posedge clk or negedge reset_n)begin
         if(!reset_n)begin
             state<=IDLE;enabled<=0;stop_seen<=0;hold_seen<=0;pedal<=0;
-            running<=0;active<=0;physical<=0;chord<=0;count<=0;external_pending<=0;
+            running<=0;active<=0;physical<=0;chord<=0;live_notes<=0;count<=0;external_pending<=0;
             prune_read<=0;prune_write<=0;scan<=0;sequence_pos<=0;target<=0;
             total<=0;mode<=0;octaves<=0;descending<=0;odd<=0;random_bits<=9'h1ab;
             active_note<=0;step_left<=0;gate_left<=0;step_length<=1;gate_length<=1;
@@ -89,7 +92,7 @@ module midi_arpeggiator #(
                     CLEAN_PEDAL:begin send(32'h00b04000,0);state<=CLEAN_ALL;end
                     CLEAN_ALL:begin
                         send(32'h00b07b00,0);enabled<=wanted;stop_seen<=cfg[15];hold_seen<=cfg[1];
-                        physical<=0;chord<=0;count<=0;pedal<=0;running<=0;active<=0;external_pending<=0;
+                        physical<=0;chord<=0;live_notes<=0;count<=0;pedal<=0;running<=0;active<=0;external_pending<=0;
                         sequence_pos<=0;descending<=0;odd<=0;state<=IDLE;
                     end
                     IDLE:begin
@@ -113,6 +116,19 @@ module midi_arpeggiator #(
                                 if(suspend&&cc&&note==64)send(in_data&32'hffffff80,in_brightness);
                                 else send(in_data,in_brightness);
                             end else if(in_data[31])send(in_data,in_brightness);
+                            else if(note_on&&(live_mode||live_notes[note]))begin
+                                live_notes[note]<=1;send(in_data,in_brightness);
+                            end else if(note_off&&live_notes[note])begin
+                                live_notes[note]<=0;send(in_data,in_brightness);
+                            end else if(note_off&&live_mode)begin
+                                // A chord key may be released after leaving the
+                                // editor; it never belonged to the solo part.
+                                physical[note]<=0;
+                            end else if(cc&&note==64&&live_mode)begin
+                                // Sustain is global in the current FM engine.
+                                // Do not let a solo pedal turn ARP gates into drones.
+                                send(in_data&32'hffffff80,in_brightness);
+                            end
                             else if(note_on)begin
                                 physical[note]<=1;velocity[note]<=in_data[6:0];
                                 if(chord==0)begin running<=1;step_left<=0;external_pending<=1;end
@@ -130,7 +146,7 @@ module midi_arpeggiator #(
                                 pedal<=in_data[6];
                                 if(!in_data[6]&&!cfg[1])begin prune_read<=0;prune_write<=0;state<=PRUNE;end
                             end else if(cc&&(note==120||note==123))begin
-                                physical<=0;chord<=0;count<=0;running<=0;active<=0;
+                                physical<=0;chord<=0;live_notes<=0;count<=0;running<=0;active<=0;
                                 sequence_pos<=0;descending<=0;odd<=0;send(in_data,in_brightness);
                             end else if(cc&&note==22)send(in_data&32'hffffff80,in_brightness);
                             else send(in_data,in_brightness);
