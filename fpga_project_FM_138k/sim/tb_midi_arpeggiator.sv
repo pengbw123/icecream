@@ -98,6 +98,8 @@ module tb_midi_arpeggiator;
         midi(8'h90,55,80);wait(status[2]);@(negedge clk);suspend=1;
         wait(!status[1]);repeat(10)@(negedge clk);
         if(sounding!=0||notes!=0)$fatal(1,"Practice suspend left notes");
+        before_cc=ccs;midi(8'hb0,64,127);wait(ccs>before_cc);
+        if(dout[6:0]!=0)$fatal(1,"Automatic mode let global sustain destroy note gates");
         before_on=ons;midi(8'h90,62,90);expect_pitch(before_on,62);midi(8'h80,62,0);
         @(negedge clk);suspend=0;wait(status[1]);repeat(10)@(negedge clk);
         if(status[2])$fatal(1,"Resume must wait for a new key");

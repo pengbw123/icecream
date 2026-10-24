@@ -22,8 +22,8 @@ module tb_touch_ui;
     integer cmd_69=0,cmd_60=0,cmd_61=0,cmd_62=0,cmd_63=0,cmd_64=0,cmd_65=0,cmd_70=0,text_cells=0,pal_writes=0;
     touch_ui_controller dut(.clk(clk),.reset_n(reset_n),.tp_scl(scl),.tp_sda(sda),
         .tp_int(int_pin),.tp_rst(rst_pin),.uart_tx(uart),.midi_event_data(event_word),
-        .midi_event_valid(valid),.midi_event_ready(arp_test_ready),.monitor_event(32'd0),
-        .monitor_event_valid(1'b0),.preset_index(performance_case?model_preset:7'd0),.algorithm(5'd4),.active_voices(5'd0),
+        .midi_event_valid(valid),.midi_event_ready(arp_test_ready),.monitor_event($test$plusargs("seq")?event_word:32'd0),
+        .monitor_event_valid($test$plusargs("seq")?valid&&arp_test_ready:1'b0),.preset_index(performance_case?model_preset:7'd0),.algorithm(5'd4),.active_voices(5'd0),
         .touch_present(present),.keyboard_octave(octave),.master_volume(volume),
         .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),.xy_delay_samples(xy_delay),.display_auto_gain(display_auto_gain),
         .command_ready(1'b1),.fx_read_value(32'd0),
@@ -33,7 +33,7 @@ module tb_touch_ui;
     wire [127:0] test_arp_notes;
     wire [31:0] arp_test_out;wire arp_test_valid,arp_test_ready;
     midi_arpeggiator test_arp(.clk(clk),.reset_n(reset_n),.config_data(test_arp_config),
-        .suspend(dut.lesson_state[16]),.sync_step(1'b0),.sync_restart(1'b0),.external_sync(1'b0),
+        .suspend(dut.lesson_state[16]||dut.sequencer_active),.sync_step(1'b0),.sync_restart(1'b0),.external_sync(1'b0),
         .in_data(event_word),.in_brightness(event_word[6:0]),.in_valid(valid),.in_ready(arp_test_ready),
         .out_data(arp_test_out),.out_brightness(),.out_valid(arp_test_valid),.out_ready(1'b1),
         .status(test_arp_status),.chord_notes(test_arp_notes));
@@ -50,13 +50,14 @@ module tb_touch_ui;
         end
     end
     integer cell_fd,eg_fd,algo_fd,eg6_fd,palette_fd;
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")) palette_fd=$fopen("tmp/tail_menu_palette.txt","w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
+    string capture_prefix=$test$plusargs("seq")?"seq_":$test$plusargs("arp")?"arp_":"tail_";
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) palette_fd=$fopen({"tmp/",capture_prefix,"menu_palette.txt"},"w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
     always @(posedge clk)if(dut.palette_write)$fwrite(palette_fd,"%0d %0d %0d\n",dut.palette_index,dut.palette_data,$time);
     reg [9:0] eg6_base;
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")) cell_fd=$fopen("tmp/tail_menu_cells.txt","w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")) eg_fd=$fopen("tmp/tail_eg_curve.txt","w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")) algo_fd=$fopen("tmp/tail_algo_map.txt","w");else algo_fd=$fopen("tmp/algo_map.txt","w");
-    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")) eg6_fd=$fopen("tmp/tail_eg6_panels.txt","w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) cell_fd=$fopen({"tmp/",capture_prefix,"menu_cells.txt"},"w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) eg_fd=$fopen({"tmp/",capture_prefix,"eg_curve.txt"},"w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) algo_fd=$fopen({"tmp/",capture_prefix,"algo_map.txt"},"w");else algo_fd=$fopen("tmp/algo_map.txt","w");
+    initial if($test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) eg6_fd=$fopen({"tmp/",capture_prefix,"eg6_panels.txt"},"w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
     always @(posedge clk)begin
         if(dut.text_write)captured_cells[dut.text_address]<=dut.text_data;
         if(dut.text_write)
@@ -105,7 +106,7 @@ module tb_touch_ui;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
-    initial if($test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp"))touch_kind=0;
+    initial if($test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
     integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -187,6 +188,21 @@ module tb_touch_ui;
             if(frame_kind==74)begin px=360;py=248;end
             if(frame_kind==75)begin px=750;py=248;end
             if(frame_kind==76)begin px=400;py=104;end
+            if(frame_kind==77)begin px=600;py=104;end
+            if(frame_kind==78)begin px=80;py=104;end
+            if(frame_kind==79)begin px=240;py=104;end
+            if(frame_kind==80)begin px=384;py=104;end
+            if(frame_kind==81)begin px=496;py=104;end
+            if(frame_kind==82)begin px=600;py=104;end
+            if(frame_kind==83)begin px=720;py=104;end
+            if(frame_kind==85)begin px=360;py=248;end
+            if(frame_kind==86)begin px=750;py=248;end
+            if(frame_kind==87)begin px=360;py=296;end
+            if(frame_kind==88)begin px=568;py=296;end
+            if(frame_kind==89)begin px=360;py=152;end
+            if(frame_kind==90)begin px=750;py=152;end
+            if(frame_kind==91)begin px=360;py=200;end
+            if(frame_kind==92)begin px=750;py=200;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -248,10 +264,11 @@ module tb_touch_ui;
             end
         endcase
     end
-    integer event_count=0;
+    integer event_count=0,seq_ons=0;
+    always @(posedge clk)if(valid&&arp_test_ready&&event_word[31]&&event_word[23:20]==9)seq_ons<=seq_ons+1;
     always @(posedge clk)if(valid&&arp_test_ready)begin
         $display("UI MIDI %h at %t",event_word,$time);
-        if($test$plusargs("arp"))begin
+        if($test$plusargs("arp")||$test$plusargs("seq"))begin
             if(event_word[23:16]==8'hb0&&event_word[14:8]==22)model_glide<=event_word[6:0]!=0;
         end else if($test$plusargs("lesson"))begin
             if(event_word!==32'h00b04000&&event_word!==32'h00903064&&event_word!==32'h00803000)
@@ -284,6 +301,55 @@ module tb_touch_ui;
         force dut.reset_ready=1'b1;
         wait(present);
         if(volume!==5)$fatal(1,"Power-up volume must be 5");
+        if($test$plusargs("seq"))begin
+            #10000000;touch_kind=17;wait(menu_page==7);#10000000;
+            touch_kind=0;#8000000;touch_kind=77;wait(menu_page==11);#10000000;
+            if(captured_cells[1160][7:0]!="C")$fatal(1,"Factory sequence grid not loaded");
+            touch_kind=0;#8000000;touch_kind=87;wait(dut.u_sequencer.requested_pattern==1);#5000000;
+            touch_kind=0;#8000000;touch_kind=88;wait(dut.u_sequencer.requested_length==15);#5000000;
+            touch_kind=0;#8000000;touch_kind=79;wait(dut.u_sequencer.recording);#5000000;
+            touch_kind=0;#8000000;touch_kind=2;wait(dut.u_sequencer.edit_address==17);#5000000;
+            touch_kind=0;#12000000;touch_kind=51;wait(dut.u_sequencer.edit_address==18);#5000000;
+            touch_kind=0;#12000000;
+            if(dut.u_sequencer.steps[16]!==32'h80006430||dut.u_sequencer.steps[17]!==32'h80006448)$fatal(1,"Touch step recording / cache cursor interference");
+            touch_kind=80;wait(dut.u_sequencer.edit_address==19);#5000000;
+            touch_kind=0;#8000000;touch_kind=81;wait(dut.u_sequencer.edit_address==20);#5000000;
+            if(dut.u_sequencer.steps[18]!==0||dut.u_sequencer.steps[19]!==32'h40000000)$fatal(1,"REST/TIE step entry");
+            touch_kind=0;#8000000;touch_kind=79;wait(!dut.u_sequencer.recording);#5000000;
+            touch_kind=0;#8000000;touch_kind=85;wait(dut.u_sequencer.steps[20]==32'h8000603d);#5000000;
+            touch_kind=0;#8000000;touch_kind=86;wait(dut.u_sequencer.steps[20]==32'h8000613d);#5000000;
+            touch_kind=0;#8000000;touch_kind=78;wait(seq_ons>=1);#5000000;
+            if(!dut.u_sequencer.running)$fatal(1,"Sequence START");
+            touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);#5000000;
+            if(!dut.u_sequencer.running)$fatal(1,"Page exit stopped sequence");
+            touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
+            touch_kind=0;#8000000;touch_kind=77;wait(menu_page==11);#5000000;
+            touch_kind=0;#8000000;touch_kind=78;wait(!dut.u_sequencer.running);#5000000;
+            touch_kind=0;#8000000;touch_kind=83;#5000000;
+            touch_kind=0;#8000000;touch_kind=89;wait(dut.seq_timing[31:0]<125000);#5000000;
+            touch_kind=0;#8000000;touch_kind=90;wait(dut.seq_timing[31:0]<80000);#5000000;
+            touch_kind=0;#8000000;touch_kind=91;wait(dut.seq_timing[95:64]>dut.seq_timing[31:0]*70/100);#5000000;
+            touch_kind=0;#8000000;touch_kind=92;wait(dut.seq_timing[31:0]>dut.seq_timing[63:32]);#5000000;
+            touch_kind=0;#8000000;touch_kind=82;#5000000;
+            if(dut.u_sequencer.steps[16]!==32'h80006430)$fatal(1,"CLEAR lacked confirmation");
+            touch_kind=0;#8000000;touch_kind=82;wait(dut.u_sequencer.steps[16]==0);#5000000;
+            if(dut.u_sequencer.steps[20]!==0||dut.u_sequencer.steps[0]!==32'h8000603c)$fatal(1,"CLEAR bank isolation");
+            touch_kind=0;#8000000;touch_kind=78;wait(dut.u_sequencer.running);#5000000;
+            touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
+            touch_kind=0;#8000000;touch_kind=67;wait(menu_page==10);#5000000;
+            touch_kind=0;#8000000;touch_kind=68;wait(dut.arp_config[0]);#5000000;
+            if(dut.u_sequencer.running||dut.u_sequencer.recording)$fatal(1,"Enabling ARP failed to stop sequence");
+            touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
+            touch_kind=0;#8000000;touch_kind=77;wait(menu_page==11);#5000000;
+            touch_kind=0;#8000000;touch_kind=78;wait(dut.u_sequencer.running);#5000000;
+            if(dut.arp_config[0])$fatal(1,"Starting sequence failed to disable ARP");
+            touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
+            touch_kind=0;#8000000;touch_kind=61;wait(menu_page==9);#5000000;
+            if(dut.u_sequencer.running||dut.u_sequencer.recording||dut.u_sequencer.active)$fatal(1,"Practice failed to stop sequence");
+            touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);#5000000;
+            if(dut.u_sequencer.running)$fatal(1,"Leaving practice restarted sequence");
+            $display("PASS real UI SEQ grid, bank/length, touch record/read cursor, REST/TIE, edit/transport, cross-page, timing, clear and ARP/practice mutual exclusion");$finish;
+        end
         if($test$plusargs("arp"))begin
             #10000000;touch_kind=17;wait(menu_page==7);#10000000;
             touch_kind=0;#8000000;touch_kind=67;wait(menu_page==10);#10000000;

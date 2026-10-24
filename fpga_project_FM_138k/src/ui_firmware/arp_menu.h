@@ -15,6 +15,7 @@ static void arp_publish(void){
         ((u32)(arp_octaves-1u)<<6)|((u32)arp_velocity<<8)|((u32)arp_stop<<15);
 }
 static void arp_enable(u8 enable){u32 t;
+    if(enable)seq_stop();
     release_all();
     if(enable){arp_saved_glide=(u8)(rd(0x00c)!=0);if(arp_saved_glide)emit(0xb0,22,0);glide_on=0;}
     arp_on=enable;arp_publish();
@@ -61,7 +62,7 @@ static void arp_adj(u8 row,int d){int v;
     else if(row==4){v=arp_gate+d;if(v<10)v=10;if(v>95)v=95;arp_gate=(u8)v;}
     else if(row==5){v=arp_velocity+d;if(v<1)v=1;if(v>127)v=127;arp_velocity=(u8)v;arp_fixed=1;}
     else if(row==6){v=arp_swing+d;if(v<50)v=50;if(v>75)v=75;arp_swing=(u8)v;}
-    arp_publish();draw_arp();
+    arp_publish();seq_publish();draw_arp();
 }
 static void arp_press(int x,int y){u8 row=0;int local,d=0;
     if(y>=80&&y<128){

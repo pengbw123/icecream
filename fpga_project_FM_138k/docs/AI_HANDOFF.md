@@ -336,3 +336,30 @@ DECAY 基础反馈范围 0.50..0.90。原整数 DC 阻断器留下永久尾音�
 - `tmp/checks_arp_ui_final.log` 已通过真实 RV32I + Goodix 验证：入口/全部参数/触屏/HOLD/STOP/跨页/练习互斥。
 - 此代码检查点时 `tmp/checks_arp_all.log` 全套回归与 `tmp/build_arp_final.log` 布线仍在运行，尚不能把生成位流认定为发布版。
 - 固件 49,948/65,536 字节。没有烧录实机；不要将综合完成误报为时序通过。
+
+### 琶音器独立构建已验证
+
+- ARP 实现提交 `88bf67e`。`tmp/checks_arp_all.log` 的 40 个场景全部通过，无 FAIL/FATAL。
+- `tmp/build_arp_final.log` 四域时序通过：主域 50.210、RGB 34.531、HDMI 像素 33.531、串行 212.691 MHz，setup/hold TNS 均为 0。
+- 2026-10-24 12:32:59 位流另存 `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-24_arp_88bf67e.fs`，42,234,791 字节，
+  SHA256 `D4124F221E56BBC222275C4D84EDD5273953EED6676150ADCD5488B2B3AD7BCD`。
+  此为可回退的 ARP 单功能版本，不含后续音序器与自动演奏踏板屏蔽修订。
+
+## 2026-10-24 音序器
+
+- 用户追加授权后直接设计并实现，无需再确认方案；不是仅留下方案。
+- SETUP 右上 STEP SEQUENCER，page11，8×16 RAM 模式，逐步音高/力度、REST/TIE、长度、循环、步进录入、二次确认清空。
+- 与 ARP 共用 BPM，但 RATE/GATE/SWING 分别设置。工具页保留全宽琴键，离页可继续播放。
+- `step_sequencer.v` 硬件负责初始化、录音、MIDI 和微秒时基。UI[46..55] 接口及 v1 步骤格式见 `STEP_SEQUENCER.md`。
+- 录入游标（UI47）与查询地址（UI55）独立；刷新网格不会改变录音位置。
+  固件任何录入期间的手动编辑先读取最新硬件游标，防止 100 ms UI 轮询延迟导致覆盖旧步骤。
+- 只有一个 RAM 写端口：录入开启时拒绝手动写并置错误；固件在手写 REST/TIE 等操作时短暂取消录入再恢复。
+- sequencer_active 接入 ARP suspend；练习 suspend 也独立接入音序器。进入 ARP/滑音/练习会停止音序器。
+  退出练习不自动重启旧循环。内部 bit31 复用示范所有权，二者互斥；不新增保留 MIDI 通道。
+- 新发现 FM 延音踏板为全局状态，会使自动音符无视 GATE：开始音序器播放/录入先发 CC64=0，
+  ARP 的 suspend 直通分支也将 CC64 映射到 0，覆盖音序器和练习；普通演奏踏板规则保持。
+- 当前固件 56,552/65,536 字节；没有增加软核、DDR、帧缓冲或厂商 IP。
+- `tmp/checks_seq_rtl.log`、`tmp/checks_seq_ui.log`、`tmp/checks_auto_registers.log`、
+  `tmp/checks_arp_rgb.log`、`tmp/checks_seq_rgb.log` 已通过。最后一组重新编译的 UI 互斥/回归与 FPGA 构建仍在执行。
+- `tmp/build_seq.log` 为踏板修订前的音序器构建，不能当最终新发布；最终需重新构建并更新此处的校验值与时序。
+- IDE 和两份 CLI 构建已列入新模块，`check_project_files.py` 检查 51 个 RTL 文件通过。

@@ -1,3 +1,4 @@
+add_file -type verilog "src/step_sequencer.v"
 add_file -type verilog "src/midi_arpeggiator.v"
 add_file -type verilog "src/lesson_player.v"
 add_file -type verilog "src/lesson_score_memory.v"

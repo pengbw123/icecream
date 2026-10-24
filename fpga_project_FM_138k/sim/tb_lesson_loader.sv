@@ -19,6 +19,18 @@ module tb_lesson_loader;
     initial begin
         force dut.address=addr;force dut.write_data=wd;force dut.request=req;
         #100;reset_n=1;
+        wait(!dut.seq_status[2]);
+        wr(37,300000);wr(38,200000);wr(39,210000);wr(40,140000);
+        if(dut.arp_config[63:32]!=250000)$fatal(1,"ARP shadow timing leaked before commit");
+        wr(36,32'h6000);
+        if(dut.arp_config!=={32'd140000,32'd210000,32'd200000,32'd300000,32'h6000})$fatal(1,"ARP atomic commit");
+        wr(47,32);wr(55,0);
+        if(dut.seq_edit_address!=32||dut.seq_edit_data!==32'h8000603c)$fatal(1,"SEQ independent record/read addresses");
+        wr(48,32'h8000503c);wr(55,32);
+        if(dut.seq_edit_data!==32'h8000503c)$fatal(1,"SEQ bus step write/read");
+        wr(46,32'hd2);wr(48,0);
+        if(!dut.seq_status[4]||dut.u_sequencer.steps[32]!==32'h8000503c)$fatal(1,"SEQ recording write isolation");
+        wr(46,32'hd0);wait(!dut.seq_status[2]);
         wr(31,1);wr(32,0);wr(33,{16'd4,9'd8,7'd72});
         if(dut.upload_count!=1||dut.upload_error)$fatal(1,"Valid upload rejected count=%d err=%b uploading=%b entryok=%b state=%h addr=%h req=%b",dut.upload_count,dut.upload_error,dut.uploading,dut.entry_ok,state,dut.address,dut.request);
         wr(28,32'h640f);if(state[16])$fatal(1,"Playback started before commit");
@@ -39,7 +51,7 @@ module tb_lesson_loader;
         wr(31,2);if(bank||count!=42||dut.uploading)$fatal(1,"Factory restore invalid");
         wr(28,32'h640f);wait(valid);
         if(event_word[14:8]!=60)$fatal(1,"Factory ROM corrupted by upload");
-        $display("PASS lesson upload commit/range/order/overlap/isolation/factory restore");$finish;
+        $display("PASS ARP atomic timing, SEQ register/read-cursor/write isolation and lesson upload commit/range/order/overlap/factory restore");$finish;
     end
     initial begin #10000000;$fatal(1,"Loader timeout");end
 endmodule

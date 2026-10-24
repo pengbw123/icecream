@@ -30,6 +30,7 @@ module touch_ui_controller (
     output wire fx_write,output wire [3:0] fx_index,output wire [31:0] fx_value,input wire [31:0] fx_read_value,
     output reg [31:0] numeric_display,
     output reg [159:0] arp_config,input wire [31:0] arp_status,input wire [127:0] arp_notes,
+    output wire sequencer_active,
     output wire [31:0] lesson_state,
     output reg lesson_bank,output reg [7:0] lesson_count,
     output wire lesson_write,output wire [6:0] lesson_address,output wire [31:0] lesson_data,
@@ -48,8 +49,15 @@ module touch_ui_controller (
     wire fw_ready=midi_event_ready;
     wire [31:0] lesson_midi,lesson_status;
     wire lesson_valid;
-    assign midi_event_data=fw_valid?fw_data:lesson_midi;
-    assign midi_event_valid=fw_valid||lesson_valid;
+    wire [31:0] seq_midi,seq_status,seq_edit_data;
+    wire [6:0] seq_edit_address;
+    wire seq_valid;
+    reg [127:0] seq_timing;
+    reg [31:0] seq_control;
+    reg [6:0] seq_read_address;
+    assign sequencer_active=seq_status[0]||seq_status[1]||seq_status[2];
+    assign midi_event_data=fw_valid?fw_data:lesson_valid?lesson_midi:seq_midi;
+    assign midi_event_valid=fw_valid||lesson_valid||seq_valid;
     reg [15:0] lesson_end;
     reg [6:0] upload_address;
     reg [7:0] upload_count;
@@ -69,6 +77,13 @@ module touch_ui_controller (
         .human_event(monitor_event),.human_valid(monitor_event_valid),
         .midi_data(lesson_midi),.midi_valid(lesson_valid),.midi_ready(midi_event_ready&&!fw_valid),
         .status(lesson_status),.view_state(lesson_state));
+    step_sequencer u_sequencer(.clk(clk),.reset_n(reset_n),.suspend(lesson_state[16]),
+        .control_write(ui_select&&write_en&&address[7:2]==46),.control_data(write_data),.timing_data(seq_timing),
+        .address_write(ui_select&&write_en&&address[7:2]==47),.address_data(write_data[6:0]),.read_address(seq_read_address),
+        .step_write(ui_select&&write_en&&address[7:2]==48),.step_data(write_data),
+        .clear_pattern(ui_select&&write_en&&address[7:2]==54&&write_data[0]),
+        .edit_address(seq_edit_address),.edit_data(seq_edit_data),.human_event(monitor_event),.human_valid(monitor_event_valid),
+        .midi_data(seq_midi),.midi_valid(seq_valid),.midi_ready(midi_event_ready&&!fw_valid&&!lesson_valid),.status(seq_status));
     wire reset_ready,int_o,int_t;
     gt9147_reset u_gt_reset(.clk(clk),.reset_n(reset_n),.tp_int_o(int_o),
         .tp_int_t(int_t),.tp_rst(tp_rst),.ready(reset_ready));
@@ -141,6 +156,15 @@ module touch_ui_controller (
             17:ui_data={31'd0,text_enable};
             14:ui_data={16'd0,readback_value};
             15:ui_data={31'd0,readback_ready};
+            55:ui_data={25'd0,seq_read_address};
+            46:ui_data=seq_control;
+            47:ui_data={25'd0,seq_edit_address};
+            48:ui_data=seq_edit_data;
+            49:ui_data=seq_status;
+            50:ui_data=seq_timing[31:0];
+            51:ui_data=seq_timing[63:32];
+            52:ui_data=seq_timing[95:64];
+            53:ui_data=seq_timing[127:96];
             36:ui_data=arp_config[31:0];
             37:ui_data=arp_timing_shadow[31:0];
             38:ui_data=arp_timing_shadow[63:32];
@@ -160,6 +184,7 @@ module touch_ui_controller (
     end
     always @(posedge clk or negedge reset_n) begin
         if(!reset_n)begin
+            seq_timing<={32'd87500,32'd87500,32'd125000,32'd125000};seq_control<=32'h3c0;seq_read_address<=0;
             arp_timing_shadow<={32'd175000,32'd175000,32'd250000,32'd250000};
             arp_config<={32'd175000,32'd175000,32'd250000,32'd250000,32'h00006000};
             lesson_bank<=0;lesson_count<=42;lesson_end<=1664;
@@ -221,6 +246,12 @@ module touch_ui_controller (
                 25:begin eg2_base<=write_data[9:0];eg2_burst<=1'b0;end
                 26:begin eg2_word<=write_data;eg2_byte<=2'd0;eg2_burst<=1'b1;end
                 27:eg2_enable<=write_data[0];
+                    55:seq_read_address<=write_data[6:0];
+                    46:seq_control<=write_data&32'h3ff;
+                    50:seq_timing[31:0]<=write_data;
+                    51:seq_timing[63:32]<=write_data;
+                    52:seq_timing[95:64]<=write_data;
+                    53:seq_timing[127:96]<=write_data;
                     36:arp_config<={arp_timing_shadow,write_data&32'h0000ffff};
                     37:arp_timing_shadow[31:0]<=write_data;
                     38:arp_timing_shadow[63:32]<=write_data;

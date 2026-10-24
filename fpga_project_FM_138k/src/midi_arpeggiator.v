@@ -106,7 +106,13 @@ module midi_arpeggiator #(
                             gate_length<=requested_gate==0?1:
                                 requested_gate>=requested_step?(requested_step<2?1:requested_step-1):requested_gate;
                         end else if(in_valid&&in_ready)begin
-                            if(!enabled||in_data[31])send(in_data,in_brightness);
+                            if(!enabled)begin
+                                // The FM engine has one global sustain state.
+                                // Practice/sequence gates must not accumulate
+                                // automatic notes behind a held pedal.
+                                if(suspend&&cc&&note==64)send(in_data&32'hffffff80,in_brightness);
+                                else send(in_data,in_brightness);
+                            end else if(in_data[31])send(in_data,in_brightness);
                             else if(note_on)begin
                                 physical[note]<=1;velocity[note]<=in_data[6:0];
                                 if(chord==0)begin running<=1;step_left<=0;external_pending<=1;end

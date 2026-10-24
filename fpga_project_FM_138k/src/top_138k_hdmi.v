@@ -77,9 +77,10 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire lesson_bank,lesson_write;
     wire [7:0] lesson_count;
     wire [6:0] lesson_address;
+    wire sequencer_active;
     wire [159:0] arp_config;wire [31:0] arp_status;wire [127:0] arp_notes;
     touch_ui_controller u_ui (
-        .arp_config(arp_config),.arp_status(arp_status),.arp_notes(arp_notes),
+        .sequencer_active(sequencer_active),.arp_config(arp_config),.arp_status(arp_status),.arp_notes(arp_notes),
         .lesson_state(lesson_state),.lesson_bank(lesson_bank),.lesson_count(lesson_count),
         .lesson_write(lesson_write),.lesson_address(lesson_address),.lesson_data(lesson_data),
 
@@ -100,7 +101,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .fx_write(),.fx_index(),.fx_value(),.fx_read_value(32'd0),.numeric_display()
     );
     top #(.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1)) u_audio (
-        .arp_config(arp_config),.arp_suspend(lesson_state[16]),.arp_status(arp_status),.arp_notes(arp_notes),
+        .arp_config(arp_config),.arp_suspend(lesson_state[16]||sequencer_active),.arp_status(arp_status),.arp_notes(arp_notes),
         .clk(clk),.key_s2(~reset_n),.uart_rx_pin(uart_rx_pin),
         .headphone_select(headphone_select),.headphone_din(headphone_din),
         .ui_command_valid(ui_command_valid),.ui_command(ui_command),.ui_payload(ui_command_payload),

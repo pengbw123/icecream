@@ -20,6 +20,8 @@ module tb_rgb_visualizer;
     integer quiet_case=0,max_display_height=0,current_height;
     integer messy_case=0;
     reg show_wave=0;
+    wire [3:0] test_page=$test$plusargs("arp")?4'd10:$test$plusargs("seq")?4'd11:4'd0;
+    integer page_probes=0;
     reg spectrum_case=0,spectrum_write=0;
     reg [5:0] spectrum_address=0;
     reg [13:0] spectrum_data=0;
@@ -59,7 +61,7 @@ module tb_rgb_visualizer;
         .preset_index(7'd10),.algorithm(5'd4),.operator_envelopes(48'hB090603080D0),
         .touch_present(1'b1),.keyboard_octave(4'sd0),.master_volume(7'd96),
         .visual_mode(!show_wave),.spectrum_enable(spectrum_case),.spectrum_write(spectrum_write),.spectrum_address(spectrum_address),.spectrum_data(spectrum_data),.xy_delay_samples(7'd24),
-        .display_auto_gain(1'b1),.menu_page(4'd0),.algorithm_flags(48'd0),
+        .display_auto_gain(1'b1),.menu_page(test_page),.algorithm_flags(48'd0),
         .background_color(24'h080D18),.wave_color(24'h40EAD0),.xy_color(24'hFFB95A),
         .text_write(1'b0),.text_address(12'd0),.text_data(16'd0),
         .palette_write(1'b0),.palette_index(4'd0),.palette_data(24'd0),.text_enable(1'b0),.eg_we(1'b0),.eg_addr(8'd0),.eg_data(9'd0),
@@ -88,7 +90,7 @@ module tb_rgb_visualizer;
         note_on(48);note_on(52);note_on(55);
         repeat(2)begin wait(dut.frame_latch);@(posedge dut.pclk);wait(!dut.frame_latch);end
         wait(!de);@(posedge de);
-        file_handle=$fopen(spectrum_case?"tmp/rgb_spectrum_preview.ppm":messy_case?"tmp/rgb_messy_preview.ppm":show_wave?"tmp/rgb_wave_preview.ppm"
+        file_handle=$fopen(test_page==10?"tmp/rgb_arp_preview.ppm":test_page==11?"tmp/rgb_seq_preview.ppm":spectrum_case?"tmp/rgb_spectrum_preview.ppm":messy_case?"tmp/rgb_messy_preview.ppm":show_wave?"tmp/rgb_wave_preview.ppm"
             :quiet_case?"tmp/rgb_quiet_preview.ppm":"tmp/rgb_preview.ppm","wb");
         $fwrite(file_handle,"P6\n800 480\n255\n");
         pixels=0;
@@ -99,6 +101,16 @@ module tb_rgb_visualizer;
                 if(^{r,g,b}===1'bx)$fatal(1,"Unknown RGB output");
                 $fwrite(file_handle,"%c%c%c",{r,r[4:2]},{g,g[5:4]},{b,b[4:2]});
                 probe_x=pixels%800;probe_y=pixels/800;
+                if(test_page!=0)begin
+                    if((probe_x==20&&probe_y==470)||(probe_x==790&&probe_y==470)||
+                        (probe_x==50&&probe_y==370)||(probe_x==100&&probe_y==200))begin
+                        if(probe_x==20&&{r,g,b}!==WAVE565)$fatal(1,"ARP/SEQ pressed C key hidden");
+                        if(probe_x==790&&{r,g,b}!=={5'd30,6'd62,5'd31})$fatal(1,"ARP/SEQ full-width final key hidden");
+                        if(probe_x==50&&{r,g,b}!=={5'd2,6'd6,5'd4})$fatal(1,"ARP/SEQ black key geometry");
+                        if(probe_x==100&&{r,g,b}!=={5'd1,6'd3,5'd3})$fatal(1,"ARP/SEQ editor background not flat");
+                        page_probes=page_probes+1;
+                    end
+                end
                 if(spectrum_case)begin
                     if((probe_x==91&&probe_y==120)||(probe_x==203&&probe_y==200)||(probe_x==379&&probe_y==280))begin
                         if({r,g,b}!==WAVE565)$fatal(1,"Missing spectrum bar at %d,%d rgb=%h level=%d peak=%d valid=%b mode=%b x=%d y=%d bank=%b mem9=%h",probe_x,probe_y,{r,g,b},dut.spectrum_level,dut.spectrum_peak,dut.spectrum_valid,dut.spectrum_frame,dut.x,dut.y,dut.u_spectrum_view.display_bank,dut.u_spectrum_view.snapshots[9]);
@@ -139,6 +151,7 @@ module tb_rgb_visualizer;
                     $fatal(1,"Wave break between columns %0d and %0d",i,i+1);
             end
         end
+        if(test_page!=0&&page_probes!=4)$fatal(1,"ARP/SEQ missing keyboard probes");
         if(spectrum_case&&spectrum_probes!=6)$fatal(1,"Missing spectrum pixel probes");
         if(quiet_case && max_display_height<30)$fatal(1,"Quiet waveform remained invisible: %d",max_display_height);
         $fclose(file_handle);$display("PASS RGB/XY raster, stable pixels and PLL-loss recovery, quiet=%0d messy=%0d height=%0d",
