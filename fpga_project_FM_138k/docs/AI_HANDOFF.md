@@ -1,5 +1,34 @@
 # 给后续 AI 的工程交接说明
 
+## 2026-10-24 CH376S USB MIDI 移植（最新发布）
+
+- 移植队友 `tlemon229/Gowin-Instrument-138K` 提交 `7bc0f80a8fd6eb9835cd11b5081097794c8b2048`
+  的六个 CH376/SPI/USB MIDI 模块，未导入其蓝牙、手机、曲谱或 UI/音源实现。
+- 键盘插外接 **CH376S 模块 USB-A**，SPI 连 138K；不是把 ACG720 USB 设备口改作 Host。
+  25K 桥接默认禁用（wrapper 的 LEGACY_BRIDGE_ENABLED=0），无需中转；可显式启用历史对照。
+  接线、模块模式、D5..D7 状态说明见 `CH376_USB_MIDI.md`。
+- 力度继续通道 1 的 0..80 → 0..127，一次校准；其余通道及触屏不缩放。
+  USB cable/CIN 字节进入主事件流时清零，避免 cable 高位冒充 demo/ARP 标记。
+- 新增两项寄存器 MIDI FIFO，隔离上游 ready 与下游组合控制；没有增加 USB 软核或启用原 USB PLL。
+  32×6 FM、FX、ES8388、双屏、练习、ARP/SEQ 均沿用本地分支。
+- 三项新增仿真通过：CH376 描述符/128 档力度/仲裁；SPI 模型枚举/64-byte/NAK/STALL/拔插/超时；
+  事件入口 FIFO/标记隔离/来源公平性/暂停稳定性。均加入 sim/run_checks.ps1。
+  相关模型仅为 Icarus 做等价语法调整，不能作为真实键盘/CH376 已验收的证据。
+- 双屏位流：`impl/pnr/fm_138k_rgb_hdmi.fs`，2026-10-24 **18:16:29**，42,213,383 B。
+  SHA256 `3D56DE737F0CC73C8B0C2AE8DA64E72A6A0A06DDF9FAF500C047D7F8C68DAD2E`。
+  上版 32 复音位流备份：`impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-24_pre_ch376.fs`。
+- PnR：Logic **52,763/138,240（39%）**、FF **27,727/139,095（20%）**、
+  BSRAM **314/340（93%）**、DSP **65.5/298（22%）**。
+  Fmax：主域 **50.162**、RGB **36.544**、HDMI pixel **30.148**、serial **242.673MHz**；四域 setup/hold TNS=0。
+  主域最紧 slack约0.065ns，现路径在FFT real_mem输出→band_max。余量仍较小，不能直接升主时钟。
+- `RESOURCE_AND_PIPELINE.md` 和 `tools/report_bram_usage.py` 记录主要内存去向与候选优化；
+  UI 软核96、delay66、reverb25、FM22、算法图16为**综合原语**数，不能冒充逐模块PnR物理计数。
+- 新增文件已登记两份 CLI 与 IDE；两个 wrapper/CST 同步。仅构建双屏位流，未自动烧录，未实板验收。
+  本轮未改 UI firmware.hex、音源或音频串行格式；未重跑全部既有回归矩阵。
+- 日志：`tmp/build_ch376.log`、`tmp/check_ch376_units.log`、`tmp/check_ch376_host.log`。
+  用户另反馈8Ω/15W喇叭经MAX98357低音量仍杂、耳机正常；供电不是已证实根因，优先独立稳压5V对照、
+  核对GAIN/型号/I2S短线与地线/OUT±接法。不因这条反馈擅自修改音频算法。
+
 ## 2026-10-24 32 复音扩容
 
 - 当前生产顶层为 32×6 FM、Fs=48.828125 kHz；配置位于两个 wrapper 的 AUDIO_VOICES。

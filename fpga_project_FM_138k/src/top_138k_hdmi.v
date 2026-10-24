@@ -1,11 +1,13 @@
 // XiaoMeiGe ACG720, GW5AT-LV138PG484AC1/I0.
-// PC configuration: onboard CH340, 115200 baud. MIDI bridge: GPIO0_3, 1 Mbaud.
-module top_138k_hdmi (
+// PC: CH340 at 115200 baud. Keyboard: external CH376S, SPI mode 0.
+module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0) (
     input wire clk,
     input wire reset_button_n,
     input wire uart_rx_pin,
     output wire uart_tx_pin,
     input wire bridge_uart_rx_pin,
+    output wire ch376_cs_n,ch376_sck,ch376_mosi,
+    input wire ch376_miso,ch376_int_n,
     output wire i2s_bclk, i2s_lrclk, i2s_din,
     output wire aud_mclk, aud_bclk, aud_lrclk, aud_dacdat,
     inout wire codec_scl, codec_sda,
@@ -15,7 +17,7 @@ module top_138k_hdmi (
     output wire [5:0] lcd_g,
     inout wire tp_scl,tp_sda,tp_int,
     output wire tp_rst,
-    output wire [4:0] status_led,
+    output wire [7:0] status_led,
     output wire hdmi_clk_p, hdmi_clk_n,
     output wire [2:0] hdmi_data_p, hdmi_data_n,
     output wire hdmi_oe
@@ -32,11 +34,16 @@ module top_138k_hdmi (
     wire bridge_drop,perf_snapshot,perf_clear;
     wire [4:0] perf_index;
     wire [31:0] perf_data;
+    generate if(LEGACY_BRIDGE_ENABLED)begin:g_legacy_bridge
     midi_bridge_rx u_bridge_rx (
         .clk(clk),.reset_n(reset_n),.rx_pin(bridge_uart_rx_pin),
         .midi_event_data(bridge_event),.midi_event_valid(bridge_valid),
         .midi_event_ready(bridge_ready),.dropped_events(bridge_dropped),.dropped_pulse(bridge_drop)
     );
+    end else begin
+        assign bridge_event=0;assign bridge_valid=0;assign bridge_dropped=0;assign bridge_drop=0;
+    end endgenerate
+
     wire signed [15:0] pcm;
     wire tick, event_valid;
     wire [31:0] event_data;
@@ -75,8 +82,25 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire [63:0] ui_command_payload;
     wire [15:0] readback_data;
     wire readback_valid;
-    assign bridge_ready=external_ready;
-    assign ui_ready=external_ready && !bridge_valid;
+    wire [31:0] usb_event,merged_event,input_event;
+    wire usb_valid,usb_ready,merged_valid,merged_ready,input_valid;
+    wire ch376_present,ch376_configured;
+    wire [7:0] ch376_fault;
+    ch376_midi_host u_ch376(.clk(clk),.reset_n(reset_n),
+        .spi_cs_n(ch376_cs_n),.spi_sck(ch376_sck),.spi_mosi(ch376_mosi),
+        .spi_miso(ch376_miso),.interrupt_n(ch376_int_n),
+        .midi_event_data(usb_event),.midi_event_valid(usb_valid),.midi_event_ready(usb_ready),
+        .module_present(ch376_present),.configured(ch376_configured),.fault_code(ch376_fault),
+        .vendor_id(),.product_id(),.ignored_words(),.nak_count());
+    // USB cable/CIN is transport metadata, not the internal demo/ARP owner tag.
+    midi_event_arbiter3 u_midi_inputs(.clk(clk),.reset_n(reset_n),
+        .data0({8'd0,usb_event[23:0]}),.valid0(usb_valid),.ready0(usb_ready),
+        .data1(bridge_event),.valid1(bridge_valid),.ready1(bridge_ready),
+        .data2(ui_event),.valid2(ui_valid),.ready2(ui_ready),
+        .event_data(merged_event),.event_valid(merged_valid),.event_ready(merged_ready));
+    midi_input_queue u_input_queue(.clk(clk),.reset_n(reset_n),
+        .in_data(merged_event),.in_valid(merged_valid),.in_ready(merged_ready),
+        .out_data(input_event),.out_valid(input_valid),.out_ready(external_ready));
     wire [31:0] lesson_state,lesson_data;
     wire lesson_bank,lesson_write;
     wire [7:0] lesson_count;
@@ -117,8 +141,8 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .uart_tx_pin(),.usb_host_dp(),.usb_host_dn(),
         .i2s_bclk(i2s_bclk),.i2s_lrclk(i2s_lrclk),.i2s_din(i2s_din),
         .lcd_resetn(),.lcd_clk(),.lcd_cs(),.lcd_dc(),.lcd_data(),
-        .external_midi_event_data(bridge_valid?bridge_event:ui_event),
-        .external_midi_event_valid(bridge_valid||ui_valid),
+        .external_midi_event_data(input_event),
+        .external_midi_event_valid(input_valid),
         .external_midi_event_ready(external_ready),
         .monitor_sample(pcm),.monitor_sample_tick(tick),
         .monitor_midi_event_data(event_data),.monitor_midi_event_valid(event_valid),
@@ -188,5 +212,5 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
             else if (event_hold!=0) event_hold<=event_hold-1'b1;
         end
     end
-    assign status_led={bridge_dropped!=0,touch_present,event_hold!=0,video_lock,heartbeat[25]};
+    assign status_led={ch376_fault!=0,ch376_configured,ch376_present,bridge_dropped!=0,touch_present,event_hold!=0,video_lock,heartbeat[25]};
 endmodule

@@ -5,6 +5,13 @@
     <Version>5</Version>
     <Device name="GW5AT-138B" pn="GW5AT-LV138PG484AC1/I0">gw5at138b-012</Device>
     <FileList>
+        <File path="src/ch376/ch376_spi_command.v" type="file.verilog" enable="1"/>
+        <File path="src/ch376/ch376_control_transfer.v" type="file.verilog" enable="1"/>
+        <File path="src/ch376/ch376_midi_host.v" type="file.verilog" enable="1"/>
+        <File path="src/ch376/usb_midi_config_parser.v" type="file.verilog" enable="1"/>
+        <File path="src/ch376/usb_midi_event_decode.v" type="file.verilog" enable="1"/>
+        <File path="src/ch376/midi_event_arbiter3.v" type="file.verilog" enable="1"/>
+        <File path="src/ch376/midi_input_queue.v" type="file.verilog" enable="1"/>
         <File path="src/audio_performance_monitor.v" type="file.verilog" enable="1"/>
         <File path="src/step_sequencer.v" type="file.verilog" enable="1"/>
         <File path="src/midi_arpeggiator.v" type="file.verilog" enable="1"/>

@@ -92,3 +92,21 @@ IO_PORT "aud_lrclk" IO_TYPE=LVCMOS33 DRIVE=8;
 IO_PORT "aud_dacdat" IO_TYPE=LVCMOS33 DRIVE=8;
 IO_PORT "codec_scl" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=4;
 IO_PORT "codec_sda" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=4;
+
+// CH376S keyboard host; no 25K intermediary required.
+IO_LOC "ch376_cs_n" A18; // P7-5 -> D3/SCS
+IO_PORT "ch376_cs_n" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_LOC "ch376_sck" F13; // P7-7 -> D5/SCK
+IO_PORT "ch376_sck" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_LOC "ch376_mosi" F14; // P7-8 -> D6/SDI
+IO_PORT "ch376_mosi" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_LOC "ch376_miso" C13; // P7-13 <- D7/SDO
+IO_PORT "ch376_miso" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "ch376_int_n" B13; // P7-14 <- INT#
+IO_PORT "ch376_int_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "status_led[5]" J22;
+IO_PORT "status_led[5]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_LOC "status_led[6]" H22;
+IO_PORT "status_led[6]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_LOC "status_led[7]" M21;
+IO_PORT "status_led[7]" IO_TYPE=LVCMOS33 DRIVE=8;

@@ -7,6 +7,9 @@ try {
     $vvp = if ($IverilogDirectory) { Join-Path $IverilogDirectory 'vvp.exe' } else { 'vvp' }
     New-Item -ItemType Directory -Force -Path 'tmp' | Out-Null
     $cases = @(
+        @{ Name='tb_ch376_units'; Sources=@('sim/tb_ch376_units.sv','src/ch376/usb_midi_config_parser.v','src/ch376/usb_midi_event_decode.v','src/ch376/midi_event_arbiter3.v') },
+        @{ Name='tb_ch376_midi_host'; Sources=@('sim/tb_ch376_midi_host.sv','sim/ch376_usb_model.sv','src/ch376/ch376_midi_host.v','src/ch376/ch376_control_transfer.v','src/ch376/ch376_spi_command.v','src/ch376/usb_midi_config_parser.v','src/ch376/usb_midi_event_decode.v') },
+        @{ Name='tb_ch376_input_path'; Sources=@('sim/tb_ch376_input_path.sv','src/ch376/usb_midi_event_decode.v','src/ch376/midi_event_arbiter3.v','src/ch376/midi_input_queue.v') },
         @{ Name='tb_audio_performance_monitor'; Sources=@('sim/tb_audio_performance_monitor.sv','src/audio_performance_monitor.v') },
         @{ Name='tb_step_sequencer'; Sources=@('sim/tb_step_sequencer.sv','src/step_sequencer.v') },
         @{ Name='tb_midi_arpeggiator'; Sources=@('sim/tb_midi_arpeggiator.sv','src/midi_arpeggiator.v') },
