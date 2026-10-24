@@ -1,5 +1,10 @@
 # UI 软核与菜单固件说明
 
+2026-10-24：新增性能监测子页（page=12），入口 SETUP → PERFORMANCE >；
+UI[56]=快照索引，UI[57]=只读数据，UI[58] bit0=捕获、bit1=清统计。
+逻辑在 `ui_firmware/performance_menu.h`，详见 [PERFORMANCE_MONITOR.md](PERFORMANCE_MONITOR.md)。
+本版固件 60,304 / 65,536 B，增加功能时仍须检查指令 ROM 上限。
+
 > 2026-10-23 菜单已改版：当前八页为 PLAY / ALGO / OSC / EG / LFO / FX / PATCH / SETUP。
 > 新版布局、独立背景/主题色、触摸操作、预留入口与编译方法以 [UI_LAYOUT_2026.md](UI_LAYOUT_2026.md) 为准。
 > 以下旧阶段记录及旧布局描述保留作历史参考；音源参数的含义仍可参考。

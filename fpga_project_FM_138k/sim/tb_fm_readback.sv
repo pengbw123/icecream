@@ -2,7 +2,7 @@
 // Regression for the 0x69 patch readback path, the 0x60 algorithm->routing
 // install, the deprecated 0x68 command and the UART byte that used to be lost
 // during a local-command injection cycle.
-module tb_fm_readback;
+module tb_fm_readback #(parameter integer TEST_VOICES=2);
     reg clk=0;
     always #10 clk=~clk;
     reg reset_n=0;
@@ -130,7 +130,27 @@ module tb_fm_readback;
     wire [4:0] active_voice_count;
     wire [47:0] operator_envelope_levels;
     wire synth_midi_ready;
-    fm_poly_synth #(.VOICE_COUNT(2)) u_synth (
+    wire perf_busy,perf_pending,perf_start,perf_done,perf_steal;
+    reg perf_snapshot=0;reg [4:0] perf_index=0;wire [31:0] perf_data;
+    audio_performance_monitor #(.VOICE_CAPACITY(TEST_VOICES)) u_perf(.clk(clk),.reset_n(reset_n),
+        .sample_tick(test_tick),.engine_busy(perf_busy),.sample_pending(perf_pending),
+        .render_start(perf_start),.render_done(perf_done),.voice_steal(perf_steal),
+        .midi_accept(test_valid&&synth_midi_ready),.midi_stall(test_valid&&!synth_midi_ready),
+        .bridge_drop(1'b0),.active_voices({3'd0,active_voice_count}),.audio_sample(sample_out),
+        .snapshot(perf_snapshot),.clear_stats(1'b0),.read_index(perf_index),.read_data(perf_data));
+    integer perf_clock=0,perf_begin=0,perf_tick_clock=0,perf_render_expected=0,perf_response_expected=0;
+    always @(posedge clk)begin
+        perf_clock=perf_clock+1;
+        if(test_tick)perf_tick_clock=perf_clock;
+        if(perf_start)perf_begin=perf_clock;
+        if(perf_done)begin
+            perf_render_expected=perf_clock-perf_begin;
+            perf_response_expected=perf_clock-perf_tick_clock;
+        end
+    end
+    fm_poly_synth #(.VOICE_COUNT(TEST_VOICES)) u_synth (
+        .perf_busy(perf_busy),.perf_pending(perf_pending),.perf_render_start(perf_start),
+        .perf_render_done(perf_done),.perf_voice_steal(perf_steal),
         .clk(clk), .reset_n(reset_n), .sample_tick(test_tick),
         .midi_event_data(test_event), .midi_event_valid(test_valid),
         .midi_event_brightness(7'd0), .midi_event_ready(synth_midi_ready),
@@ -316,10 +336,26 @@ module tb_fm_readback;
     integer bank_n;
     reg [63:0] payload;
     integer race_ok;
+    integer metrics_note;
     initial begin
         repeat (10) @(posedge clk);
         reset_n = 1;
         repeat (5) @(posedge clk);
+
+        if($test$plusargs("metrics"))begin
+            repeat(500)@(negedge clk);
+            for(metrics_note=0;metrics_note<=TEST_VOICES;metrics_note=metrics_note+1)begin
+                key_event(8'h90,60+metrics_note,100);audio_frame();
+            end
+            perf_snapshot=1;@(negedge clk);perf_snapshot=0;
+            perf_index=4;#1;if(perf_data!==TEST_VOICES+1)$fatal(1,"Real synth completed frames %d",perf_data);
+            perf_index=5;#1;if(perf_data[15:0]!==perf_render_expected)$fatal(1,"Render cycle mismatch %d / %d",perf_data[15:0],perf_render_expected);
+            perf_index=6;#1;if(perf_data[15:0]!==perf_response_expected)$fatal(1,"Response cycle mismatch");
+            perf_index=10;#1;if(perf_data!==1)$fatal(1,"Real synth voice steal count %d",perf_data);
+            perf_index=12;#1;if(perf_data!==TEST_VOICES+1)$fatal(1,"Real synth MIDI count");
+            perf_index=8;#1;if(perf_data!==0)$fatal(1,"Unexpected real synth deadline miss");
+            $display("PASS real FM telemetry: voices=%0d render=%0d response=%0d frames=%0d steals=1",TEST_VOICES,perf_render_expected,perf_response_expected,TEST_VOICES+1);$finish;
+        end
 
         if($test$plusargs("legato"))begin repeat(500)@(negedge clk);check_mono();$finish;end
 

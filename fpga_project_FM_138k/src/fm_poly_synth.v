@@ -78,7 +78,8 @@ module fm_poly_synth #(
     input  wire [6:0]         portamento_time,
     output reg  signed [15:0] sample_out,
     output reg  [4:0]         active_voice_count,
-    output reg  [47:0]        operator_envelope_levels
+    output reg  [47:0]        operator_envelope_levels,
+    output wire perf_busy,perf_pending,perf_render_start,perf_render_done,perf_voice_steal
 );
 
     localparam integer OPERATOR_COUNT = 6;
@@ -340,6 +341,15 @@ module fm_poly_synth #(
     assign midi_event_ready = ~event_pending;
 
     reg sample_pending;
+    assign perf_busy=engine_state!=ENGINE_IDLE;
+    assign perf_pending=sample_pending;
+    assign perf_render_start=engine_state==ENGINE_IDLE && sample_pending && !event_pending &&
+        mono_mode==(portamento_time!=0);
+    assign perf_render_done=engine_state==ENGINE_OUTPUT;
+    // Count actual replacement of an allocated polyphonic voice, including
+    // release tails. Mono retrigger / legato is deliberate and is excluded.
+    assign perf_voice_steal=engine_state==ENGINE_EVENT_INIT && event_init_operator==0 &&
+        !mono_mode && voice_active[event_target_voice];
     reg [3:0] engine_state;
     reg [VOICE_BITS-1:0] scheduler_voice;
     reg [2:0] scheduler_operator;

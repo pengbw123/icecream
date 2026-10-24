@@ -50,7 +50,9 @@ module top #(
     output wire [4:0] monitor_algorithm,
     output wire [47:0] monitor_operator_envelopes,
     output wire [15:0] readback_data,
-    output wire readback_valid
+    output wire readback_valid,
+    input wire perf_snapshot,perf_clear,input wire [4:0] perf_index,
+    input wire perf_bridge_drop,output wire [31:0] perf_data
 );
     wire clk_usb_48m;
     wire clk_usb_bram_96m;
@@ -358,7 +360,10 @@ module top #(
     wire signed [15:0] synth_sample;
     wire [4:0] active_voice_count;
     wire [47:0] operator_envelope_levels;
+    wire perf_busy,perf_pending,perf_start,perf_done,perf_steal;
     fm_poly_synth #(.VOICE_COUNT(16)) u_fm_poly_synth (
+        .perf_busy(perf_busy),.perf_pending(perf_pending),.perf_render_start(perf_start),
+        .perf_render_done(perf_done),.perf_voice_steal(perf_steal),
         .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
         .midi_event_data(synth_midi_event_data),
         .midi_event_valid(synth_midi_event_valid),
@@ -413,6 +418,13 @@ module top #(
     );
 
     wire signed [15:0] output_sample;
+    audio_performance_monitor u_performance(.clk(clk),.reset_n(audio_reset_n),
+        .sample_tick(sample_tick),.engine_busy(perf_busy),.sample_pending(perf_pending),
+        .render_start(perf_start),.render_done(perf_done),.voice_steal(perf_steal),
+        .midi_accept(synth_midi_event_valid&&synth_midi_event_ready),
+        .midi_stall(synth_midi_event_valid&&!synth_midi_event_ready),.bridge_drop(perf_bridge_drop),
+        .active_voices({3'd0,active_voice_count}),.audio_sample(output_sample),
+        .snapshot(perf_snapshot),.clear_stats(perf_clear),.read_index(perf_index),.read_data(perf_data));
     wire [5:0]  fx_cfg_addr;
     wire [15:0] fx_cfg_value;
     wire        fx_cfg_write;

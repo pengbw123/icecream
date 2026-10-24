@@ -88,6 +88,7 @@ static void release_all(void){int i,j,n;for(i=0;i<16;i++)if(slot_note[i]>=0){
 #define PAGE_LESSON 9
 #define PAGE_ARP 10
 #define PAGE_SEQ 11
+#define PAGE_METRICS 12
 static void seq_stop(void);
 static u8 seq_is_active(void);
 static void seq_publish(void);
@@ -1232,7 +1233,7 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
                 }
             }
         }
-        menu_repeat();perf_repeat();lesson_poll();arp_poll();seq_poll();}
+        menu_repeat();perf_repeat();lesson_poll();arp_poll();seq_poll();metrics_poll();}
         else if((u32)(now()-retry)>500000u){retry=now();present=detect();publish();}
         delay_us(2000);
     }

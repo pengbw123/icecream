@@ -42,7 +42,7 @@ static void row_box(u8 c,u8 r,u8 w,u8 h,const char *label,const char *value,int 
     pair_text((u8)(c+w-2-str_len(value)),(u8)(r+h/2),value,bg,0);
 }
 static void draw_tabs(void){u8 i;rect_cells(0,0,100,3,12);
-    for(i=0;i<8;i++)button_box((u8)(2+i*12),0,12,3,tab_names[i],page==i||((page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ)&&i==0));
+    for(i=0;i<8;i++)button_box((u8)(2+i*12),0,12,3,tab_names[i],page==i||(page==PAGE_METRICS&&i==7)||((page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ)&&i==0));
 }
 static void draw_status(void){u8 i;u32 st=UI[4];u8 pr=status_preset(st);
     if(page==PAGE_LESSON){draw_lesson_status();return;}
@@ -180,6 +180,7 @@ static void lesson_press(int x,int y){
 }
 #include "arp_menu.h"
 #include "seq_menu.h"
+#include "performance_menu.h"
 static const char *const setup_labels[10]={"BACKGROUND","ACCENT","DISPLAY","XY DELAY","AUTO RANGE","KEY VELOCITY","AUDIO OUTPUT","SPECTRUM","GLIDE MONO","PRACTICE"};
 static const char *setup_value(u8 n){if(n==0)return bg_labels[bg_pick];if(n==1)return ac_labels[accent_pick];
     if(n==2)return visual_mode==2?"SPECTRUM":visual_mode==1?"XY":"WAVE";if(n==3)return u2d(xy_delay);
@@ -189,14 +190,14 @@ static const char *setup_value(u8 n){if(n==0)return bg_labels[bg_pick];if(n==1)r
 static void draw_theme(void){u8 i;button_box(2,5,46,3,"ARPEGGIATOR >",arp_on);button_box(52,5,46,3,"STEP SEQUENCER >",0);
     for(i=0;i<5;i++)row_box(2,(u8)(8+i*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
     for(i=5;i<10;i++)row_box(52,(u8)(8+(i-5)*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
-    text(54,24,"RAM SLOTS: VOLATILE",2,0);
+    button_box(2,23,46,3,"PERFORMANCE >",0);text(54,24,"RAM SLOTS: VOLATILE",2,0);
 }
 static const char *selected_label(void){if(page==1){static const char *const a[4]={"ALGORITHM","FEEDBACK","OSC SYNC","TRANSPOSE"};return a[sel_row];}
     if(page==2)return osc_labels[sel_row];if(page==3)return sel_row<4?"RATE":"LEVEL";
     if(page==4)return lfo_labels[sel_row];if(page==5)return sel_row>=3?fx_p_names[fx_sel][sel_row-3]:"CONTROL";
     if(page==7)return setup_labels[sel_row];return "VALUE";}
 static void draw_bottom(void){int cur,lo,hi,cyc,norm;u8 c;
-    if(page==0||page==6||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ)return;
+    if(page==0||page==6||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_METRICS)return;
     rect_cells(0,26,100,4,12);
     button_box(2,27,28,3,page==5?((fx_regs[0]&1)?"FX MASTER ON":"FX MASTER OFF"):page==3?(eg_mode?"PITCH EG":"OPERATOR EG"):"PLAY",0);
     button_box(32,27,8,3,"-1",0);button_box(90,27,8,3,"+1",0);
@@ -226,7 +227,7 @@ static void draw_dialog(void){
         button_box(14,19,30,3,"CANCEL",0);button_box(54,19,30,3,dialog==6?"STORE":"LOAD",1);}
 }
 static void draw_page(void){draw_header();
-    if(page==PAGE_SEQ)draw_seq();else if(page==PAGE_ARP)draw_arp();else if(page==PAGE_LESSON)draw_lesson_controls();else if(page==0)draw_perf_controls();else if(page==1)draw_algo();else if(page==2)draw_osc();
+    if(page==PAGE_METRICS)draw_metrics();else if(page==PAGE_SEQ)draw_seq();else if(page==PAGE_ARP)draw_arp();else if(page==PAGE_LESSON)draw_lesson_controls();else if(page==0)draw_perf_controls();else if(page==1)draw_algo();else if(page==2)draw_osc();
     else if(page==3)draw_eg();else if(page==4)draw_lfo();else if(page==5)draw_fx();else if(page==6)draw_name();else draw_theme();
     draw_bottom();if(dialog)draw_dialog();
 }
@@ -248,6 +249,7 @@ static void page_enter(u8 p){if(p==page&&p!=0)return;release_all();ctrl_hold=0;h
         lesson_saved_glide=(u8)(rd(0x00c)!=0);if(lesson_saved_glide)set_glide(0);
         emit(0xb0,64,0);lesson_run=0;lesson_control(1);lesson_last_status=~0u;}
     dialog=0;page=p;sel_row=0;last_adj=0;
+    if(p==PAGE_METRICS){metrics_frozen=0;metrics_last_poll=now();metrics_read();}
     if(p==PAGE_SEQ){seq_confirm=0;seq_select();seq_cache();}
     if(p==1){load_globals();load_flags();algo_map_dirty=1;}
     else if(p==2){osc_group=0;cache_operator_switches();load_op(sel_op);load_flags();}
@@ -277,6 +279,8 @@ static int menu_press(int x,int y){int i,n;
             else if(x>=432&&x<672){u8 d=dialog;dialog=0;if(d==5)load_selected_rom();else if(d==6)slot_save();else{slot_load();patch_dirty=0;draw_page();}}}return 1;
     }
     if(y<48){i=(x-16)/96;if(x>=16&&x<784)page_enter((u8)i);return 1;}
+    if(page==PAGE_METRICS){metrics_press(x,y);return 1;}
+    if(page==7&&x>=16&&x<384&&y>=368&&y<416){page_enter(PAGE_METRICS);return 1;}
     if(page==PAGE_SEQ){seq_press(x,y);return 1;}
     if(page==7&&x>=416&&x<784&&y>=80&&y<128){page_enter(PAGE_SEQ);return 1;}
     if(page==PAGE_ARP){arp_press(x,y);return 1;}

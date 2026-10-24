@@ -35,7 +35,9 @@ module touch_ui_controller (
     output reg lesson_bank,output reg [7:0] lesson_count,
     output wire lesson_write,output wire [6:0] lesson_address,output wire [31:0] lesson_data,
     // 0x69 readback results from the synth (registers 14/15).
-    input wire [15:0] patch_read_data,input wire patch_read_valid
+    input wire [15:0] patch_read_data,input wire patch_read_valid,
+    input wire [31:0] perf_data,output reg [4:0] perf_index,
+    output wire perf_snapshot,perf_clear
 );
     reg [127:0] arp_timing_shadow;
     wire [31:0] address,write_data,read_data;
@@ -44,6 +46,8 @@ module touch_ui_controller (
     wire read_en=request==2'b00;
     wire uart_select=address[31:8]==24'h200000;
     wire ui_select=address[31:8]==24'h230000;
+    assign perf_snapshot=ui_select&&write_en&&address[7:2]==58&&write_data[0];
+    assign perf_clear=ui_select&&write_en&&address[7:2]==58&&write_data[1];
     reg [31:0] fw_data;
     reg fw_valid;
     wire fw_ready=midi_event_ready;
@@ -157,6 +161,8 @@ module touch_ui_controller (
             14:ui_data={16'd0,readback_value};
             15:ui_data={31'd0,readback_ready};
             55:ui_data={25'd0,seq_read_address};
+            56:ui_data={27'd0,perf_index};
+            57:ui_data=perf_data;
             46:ui_data=seq_control;
             47:ui_data={25'd0,seq_edit_address};
             48:ui_data=seq_edit_data;
@@ -184,6 +190,7 @@ module touch_ui_controller (
     end
     always @(posedge clk or negedge reset_n) begin
         if(!reset_n)begin
+            perf_index<=0;
             seq_timing<={32'd87500,32'd87500,32'd125000,32'd125000};seq_control<=32'h3c0;seq_read_address<=0;
             arp_timing_shadow<={32'd175000,32'd175000,32'd250000,32'd250000};
             arp_config<={32'd175000,32'd175000,32'd250000,32'd250000,32'h00006000};
@@ -247,6 +254,7 @@ module touch_ui_controller (
                 26:begin eg2_word<=write_data;eg2_byte<=2'd0;eg2_burst<=1'b1;end
                 27:eg2_enable<=write_data[0];
                     55:seq_read_address<=write_data[6:0];
+                    56:perf_index<=write_data[4:0];
                     46:seq_control<=write_data&32'h3ff;
                     50:seq_timing[31:0]<=write_data;
                     51:seq_timing[63:32]<=write_data;

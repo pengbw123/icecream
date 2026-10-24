@@ -1,5 +1,13 @@
 # FM 合成器触摸屏使用说明（零基础版）
 
+## 2026-10-24 性能监测
+
+在 **SETUP → PERFORMANCE >** 打开性能页，连接 MIDI 键盘照常演奏即可查看。
+左列显示复音、FM 计算/结果就绪耗时、引擎忙占比和采样周期；右列显示超时、丢采样、抢音、
+桥接丢事件和 MIDI 等待情况。正常演奏中，DEADLINE MISSES、LOST SAMPLE TICKS、BRIDGE DROPS 应为 0。
+FREEZE METRICS 冻结数值供查看，RESUME METRICS 恢复刷新；CLEAR COUNTERS 清零计数与峰值，均不停止声音。
+时间只测量 FM 数字引擎，不代表按下键盘到耳机的完整延迟。详见 [性能监测说明](PERFORMANCE_MONITOR.md)。
+
 > 2026-10-23 菜单已改版：当前八页为 PLAY / ALGO / OSC / EG / LFO / FX / PATCH / SETUP。
 > 新版布局、独立背景/主题色、触摸操作、预留入口与编译方法以 [UI_LAYOUT_2026.md](UI_LAYOUT_2026.md) 为准。
 > 以下旧阶段记录及旧布局描述保留作历史参考；音源参数的含义仍可参考。

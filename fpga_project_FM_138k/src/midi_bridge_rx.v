@@ -10,7 +10,8 @@ module midi_bridge_rx #(
     output reg [31:0] midi_event_data,
     output reg midi_event_valid,
     input  wire midi_event_ready,
-    output reg [15:0] dropped_events
+    output reg [15:0] dropped_events,
+    output reg dropped_pulse
 );
     wire [7:0] rx_byte;
     wire rx_valid;
@@ -36,8 +37,10 @@ module midi_bridge_rx #(
             midi_event_data <= 0;
             midi_event_valid <= 0;
             dropped_events <= 0;
+            dropped_pulse <= 0;
             gap_count <= 0;
         end else begin
+            dropped_pulse <= 0;
             if (rx_valid || state == WAIT_A5) gap_count <= 0;
             else if (gap_count == FRAME_GAP_CYCLES-1) begin
                 state <= WAIT_A5;
@@ -66,7 +69,10 @@ module midi_bridge_rx #(
                                 midi_event_data <= {8'd0, status, 1'b0, data1[6:0],
                                                     1'b0, data2[6:0]};
                                 midi_event_valid <= 1'b1;
-                            end else dropped_events <= dropped_events + 1'b1;
+                            end else begin
+                                dropped_pulse<=1;
+                                if(!(&dropped_events))dropped_events<=dropped_events+1'b1;
+                            end
                         end
                     end
                     default: state <= WAIT_A5;
