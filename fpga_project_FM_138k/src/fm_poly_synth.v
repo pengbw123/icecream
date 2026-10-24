@@ -77,14 +77,16 @@ module fm_poly_synth #(
     input  wire [6:0]         vibrato_rate,
     input  wire [6:0]         portamento_time,
     output reg  signed [15:0] sample_out,
-    output reg  [4:0]         active_voice_count,
+    output wire [7:0]         active_voice_count,
     output reg  [47:0]        operator_envelope_levels,
     output wire perf_busy,perf_pending,perf_render_start,perf_render_done,perf_voice_steal
 );
 
     localparam integer OPERATOR_COUNT = 6;
     localparam integer SLOT_COUNT = VOICE_COUNT * OPERATOR_COUNT;
-    localparam integer VOICE_BITS = (VOICE_COUNT <= 16) ? 4 : 5;
+    localparam integer VOICE_BITS = (VOICE_COUNT > 1) ? $clog2(VOICE_COUNT) : 1;
+    localparam integer SLOT_BITS = $clog2(SLOT_COUNT);
+    localparam integer COUNT_LEAVES = 1 << VOICE_BITS;
 
     localparam [3:0] ENGINE_IDLE       = 4'd0;
     localparam [3:0] ENGINE_CLEAR      = 4'd1;
@@ -287,10 +289,10 @@ module fm_poly_synth #(
     // {target[16:0], signed step[12:0], signed current[17:0]}.
     reg [47:0] operator_gain_state_memory [0:SLOT_COUNT-1];
     reg [47:0] operator_gain_read_data;
-    wire [6:0] operator_state_read_address;
+    wire [SLOT_BITS-1:0] operator_state_read_address;
     reg [107:0] operator_state_read_data;
     reg operator_state_write_valid;
-    reg [6:0] operator_state_write_address;
+    reg [SLOT_BITS-1:0] operator_state_write_address;
     reg [107:0] operator_state_write_data;
     // Centralise the RAM layout so a future envelope-width change cannot
     // silently shift the neighbouring phase and frequency fields again.
@@ -343,7 +345,7 @@ module fm_poly_synth #(
     reg sample_pending;
     assign perf_busy=engine_state!=ENGINE_IDLE;
     assign perf_pending=sample_pending;
-    assign perf_render_start=engine_state==ENGINE_IDLE && sample_pending && !event_pending &&
+    assign perf_render_start=engine_state==ENGINE_IDLE && sample_pending &&
         mono_mode==(portamento_time!=0);
     assign perf_render_done=engine_state==ENGINE_OUTPUT;
     // Count actual replacement of an allocated polyphonic voice, including
@@ -582,12 +584,12 @@ module fm_poly_synth #(
     reg [16:0] global_pitch_ratio;
 
     // Operator issue combinational path.
-    wire [9:0] issue_slot_wide = scheduler_voice * 6 + scheduler_operator;
+    wire [SLOT_BITS-1:0] issue_slot_wide = scheduler_voice * 6 + scheduler_operator;
     wire event_read_slot=(engine_state==ENGINE_EVENT_INIT || engine_state==ENGINE_EVENT_GAIN_WAIT ||
         engine_state==ENGINE_EVENT_SCALE_MUL || engine_state==ENGINE_EVENT_SCALE_FINISH ||
         engine_state==ENGINE_EVENT_GAIN_CAPTURE);
     assign operator_state_read_address = event_read_slot ?
-        event_target_voice*6+event_init_operator : issue_slot_wide[6:0];
+        event_target_voice*6+event_init_operator : issue_slot_wide;
     wire [7:0] issue_flags = patch_algorithm_flags[scheduler_operator];
     wire [1:0] issue_input_bus = issue_flags[5:4];
     wire signed [31:0] issue_bus_value =
@@ -1002,13 +1004,18 @@ module fm_poly_synth #(
         ($signed({1'b0, event_output_level_clamped}) <<< 5) - 17'sd4256 +
         event_velocity_delta;
 
-    always @* begin
-        active_voice_count = 5'd0;
-        for (count_index = 0; count_index < VOICE_COUNT;
-             count_index = count_index + 1)
-            if (voice_active[count_index])
-                active_voice_count = active_voice_count + 1'b1;
+    // Balanced population count: the former linear chain grows with every
+    // added voice. Eight output bits also represent 32/64 without wrapping.
+    wire [7:0] count_tree[1:2*COUNT_LEAVES-1];
+    genvar ct;
+    generate for(ct=0;ct<COUNT_LEAVES;ct=ct+1)begin:g_count_leaf
+        if(ct<VOICE_COUNT)assign count_tree[COUNT_LEAVES+ct]={7'd0,voice_active[ct]};
+        else assign count_tree[COUNT_LEAVES+ct]=8'd0;
     end
+    for(ct=1;ct<COUNT_LEAVES;ct=ct+1)begin:g_count_sum
+        assign count_tree[ct]=count_tree[2*ct]+count_tree[2*ct+1];
+    end endgenerate
+    assign active_voice_count=count_tree[1];
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
@@ -1119,7 +1126,7 @@ module fm_poly_synth #(
             e0_env_current <= 0; e0_env_target <= 0; e0_env_stage <= 0;
             e0_env_step <= 0; e0_level_offset <= 0;
             operator_state_write_valid <= 1'b0;
-            operator_state_write_address <= 7'd0;
+            operator_state_write_address <= {SLOT_BITS{1'b0}};
             operator_state_write_data <= 108'd0;
             operator_read_pending <= 1'b0;
             operator_read_voice <= 0;
@@ -1420,7 +1427,7 @@ module fm_poly_synth #(
                     if(mono_mode!=(portamento_time!=0))begin
                         mono_mode<=portamento_time!=0;mono_held<=0;event_legato<=0;
                         for(i=0;i<VOICE_COUNT;i=i+1)begin voice_active[i]<=0;voice_gate[i]<=0;voice_key_down[i]<=0;end
-                    end else if (event_pending) begin
+                    end else if (event_pending && !sample_pending) begin
                         if (((pending_event[23:20] == 4'h9) &&
                              pending_event[6:0] != 0)) begin
                             event_note <= pending_event[14:8];

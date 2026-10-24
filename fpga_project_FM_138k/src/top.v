@@ -2,6 +2,7 @@
 // USB-A on the Dock is the host port (D+=L6, D-=K6). USB-C remains the
 // BL616 JTAG/UART connection and carries 115200-baud diagnostics/configuration.
 module top #(
+    parameter integer FM_VOICE_COUNT = 32,
     parameter integer USB_HOST_ENABLED = 0,
     parameter integer OUTPUT_SELECT_ENABLED = 0,
     // 1: keep the DX7 core, MIDI and I2S; bypass the non-DX7 effects/LCD.
@@ -45,7 +46,7 @@ module top #(
     output wire monitor_sample_tick,
     output wire [31:0] monitor_midi_event_data,
     output wire monitor_midi_event_valid,
-    output wire [4:0] monitor_voice_count,
+    output wire [7:0] monitor_voice_count,
     output wire [6:0] monitor_preset,
     output wire [4:0] monitor_algorithm,
     output wire [47:0] monitor_operator_envelopes,
@@ -358,10 +359,10 @@ module top #(
         ~midi_event_valid & ~external_midi_event_valid;
 
     wire signed [15:0] synth_sample;
-    wire [4:0] active_voice_count;
+    wire [7:0] active_voice_count;
     wire [47:0] operator_envelope_levels;
     wire perf_busy,perf_pending,perf_start,perf_done,perf_steal;
-    fm_poly_synth #(.VOICE_COUNT(16)) u_fm_poly_synth (
+    fm_poly_synth #(.VOICE_COUNT(FM_VOICE_COUNT)) u_fm_poly_synth (
         .perf_busy(perf_busy),.perf_pending(perf_pending),.perf_render_start(perf_start),
         .perf_render_done(perf_done),.perf_voice_steal(perf_steal),
         .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
@@ -418,12 +419,12 @@ module top #(
     );
 
     wire signed [15:0] output_sample;
-    audio_performance_monitor u_performance(.clk(clk),.reset_n(audio_reset_n),
+    audio_performance_monitor #(.VOICE_CAPACITY(FM_VOICE_COUNT)) u_performance(.clk(clk),.reset_n(audio_reset_n),
         .sample_tick(sample_tick),.engine_busy(perf_busy),.sample_pending(perf_pending),
         .render_start(perf_start),.render_done(perf_done),.voice_steal(perf_steal),
         .midi_accept(synth_midi_event_valid&&synth_midi_event_ready),
         .midi_stall(synth_midi_event_valid&&!synth_midi_event_ready),.bridge_drop(perf_bridge_drop),
-        .active_voices({3'd0,active_voice_count}),.audio_sample(output_sample),
+        .active_voices(active_voice_count),.audio_sample(output_sample),
         .snapshot(perf_snapshot),.clear_stats(perf_clear),.read_index(perf_index),.read_data(perf_data));
     wire [5:0]  fx_cfg_addr;
     wire [15:0] fx_cfg_value;
@@ -502,7 +503,7 @@ module top #(
 
     wire unused_fm_global_write_valid = fm_global_write_valid;
     wire [6:0] unused_delay = delay_mix ^ delay_time;
-    wire [4:0] unused_voice_count = active_voice_count;
+    wire [7:0] unused_voice_count = active_voice_count;
     wire unused_strum_config = strum_mode ^ strum_interval_ms[0] ^
         strum_gate_ms[0] ^ strum_velocity_speed_depth[0] ^
         strum_velocity_brightness_depth[0];

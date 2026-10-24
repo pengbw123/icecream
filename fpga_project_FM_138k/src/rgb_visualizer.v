@@ -12,7 +12,7 @@ module rgb_visualizer #(
     input wire clk, input wire reset_n,
     input wire sample_tick, input wire signed [15:0] audio_sample,
     input wire [31:0] midi_event_data, input wire midi_event_valid,
-    input wire [4:0] active_voice_count, algorithm,
+    input wire [7:0] active_voice_count,input wire [4:0] algorithm,
     input wire [6:0] preset_index,
     input wire [47:0] operator_envelopes,
     input wire touch_present,
@@ -167,7 +167,7 @@ module rgb_visualizer #(
     reg [6:0] delay_meta,delay_sync,delay_frame;
     reg [47:0] eg_meta, eg_sync, eg_frame;
     reg [6:0] preset_meta,preset_sync,preset_frame;
-    reg [4:0] voices_meta,voices_sync,voices_frame;
+    reg [7:0] voices_meta,voices_sync,voices_frame;
     reg [4:0] alg_meta,alg_sync,alg_frame;
     reg [7:0] peak_meta,peak_sync,peak_frame;
     reg [1:0] clip_sync;

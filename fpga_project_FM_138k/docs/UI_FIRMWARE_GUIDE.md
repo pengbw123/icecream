@@ -1,5 +1,9 @@
 # UI 软核与菜单固件说明
 
+2026-10-24 32 复音版：声部计数高 3 位新增到 UI[4][26:24]，音色高位仍在 [23:22]，
+UI[59] 只读返回声部容量。必须使用 `status_voices()`，不能继续仅取 5 位。
+当前固件 60,604 / 65,536 B；详见 [POLYPHONY_32.md](POLYPHONY_32.md)。
+
 2026-10-24：新增性能监测子页（page=12），入口 SETUP → PERFORMANCE >；
 UI[56]=快照索引，UI[57]=只读数据，UI[58] bit0=捕获、bit1=清统计。
 逻辑在 `ui_firmware/performance_menu.h`，详见 [PERFORMANCE_MONITOR.md](PERFORMANCE_MONITOR.md)。

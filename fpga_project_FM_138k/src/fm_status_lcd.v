@@ -3,7 +3,7 @@
 module fm_status_lcd (
     input  wire clk, input wire reset_n, input wire sample_tick,
     input  wire signed [15:0] audio_sample,
-    input  wire [4:0] active_voice_count, input wire [6:0] preset_index,
+    input  wire [7:0] active_voice_count, input wire [6:0] preset_index,
     input  wire [4:0] algorithm, input wire [47:0] algorithm_flags,
     input  wire [47:0] operator_envelope_levels,
     input  wire [7:0] peak_level, input wire clip_active,

@@ -37,7 +37,8 @@ module top_138k (
     wire signed [15:0] pcm;
     wire tick, event_valid;
     wire [31:0] event_data;
-    wire [4:0] voices,algorithm;
+    localparam integer AUDIO_VOICES=32;
+    wire [7:0] voices;wire [4:0] algorithm;
     wire [6:0] preset;
     wire [47:0] operator_eg;
     wire [31:0] ui_event;
@@ -79,7 +80,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire [6:0] lesson_address;
     wire sequencer_active;
     wire [159:0] arp_config;wire [31:0] arp_status;wire [127:0] arp_notes;
-    touch_ui_controller u_ui (
+    touch_ui_controller #(.VOICE_CAPACITY(AUDIO_VOICES)) u_ui (
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),
         .sequencer_active(sequencer_active),.arp_config(arp_config),.arp_status(arp_status),.arp_notes(arp_notes),
         .lesson_state(lesson_state),.lesson_bank(lesson_bank),.lesson_count(lesson_count),
@@ -101,7 +102,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .patch_read_data(readback_data),.patch_read_valid(readback_valid),
         .fx_write(),.fx_index(),.fx_value(),.fx_read_value(32'd0),.numeric_display()
     );
-    top #(.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1)) u_audio (
+    top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1)) u_audio (
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),.perf_bridge_drop(bridge_drop),
         .arp_config(arp_config),.arp_suspend(lesson_state[16]||sequencer_active),.arp_status(arp_status),.arp_notes(arp_notes),
         .clk(clk),.key_s2(~reset_n),.uart_rx_pin(uart_rx_pin),

@@ -127,6 +127,7 @@ static u32 ctrl_hold_t, ctrl_hold_count;
 static u32 last_adj;
 static int vol_local=5, preset_local=0;
 static u8 status_preset(u32 st){return (u8)(((st>>7)&31u)|((st>>17)&96u));}
+static u8 status_voices(u32 st){return (u8)(((st>>17)&31u)|((st>>19)&224u));}
 /* k: 1 preset-, 2 preset+, 3 volume-, 4 volume+, 5 octave-, 6 octave+,
    7 xy-, 8 xy+.  Single tap = one step; repeat starts after 1.5 s. */
 static void perf_step(u8 k){

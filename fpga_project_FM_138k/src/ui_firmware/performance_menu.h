@@ -43,7 +43,7 @@ static void draw_metrics_values(void){u32 v=metrics[13];
 }
 static void draw_metrics(void){
     text(3,5,"AUDIO PERFORMANCE / RTL COUNTERS",2,0);
-    text(3,6,"50 MHz / 48.828 kHz / 16 VOICES",2,0);
+    text(3,6,"50 MHz / 48.828 kHz /",2,0);text(24,6,metrics_u32(UI[59]),2,0);text(27,6,"VOICES",2,0);
     text(53,5,"RENDER: COMPUTE / READY: TICK TO RESULT",2,0);
     text(53,6,"DIGITAL ENGINE ONLY / NOT KEY-TO-EAR LATENCY",2,0);
     draw_metrics_values();

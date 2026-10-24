@@ -2,7 +2,7 @@
 // Regression for the 0x69 patch readback path, the 0x60 algorithm->routing
 // install, the deprecated 0x68 command and the UART byte that used to be lost
 // during a local-command injection cycle.
-module tb_fm_readback #(parameter integer TEST_VOICES=2);
+module tb_fm_readback #(parameter integer TEST_VOICES=2,parameter integer TEST_COMPARE=0);
     reg clk=0;
     always #10 clk=~clk;
     reg reset_n=0;
@@ -127,7 +127,7 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2);
     reg test_tick=0,test_valid=0;reg [31:0] test_event=0;reg [6:0] test_porta=0;
     // Real synth readback source (idle engine, sample_tick held low).
     wire signed [15:0] sample_out;
-    wire [4:0] active_voice_count;
+    wire [7:0] active_voice_count;
     wire [47:0] operator_envelope_levels;
     wire synth_midi_ready;
     wire perf_busy,perf_pending,perf_start,perf_done,perf_steal;
@@ -136,7 +136,7 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2);
         .sample_tick(test_tick),.engine_busy(perf_busy),.sample_pending(perf_pending),
         .render_start(perf_start),.render_done(perf_done),.voice_steal(perf_steal),
         .midi_accept(test_valid&&synth_midi_ready),.midi_stall(test_valid&&!synth_midi_ready),
-        .bridge_drop(1'b0),.active_voices({3'd0,active_voice_count}),.audio_sample(sample_out),
+        .bridge_drop(1'b0),.active_voices(active_voice_count),.audio_sample(sample_out),
         .snapshot(perf_snapshot),.clear_stats(1'b0),.read_index(perf_index),.read_data(perf_data));
     integer perf_clock=0,perf_begin=0,perf_tick_clock=0,perf_render_expected=0,perf_response_expected=0;
     always @(posedge clk)begin
@@ -196,6 +196,58 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2);
         .active_voice_count(active_voice_count),
         .operator_envelope_levels(operator_envelope_levels)
     );
+    wire signed [15:0] reference_sample;wire [7:0] reference_count;wire reference_ready;
+    generate if(TEST_COMPARE)begin:g_reference
+    fm_poly_synth #(.VOICE_COUNT(16)) u_reference (
+        .perf_busy(),.perf_pending(),.perf_render_start(),
+        .perf_render_done(),.perf_voice_steal(),
+        .clk(clk), .reset_n(reset_n), .sample_tick(test_tick),
+        .midi_event_data(test_event), .midi_event_valid(test_valid),
+        .midi_event_brightness(7'd0), .midi_event_ready(reference_ready),
+        .fm_algorithm(fm_algorithm), .fm_feedback(fm_feedback),
+        .fm_osc_sync(fm_osc_sync), .fm_transpose(fm_transpose),
+        .fm_lfo_waveform(fm_lfo_waveform), .fm_lfo_speed(fm_lfo_speed),
+        .fm_lfo_delay(fm_lfo_delay), .fm_lfo_sync(fm_lfo_sync),
+        .fm_lfo_pitch_depth(fm_lfo_pitch_depth),
+        .fm_lfo_amp_depth(fm_lfo_amp_depth),
+        .fm_pitch_mod_sensitivity(fm_pitch_mod_sensitivity),
+        .fm_operator_write_valid(fm_operator_write_valid),
+        .fm_operator_index(fm_operator_index), .fm_operator_enable(fm_operator_enable),
+        .fm_operator_fixed(fm_operator_fixed), .fm_operator_detune(fm_operator_detune),
+        .fm_operator_frequency(fm_operator_frequency),
+        .fm_operator_output_gain(fm_operator_output_gain),
+        .fm_envelope_write_valid(fm_envelope_write_valid),
+        .fm_envelope_operator(fm_envelope_operator),
+        .fm_envelope_stage(fm_envelope_stage),
+        .fm_envelope_coefficient(fm_envelope_coefficient),
+        .fm_envelope_level(fm_envelope_level), .fm_rate_scaling(fm_rate_scaling),
+        .fm_velocity_sensitivity(fm_velocity_sensitivity),
+        .fm_amp_mod_sensitivity(fm_amp_mod_sensitivity),
+        .fm_scaling_write_valid(fm_scaling_write_valid),
+        .fm_scaling_operator(fm_scaling_operator),
+        .fm_scaling_breakpoint(fm_scaling_breakpoint),
+        .fm_scaling_left_depth(fm_scaling_left_depth),
+        .fm_scaling_right_depth(fm_scaling_right_depth),
+        .fm_scaling_left_curve(fm_scaling_left_curve),
+        .fm_scaling_right_curve(fm_scaling_right_curve),
+        .fm_pitch_envelope_write_valid(fm_pitch_envelope_write_valid),
+        .fm_pitch_envelope_stage(fm_pitch_envelope_stage),
+        .fm_pitch_envelope_coefficient(fm_pitch_envelope_coefficient),
+        .fm_pitch_envelope_ratio(fm_pitch_envelope_ratio),
+        .fm_algorithm_flags_write_valid(fm_algorithm_flags_write_valid),
+        .fm_algorithm_flags(fm_algorithm_flags),
+        .fm_note_gain_write_valid(fm_note_gain_write_valid),
+        .fm_note_gain_address(fm_note_gain_address),
+        .fm_note_gain_value(fm_note_gain_value),
+        .fm_patch_commit(fm_patch_commit),
+        .patch_read_address(patch_read_address), .patch_read_data(),
+        .pitch_bend(14'd0), .vibrato_depth(7'd0), .vibrato_rate(7'd64),
+        .portamento_time(test_porta), .sample_out(reference_sample),
+        .active_voice_count(reference_count),
+        .operator_envelope_levels()
+    );
+    end else begin assign reference_sample=0;assign reference_count=0;assign reference_ready=1;end endgenerate
+
 
     // New FX register file / readback path (command 0x70, 0x69 0x200+addr).
     audio_fx u_fx(.clk(clk), .reset_n(reset_n), .sample_tick(1'b0),
@@ -337,10 +389,93 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2);
     reg [63:0] payload;
     integer race_ok;
     integer metrics_note;
+    reg poly_clock=0;reg [9:0] poly_div=0;
+    always @(negedge clk)if(poly_clock)begin poly_div<=poly_div+1'b1;test_tick<=poly_div==0;end
+    task burst_event(input [7:0] status,input [6:0] note,value);
+        begin
+            wait(synth_midi_ready);@(negedge clk);test_event={8'd0,status,1'b0,note,1'b0,value};test_valid=1;
+            @(negedge clk);test_valid=0;
+        end
+    endtask
+    integer poly_v,poly_op;
+    integer compare_alg,compare_frame,compare_note,nonzero_samples;
+    task check_reference;
+        begin
+            if(TEST_VOICES!=32||!TEST_COMPARE)$fatal(1,"Compare needs 32 voices and TEST_COMPARE=1");
+            repeat(500)@(negedge clk);nonzero_samples=0;
+            for(compare_alg=0;compare_alg<32;compare_alg=compare_alg+1)begin
+                key_event(8'hb0,120,0);
+                wait(local_ready);@(negedge clk);local_cmd=8'h60;
+                local_payload=compare_alg|(64'd7<<8)|(64'd1<<11)|(64'd24<<16);local_valid=1;
+                @(negedge clk);local_valid=0;repeat(100)@(negedge clk);
+                for(compare_note=0;compare_note<16;compare_note=compare_note+1)key_event(8'h90,48+compare_note,32+compare_note*5);
+                for(compare_frame=0;compare_frame<128;compare_frame=compare_frame+1)begin
+                    audio_frame();
+                    if(sample_out!==reference_sample)$fatal(1,"16/32 PCM mismatch alg=%d frame=%d new=%d ref=%d",compare_alg,compare_frame,sample_out,reference_sample);
+                    if(active_voice_count!==16||reference_count!==16)$fatal(1,"Reference chord lost voices");
+                    if(sample_out!=0)nonzero_samples=nonzero_samples+1;
+                end
+            end
+            if(nonzero_samples<100)$fatal(1,"Reference comparison was mostly silent: %d",nonzero_samples);
+            $display("PASS bit-exact 16/32 PCM comparison: 32 algorithms, max feedback, 16-note chords, 4096 frames (%d nonzero)",nonzero_samples);$finish;
+        end
+    endtask
+    reg [107:0] first_operator[0:5];reg [31:0] phase_before[0:191];
+    task check_poly32;
+        begin
+            if(TEST_VOICES!=32)$fatal(1,"poly32 needs TEST_VOICES=32");
+            repeat(500)@(negedge clk);
+            // No render between notes: later initialization must not alias
+            // voice 0 or leave slots 128..191 uninitialized.
+            for(poly_v=0;poly_v<32;poly_v=poly_v+1)begin
+                key_event(8'h90,36+poly_v,100);
+                if(active_voice_count!=poly_v+1)$fatal(1,"Count wrapped at voice %d",poly_v);
+                if(u_synth.voice_note[poly_v]!==36+poly_v)$fatal(1,"Allocator skipped voice %d",poly_v);
+                for(poly_op=0;poly_op<6;poly_op=poly_op+1)begin
+                    if(poly_v==0)first_operator[poly_op]=u_synth.operator_state_memory[poly_op];
+                    else if(u_synth.operator_state_memory[poly_op]!==first_operator[poly_op])$fatal(1,"High voice initialization aliased voice 0");
+                    if((^u_synth.operator_state_memory[poly_v*6+poly_op])===1'bx)$fatal(1,"Slot %d uninitialized",poly_v*6+poly_op);
+                    phase_before[poly_v*6+poly_op]=u_synth.operator_state_memory[poly_v*6+poly_op][107:76];
+                end
+            end
+            audio_frame();
+            for(poly_v=0;poly_v<32;poly_v=poly_v+1)for(poly_op=0;poly_op<6;poly_op=poly_op+1)
+                if(u_synth.operator_state_memory[poly_v*6+poly_op][107:76]===phase_before[poly_v*6+poly_op])
+                    $fatal(1,"Operator did not advance: slot %d",poly_v*6+poly_op);
+            if(active_voice_count!==32)$fatal(1,"Full 32 count after render");
+            // Pedal applies to all 32 slots; release tails remain allocated.
+            key_event(8'hb0,64,127);
+            for(poly_v=0;poly_v<32;poly_v=poly_v+1)key_event(8'h80,36+poly_v,0);
+            for(poly_v=0;poly_v<32;poly_v=poly_v+1)
+                if(!u_synth.voice_gate[poly_v]||u_synth.voice_key_down[poly_v])$fatal(1,"Sustain ownership at voice %d",poly_v);
+            key_event(8'hb0,64,0);
+            for(poly_v=0;poly_v<32;poly_v=poly_v+1)if(u_synth.voice_gate[poly_v])$fatal(1,"Pedal release missed a high voice");
+            key_event(8'hb0,120,0);
+            if(active_voice_count!==0)$fatal(1,"All sound off missed a high voice");
+            // Saturated ready/valid producer, including repeated pitches.
+            // Old event-before-sample priority misses deadlines in this case.
+            poly_clock=1;
+            for(poly_v=0;poly_v<256;poly_v=poly_v+1)burst_event(8'h90,36+(poly_v%64),100);
+            repeat(120000)@(negedge clk);
+            perf_snapshot=1;@(negedge clk);perf_snapshot=0;
+            perf_index=8;#1;if(perf_data!==0)$fatal(1,"Burst caused %d deadline misses",perf_data);
+            perf_index=9;#1;if(perf_data!==0)$fatal(1,"Burst caused lost ticks");
+            perf_index=13;#1;if(perf_data!=={16'd32,8'd32,8'd32})$fatal(1,"Snapshot full polyphony %h",perf_data);
+            perf_index=10;#1;if(perf_data==0)$fatal(1,"Full allocator did not count voice steals");
+            perf_index=6;#1;if(perf_data[31:16]>=1024)$fatal(1,"Worst response exceeded frame budget");
+            $display("POLY32 max response=%0d clocks",perf_data[31:16]);
+            key_event(8'hb0,120,0);repeat(5000)@(negedge clk);
+            if(active_voice_count!==0||sample_out!==0)$fatal(1,"All sound off left output");
+            $display("PASS 32 voices: 192 independent slots, full count, pedal, high-slot render, dense burst, deadlines, steals and silence");$finish;
+        end
+    endtask
     initial begin
         repeat (10) @(posedge clk);
         reset_n = 1;
         repeat (5) @(posedge clk);
+
+        if($test$plusargs("poly32"))check_poly32();
+        if($test$plusargs("compare"))check_reference();
 
         if($test$plusargs("metrics"))begin
             repeat(500)@(negedge clk);
@@ -354,6 +489,7 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2);
             perf_index=10;#1;if(perf_data!==1)$fatal(1,"Real synth voice steal count %d",perf_data);
             perf_index=12;#1;if(perf_data!==TEST_VOICES+1)$fatal(1,"Real synth MIDI count");
             perf_index=8;#1;if(perf_data!==0)$fatal(1,"Unexpected real synth deadline miss");
+            perf_index=13;#1;if(perf_data[15:8]!==TEST_VOICES)$fatal(1,"Peak count truncated");
             $display("PASS real FM telemetry: voices=%0d render=%0d response=%0d frames=%0d steals=1",TEST_VOICES,perf_render_expected,perf_response_expected,TEST_VOICES+1);$finish;
         end
 

@@ -1,7 +1,7 @@
 // Small RV32I controller for GT911/GT9147 polling and menu actions.
 // It changes control registers only. Audio synthesis and pixel rendering
 // never wait for firmware, I2C, UART diagnostics or touch events.
-module touch_ui_controller (
+module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
     input wire clk, input wire reset_n,
     inout wire tp_scl, tp_sda, tp_int,
     output wire tp_rst,
@@ -12,7 +12,7 @@ module touch_ui_controller (
     input wire [31:0] monitor_event,
     input wire monitor_event_valid,
     input wire [6:0] preset_index,
-    input wire [4:0] algorithm, active_voices,
+    input wire [4:0] algorithm,input wire [7:0] active_voices,
     output wire touch_present,
     output wire signed [3:0] keyboard_octave,
     output wire [6:0] master_volume,
@@ -154,7 +154,10 @@ module touch_ui_controller (
             1:ui_data=microseconds;
             2:ui_data={31'd0,!fw_valid};
             3:ui_data=fw_data;
-            4:ui_data={8'd0,preset_index[6:5],active_voices,algorithm,preset_index[4:0],volume};
+            // Preserve every legacy field. High voice-count bits occupy the
+            // formerly reserved [26:24], separate from preset [23:22].
+            4:ui_data={5'd0,active_voices[7:5],preset_index[6:5],active_voices[4:0],algorithm,preset_index[4:0],volume};
+            59:ui_data=VOICE_CAPACITY;
             5:ui_data=ui_state;
             9:ui_data={31'd0,command_ready&&!command_valid};
             17:ui_data={31'd0,text_enable};

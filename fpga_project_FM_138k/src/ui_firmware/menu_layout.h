@@ -51,8 +51,8 @@ static void draw_status(void){u8 i;u32 st=UI[4];u8 pr=status_preset(st);
     pair_text(8,3,cur_name[0]?cur_name:preset_names[pr],5,0);
     if(patch_dirty)pair_text(28,3,"EDIT",5,0);
     pair_text(38,3,"ALG",5,0);pair_text(42,3,u2d(((st>>12)&31u)+1u),5,0);
-    pair_text(52,3,"VOICE",5,0);pair_text(58,3,u2d((st>>17)&31u),5,0);
-    pair_text(60,3,"/16",5,0);pair_text(71,3,"OCT",5,0);pair_text(75,3,sgn1(octave),5,0);
+    pair_text(52,3,"VOICE",5,0);pair_text(58,3,u2d(status_voices(st)),5,0);
+    pair_text(60,3,"/",5,0);pair_text(61,3,u2d(UI[59]),5,0);pair_text(71,3,"OCT",5,0);pair_text(75,3,sgn1(octave),5,0);
     pair_text(86,3,"VOL",5,0);
     /* Hardware volume is 0..127; show the full value, never wrap 100..127. */
     i=(u8)(st&127u);nb[0]=(char)('0'+i/100);nb[1]=(char)('0'+(i/10)%10);nb[2]=(char)('0'+i%10);nb[3]=0;

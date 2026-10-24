@@ -75,10 +75,24 @@ try {
             if ($LASTEXITCODE -ne 0) { throw '16-voice telemetry compile failed.' }
             & $vvp $metrics16 '+metrics'
             if ($LASTEXITCODE -ne 0) { throw '16-voice telemetry regression failed.' }
+            $poly32 = 'tmp/tb_fm_poly32.vvp'
+            & $iverilog '-g2012' '-s' 'tb_fm_readback' '-Ptb_fm_readback.TEST_VOICES=32' '-o' $poly32 @($case.Sources)
+            if ($LASTEXITCODE -ne 0) { throw '32-voice compile failed.' }
+            foreach ($scenario in @('+metrics','+poly32','+legato')) {
+                & $vvp $poly32 $scenario
+                if ($LASTEXITCODE -ne 0) { throw ('32-voice regression failed: ' + $scenario) }
+            }
+            $compare32 = 'tmp/tb_fm_compare32.vvp'
+            & $iverilog '-g2012' '-s' 'tb_fm_readback' '-Ptb_fm_readback.TEST_VOICES=32' '-Ptb_fm_readback.TEST_COMPARE=1' '-o' $compare32 @($case.Sources)
+            if ($LASTEXITCODE -ne 0) { throw '16/32 PCM comparison compile failed.' }
+            & $vvp $compare32 '+compare'
+            if ($LASTEXITCODE -ne 0) { throw '16/32 PCM equivalence failed.' }
             & $vvp $outputFile '+legato'
             if ($LASTEXITCODE -ne 0) { throw 'Mono legato regression failed.' }
         }
         if ($case.Name -eq 'tb_touch_ui') {
+            & $vvp $outputFile '+poly32'
+            if ($LASTEXITCODE -ne 0) { throw '32-voice UI/register packing regression failed.' }
             & $vvp $outputFile '+metrics'
             if ($LASTEXITCODE -ne 0) { throw 'Performance monitor UI regression failed.' }
             & $vvp $outputFile '+seq'

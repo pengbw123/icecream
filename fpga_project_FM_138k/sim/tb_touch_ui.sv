@@ -15,6 +15,7 @@ module tb_touch_ui;
     reg [15:0] pr_data=16'h0021;
     reg performance_case=0,model_glide=0;
     reg [6:0] model_preset=0;
+    reg [7:0] model_voices=32;
     reg [11:0] model_glide_delay=0;
     reg model_glide_target=0;
     initial if($test$plusargs("glide_delay"))model_glide=1;
@@ -39,7 +40,7 @@ module tb_touch_ui;
         perf_model[0]=32'h50455231;perf_model[1]=50000000;perf_model[2]=1024;perf_model[3]=1024;
         perf_model[5]={16'd700,16'd600};perf_model[6]={16'd800,16'd650};perf_model[7]={16'd900,16'd700};
         perf_model[8]=2;perf_model[9]=1;perf_model[10]=3;perf_model[11]=4;perf_model[12]=123;
-        perf_model[13]={16'd16,8'd16,8'd8};perf_model[14]=1234567890;
+        perf_model[13]=$test$plusargs("poly32")?{16'd32,8'd32,8'd32}:{16'd16,8'd16,8'd8};perf_model[14]=1234567890;
     end
     always @(posedge clk)begin
         if(perf_snap)begin perf_snaps<=perf_snaps+1;perf_model[4]<=perf_model[4]+1;end
@@ -49,7 +50,7 @@ module tb_touch_ui;
         .perf_data(perf_model[perf_index]),.perf_index(perf_index),.perf_snapshot(perf_snap),.perf_clear(perf_clear),
         .tp_int(int_pin),.tp_rst(rst_pin),.uart_tx(uart),.midi_event_data(event_word),
         .midi_event_valid(valid),.midi_event_ready(arp_test_ready),.monitor_event($test$plusargs("seq")?event_word:32'd0),
-        .monitor_event_valid($test$plusargs("seq")?valid&&arp_test_ready:1'b0),.preset_index(performance_case?model_preset:7'd0),.algorithm(5'd4),.active_voices(5'd0),
+        .monitor_event_valid($test$plusargs("seq")?valid&&arp_test_ready:1'b0),.preset_index($test$plusargs("poly32")?7'd127:performance_case?model_preset:7'd0),.algorithm(5'd4),.active_voices($test$plusargs("poly32")?model_voices:8'd0),
         .touch_present(present),.keyboard_octave(octave),.master_volume(volume),
         .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),.xy_delay_samples(xy_delay),.display_auto_gain(display_auto_gain),
         .command_ready(1'b1),.fx_read_value(32'd0),
@@ -76,14 +77,14 @@ module tb_touch_ui;
         end
     end
     integer cell_fd,eg_fd,algo_fd,eg6_fd,palette_fd;
-    string capture_prefix=$test$plusargs("metrics")?"metrics_":$test$plusargs("seq")?"seq_":$test$plusargs("arp")?"arp_":"tail_";
-    initial if($test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) palette_fd=$fopen({"tmp/",capture_prefix,"menu_palette.txt"},"w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
+    string capture_prefix=$test$plusargs("poly32")?"poly32_":$test$plusargs("metrics")?"metrics_":$test$plusargs("seq")?"seq_":$test$plusargs("arp")?"arp_":"tail_";
+    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) palette_fd=$fopen({"tmp/",capture_prefix,"menu_palette.txt"},"w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
     always @(posedge clk)if(dut.palette_write)$fwrite(palette_fd,"%0d %0d %0d\n",dut.palette_index,dut.palette_data,$time);
     reg [9:0] eg6_base;
-    initial if($test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) cell_fd=$fopen({"tmp/",capture_prefix,"menu_cells.txt"},"w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
-    initial if($test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) eg_fd=$fopen({"tmp/",capture_prefix,"eg_curve.txt"},"w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
-    initial if($test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) algo_fd=$fopen({"tmp/",capture_prefix,"algo_map.txt"},"w");else algo_fd=$fopen("tmp/algo_map.txt","w");
-    initial if($test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) eg6_fd=$fopen({"tmp/",capture_prefix,"eg6_panels.txt"},"w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
+    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) cell_fd=$fopen({"tmp/",capture_prefix,"menu_cells.txt"},"w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
+    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) eg_fd=$fopen({"tmp/",capture_prefix,"eg_curve.txt"},"w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
+    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) algo_fd=$fopen({"tmp/",capture_prefix,"algo_map.txt"},"w");else algo_fd=$fopen("tmp/algo_map.txt","w");
+    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) eg6_fd=$fopen({"tmp/",capture_prefix,"eg6_panels.txt"},"w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
     always @(posedge clk)begin
         if(dut.text_write)captured_cells[dut.text_address]<=dut.text_data;
         if(dut.text_write)
@@ -132,7 +133,7 @@ module tb_touch_ui;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
-    initial if($test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
+    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
     integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -330,6 +331,18 @@ module tb_touch_ui;
         force dut.reset_ready=1'b1;
         wait(present);
         if(volume!==5)$fatal(1,"Power-up volume must be 5");
+        if($test$plusargs("poly32"))begin
+            #12000000;
+            if(captured_cells[3*128+58][7:0]!="3"||captured_cells[3*128+59][7:0]!="2"||
+                captured_cells[3*128+61][7:0]!="3"||captured_cells[3*128+62][7:0]!="2")$fatal(1,"Full 32/32 header truncated");
+            if(captured_cells[3*128+5][7:0]!="1"||captured_cells[3*128+6][7:0]!="2"||captured_cells[3*128+7][7:0]!="8")$fatal(1,"Extended voices corrupted preset 128");
+            model_voices=31;#10000000;if(captured_cells[3*128+59][7:0]!="1")$fatal(1,"31 voice header");
+            model_voices=32;#10000000;if(captured_cells[3*128+59][7:0]!="2")$fatal(1,"32 voice header");
+            touch_kind=17;wait(menu_page==7);#10000000;touch_kind=0;#8000000;touch_kind=93;wait(menu_page==12);#12000000;
+            if(captured_cells[6*128+24][7:0]!="3"||captured_cells[6*128+25][7:0]!="2")$fatal(1,"Telemetry capacity stale");
+            if(event_count!=0)$fatal(1,"Polyphony UI emitted MIDI");
+            $display("PASS real UI 31/32 voices, capacity 32, preset 128 isolation and telemetry page");$finish;
+        end
         if($test$plusargs("metrics"))begin
             #10000000;touch_kind=17;wait(menu_page==7);#10000000;
             touch_kind=0;#8000000;touch_kind=93;wait(menu_page==12);#12000000;

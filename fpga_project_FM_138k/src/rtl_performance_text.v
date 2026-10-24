@@ -5,7 +5,7 @@ module rtl_performance_text(
     input wire pclk,reset_n,enabled,
     input wire [10:0] h,input wire [9:0] v,
     input wire [6:0] preset,
-    input wire [4:0] voices,algorithm,
+    input wire [7:0] voices,input wire [4:0] algorithm,
     input wire [6:0] volume,delay_samples,
     input wire signed [3:0] octave,
     input wire touch_ok,auto_gain,
