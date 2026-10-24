@@ -22,8 +22,10 @@ def records(name, limit):
                     yield address, value
 
 
-def render(limit, page):
-    palette = dict(records('menu_palette.txt', limit))
+def render(limit, page, prefix=''):
+    def capture(name):
+        return records(prefix + name, limit)
+    palette = dict(capture('menu_palette.txt'))
     if len(palette) != 16:
         raise ValueError('Need all 16 palette writes from the real firmware')
     # Match the panel's RGB565 output quantization.
@@ -34,14 +36,14 @@ def render(limit, page):
     image = Image.new('RGB', (800, 480), color(0))
     px = image.load()
     if page == 1:
-        for address, value in dict(records('algo_map.txt', limit)).items():
+        for address, value in dict(capture('algo_map.txt')).items():
             for k in range(4):
                 x, y = (address * 4 + k) % 512, (address * 4 + k) // 512
                 cls = (value >> (k * 2)) & 3
                 if cls and y < 256:
                     px[272+x, 144+y] = color({1:14, 2:5, 3:1}[cls])
     if page == 3:
-        levels = dict(records('eg6_panels.txt', limit))
+        levels = dict(capture('eg6_panels.txt'))
         for panel in range(6):
             x0, y0 = 16 + (panel % 3)*256, 208 + (panel // 3)*112
             for x in range(240):
@@ -56,7 +58,7 @@ def render(limit, page):
                     elif lx % 32 == 0 or y-6 in (0,22,44,66,88):
                         px[x0+x,y0+y] = color(11)
     if page == 8:
-        levels = dict(records('eg_curve.txt', limit))
+        levels = dict(capture('eg_curve.txt'))
         for x in range(512):
             top = (255-levels.get(x//2, 0))*207//256
             for y in range(208):
@@ -65,7 +67,7 @@ def render(limit, page):
                 elif ((x//2)%64 == 0 or y in (0,128,207)):
                     px[272+x,192+y] = color(11)
     font = [int(v,16) for v in (ROOT/'src/generated/font8x16.mem').read_text().split()]
-    for address, data in dict(records('menu_cells.txt', limit)).items():
+    for address, data in dict(capture('menu_cells.txt')).items():
         row, col = address >> 7, address & 127
         if row >= 30 or col >= 100:
             continue
@@ -92,6 +94,7 @@ if __name__ == '__main__':
     parser.add_argument('--time', type=int)
     parser.add_argument('--page', type=int, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--prefix', default='', help='Capture file prefix, e.g. arp_ or seq_')
     args = parser.parse_args()
-    render(args.time, args.page).save(args.out)
+    render(args.time, args.page, args.prefix).save(args.out)
     print(args.out)

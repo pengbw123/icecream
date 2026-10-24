@@ -3,6 +3,7 @@ static u8 seq_run,seq_record,seq_pattern,seq_step,seq_settings,seq_confirm;
 static u8 seq_rate=2,seq_gate=70,seq_swing=50,seq_restart,seq_saved_glide;
 static u8 seq_lengths[8]={16,16,16,16,16,16,16,16};
 static u32 seq_words[16],seq_last_poll;
+static u8 seq_is_active(void){return (u8)(seq_run||seq_record);}
 static void seq_publish(void){
     static const u8 divisions[6]={1,2,4,8,3,6};
     u32 step=60000000u/((u32)arp_bpm*divisions[seq_rate]);
@@ -15,12 +16,15 @@ static void seq_wait(void){u32 t=now();while((UI[49]&4u)&&(u32)(now()-t)<20000u)
 static void seq_stop(void){
     if(!seq_run&&!seq_record)return;
     seq_run=0;seq_record=0;seq_publish();seq_wait();
-    if(seq_saved_glide)emit(0xb0,22,127);glide_on=seq_saved_glide;
+    set_glide(seq_saved_glide);
 }
 static void seq_prepare(void){
-    if(arp_on)arp_enable(0);
     if(!seq_run&&!seq_record){
-        seq_saved_glide=(u8)(rd(0x00c)!=0);if(seq_saved_glide)emit(0xb0,22,0);glide_on=0;
+        // A preceding tool may have just queued restoration of glide. Its
+        // logical saved state is newer than the synth's asynchronous readback.
+        seq_saved_glide=arp_on?arp_saved_glide:(u8)(rd(0x00c)!=0);
+        if(arp_on)arp_enable(0);
+        set_glide(0);
         emit(0xb0,64,0);
     }
 }

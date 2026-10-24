@@ -14,14 +14,15 @@ static void arp_publish(void){
     UI[36]=arp_on|((u32)arp_hold<<1)|((u32)arp_fixed<<2)|((u32)arp_order<<3)|
         ((u32)(arp_octaves-1u)<<6)|((u32)arp_velocity<<8)|((u32)arp_stop<<15);
 }
-static void arp_enable(u8 enable){u32 t;
+static void arp_enable(u8 enable){u32 t;u8 from_sequence=(u8)(enable&&seq_is_active());
     if(enable)seq_stop();
     release_all();
-    if(enable){arp_saved_glide=(u8)(rd(0x00c)!=0);if(arp_saved_glide)emit(0xb0,22,0);glide_on=0;}
+    if(enable){arp_saved_glide=from_sequence?glide_on:(u8)(rd(0x00c)!=0);
+        set_glide(0);}
     arp_on=enable;arp_publish();
     if(!enable){
         t=now();while((UI[41]&2u)&&(u32)(now()-t)<20000u){}
-        if(arp_saved_glide)emit(0xb0,22,127);glide_on=arp_saved_glide;
+        set_glide(arp_saved_glide);
     }
 }
 static void arp_row(u8 c,u8 r,const char *label,const char *value){

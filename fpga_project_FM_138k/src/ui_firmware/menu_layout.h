@@ -243,9 +243,9 @@ static void perf_control(int x,int y,u8 id){u8 k=0;u32 t=now();
 }
 static void page_enter(u8 p){if(p==page&&p!=0)return;release_all();ctrl_hold=0;held_id=255;held_kind=0;
     if(page==PAGE_LESSON){UI[28]=0;octave=lesson_saved_octave;
-        if(lesson_saved_glide)emit(0xb0,22,127);}
+        if(lesson_saved_glide)set_glide(1);}
     if(p==PAGE_LESSON){seq_stop();lesson_saved_octave=octave;octave=0;
-        lesson_saved_glide=(u8)(rd(0x00c)!=0);if(lesson_saved_glide)emit(0xb0,22,0);
+        lesson_saved_glide=(u8)(rd(0x00c)!=0);if(lesson_saved_glide)set_glide(0);
         emit(0xb0,64,0);lesson_run=0;lesson_control(1);lesson_last_status=~0u;}
     dialog=0;page=p;sel_row=0;last_adj=0;
     if(p==PAGE_SEQ){seq_confirm=0;seq_select();seq_cache();}
@@ -264,7 +264,7 @@ static void adj_setup(u8 r,int d){int n;
     else if(r==4)display_auto_gain=!display_auto_gain;
     else if(r==5){n=touch_velocity+d;if(n<1)n=1;if(n>127)n=127;touch_velocity=(u8)n;}
     else if(r==6)headphone_select=!headphone_select;
-    else if(r==8){if(arp_on){arp_enable(0);glide_on=1;}else if(seq_run||seq_record){seq_stop();glide_on=1;}else glide_on=!glide_on;emit(0xb0,22,glide_on?127:0);}
+    else if(r==8){if(arp_on){arp_enable(0);glide_on=1;}else if(seq_run||seq_record){seq_stop();glide_on=1;}else glide_on=!glide_on;set_glide(glide_on);}
     publish();draw_page();
 }
 static int menu_press(int x,int y){int i,n;

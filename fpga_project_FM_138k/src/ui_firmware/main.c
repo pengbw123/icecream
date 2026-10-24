@@ -89,6 +89,7 @@ static void release_all(void){int i,j,n;for(i=0;i<16;i++)if(slot_note[i]>=0){
 #define PAGE_ARP 10
 #define PAGE_SEQ 11
 static void seq_stop(void);
+static u8 seq_is_active(void);
 static void seq_publish(void);
 static void seq_poll(void);
 static void seq_adj(u8 row,int d);
@@ -203,6 +204,13 @@ static void cmd(u8 op,u32 lo,u32 hi){u32 t=now();
 static u16 rd(u16 addr){u32 t;cmd(0x69,(u32)addr,0);t=now();
     while(!(UI[15]&1u))if((u32)(now()-t)>5000u)return 0xFFFFu;
     {u16 v=(u16)(UI[14]&0xFFFFu);UI[15]=0;return v;}}
+/* MIDI and readback travel through separate queues. Wait for the mode change
+ * before another tool snapshots/restores it; never mistake a timeout for ON. */
+static void set_glide(u8 enable){u32 t;
+    emit(0xb0,22,enable?127:0);t=now();
+    do{if(rd(0x00c)==(u16)enable)break;}while((u32)(now()-t)<20000u);
+    glide_on=enable;
+}
 
 static u32 mul32(u32 a,u32 b){u32 r=0;while(b){if(b&1u)r+=a;a<<=1;b>>=1;}return r;}
 static u32 mul_small(u32 a,u32 b){return (mul32(a>>16,b)<<16)+mul32(a&0xFFFFu,b);}

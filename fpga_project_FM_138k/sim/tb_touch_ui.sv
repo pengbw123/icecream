@@ -15,6 +15,18 @@ module tb_touch_ui;
     reg [15:0] pr_data=16'h0021;
     reg performance_case=0,model_glide=0;
     reg [6:0] model_preset=0;
+    reg [11:0] model_glide_delay=0;
+    reg model_glide_target=0;
+    initial if($test$plusargs("glide_delay"))model_glide=1;
+    always @(posedge clk)if($test$plusargs("glide_delay"))begin
+        if(model_glide_delay!=0)begin
+            model_glide_delay<=model_glide_delay-1'b1;
+            if(model_glide_delay==1)model_glide<=model_glide_target;
+        end
+        if(valid&&arp_test_ready&&event_word[23:16]==8'hb0&&event_word[14:8]==22)begin
+            model_glide_delay<=2000;model_glide_target<=event_word[6:0]!=0;
+        end
+    end
     reg [15:0] captured_cells[0:4095];
     initial performance_case=$test$plusargs("performance");
     wire [15:0] pr_response=dut.command_payload[9:0]==10'h00c ? {15'd0,model_glide}:pr_data;
@@ -269,13 +281,13 @@ module tb_touch_ui;
     always @(posedge clk)if(valid&&arp_test_ready)begin
         $display("UI MIDI %h at %t",event_word,$time);
         if($test$plusargs("arp")||$test$plusargs("seq"))begin
-            if(event_word[23:16]==8'hb0&&event_word[14:8]==22)model_glide<=event_word[6:0]!=0;
+            if(event_word[23:16]==8'hb0&&event_word[14:8]==22&&!$test$plusargs("glide_delay"))model_glide<=event_word[6:0]!=0;
         end else if($test$plusargs("lesson"))begin
             if(event_word!==32'h00b04000&&event_word!==32'h00903064&&event_word!==32'h00803000)
                 $fatal(1,"Unexpected lesson UI MIDI %h",event_word);
         end else if(performance_case)begin
             if(event_word[23:16]==8'hb0&&event_word[14:8]==27)model_preset<=event_word[6:0];
-            else if(event_word[23:16]==8'hb0&&event_word[14:8]==22)model_glide<=event_word[6:0]!=0;
+            else if(event_word[23:16]==8'hb0&&event_word[14:8]==22&&!$test$plusargs("glide_delay"))model_glide<=event_word[6:0]!=0;
             else if(event_word!==32'h00903064 && event_word!==32'h00803000)$fatal(1,"Unexpected performance MIDI");
         end else if($test$plusargs("keyboard"))begin
             case(event_count)
@@ -308,6 +320,7 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=87;wait(dut.u_sequencer.requested_pattern==1);#5000000;
             touch_kind=0;#8000000;touch_kind=88;wait(dut.u_sequencer.requested_length==15);#5000000;
             touch_kind=0;#8000000;touch_kind=79;wait(dut.u_sequencer.recording);#5000000;
+            if($test$plusargs("glide_delay")&&model_glide)$fatal(1,"Sequence recording entered mono mode");
             touch_kind=0;#8000000;touch_kind=2;wait(dut.u_sequencer.edit_address==17);#5000000;
             touch_kind=0;#12000000;touch_kind=51;wait(dut.u_sequencer.edit_address==18);#5000000;
             touch_kind=0;#12000000;
@@ -316,6 +329,7 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=81;wait(dut.u_sequencer.edit_address==20);#5000000;
             if(dut.u_sequencer.steps[18]!==0||dut.u_sequencer.steps[19]!==32'h40000000)$fatal(1,"REST/TIE step entry");
             touch_kind=0;#8000000;touch_kind=79;wait(!dut.u_sequencer.recording);#5000000;
+            if($test$plusargs("glide_delay")&&!model_glide)$fatal(1,"Sequence STOP lost original glide mode");
             touch_kind=0;#8000000;touch_kind=85;wait(dut.u_sequencer.steps[20]==32'h8000603d);#5000000;
             touch_kind=0;#8000000;touch_kind=86;wait(dut.u_sequencer.steps[20]==32'h8000613d);#5000000;
             touch_kind=0;#8000000;touch_kind=78;wait(seq_ons>=1);#5000000;
@@ -339,15 +353,19 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=67;wait(menu_page==10);#5000000;
             touch_kind=0;#8000000;touch_kind=68;wait(dut.arp_config[0]);#5000000;
             if(dut.u_sequencer.running||dut.u_sequencer.recording)$fatal(1,"Enabling ARP failed to stop sequence");
+            if($test$plusargs("glide_delay")&&model_glide)$fatal(1,"SEQ to ARP left queued mono restoration enabled");
             touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
             touch_kind=0;#8000000;touch_kind=77;wait(menu_page==11);#5000000;
             touch_kind=0;#8000000;touch_kind=78;wait(dut.u_sequencer.running);#5000000;
             if(dut.arp_config[0])$fatal(1,"Starting sequence failed to disable ARP");
+            if($test$plusargs("glide_delay")&&model_glide)$fatal(1,"ARP to SEQ left queued mono restoration enabled");
             touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
             touch_kind=0;#8000000;touch_kind=61;wait(menu_page==9);#5000000;
             if(dut.u_sequencer.running||dut.u_sequencer.recording||dut.u_sequencer.active)$fatal(1,"Practice failed to stop sequence");
+            if($test$plusargs("glide_delay")&&model_glide)$fatal(1,"SEQ to practice failed to disable restored glide");
             touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);#5000000;
             if(dut.u_sequencer.running)$fatal(1,"Leaving practice restarted sequence");
+            if($test$plusargs("glide_delay")&&!model_glide)$fatal(1,"Cross-tool mode changes lost original glide");
             $display("PASS real UI SEQ grid, bank/length, touch record/read cursor, REST/TIE, edit/transport, cross-page, timing, clear and ARP/practice mutual exclusion");$finish;
         end
         if($test$plusargs("arp"))begin

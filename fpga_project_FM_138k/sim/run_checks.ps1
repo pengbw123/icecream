@@ -73,6 +73,8 @@ try {
         if ($case.Name -eq 'tb_touch_ui') {
             & $vvp $outputFile '+seq'
             if ($LASTEXITCODE -ne 0) { throw 'Step sequencer UI regression failed.' }
+            & $vvp $outputFile '+seq' '+glide_delay'
+            if ($LASTEXITCODE -ne 0) { throw 'Delayed glide readback across automatic tools failed.' }
             & $vvp $outputFile '+arp'
             if ($LASTEXITCODE -ne 0) { throw 'Arpeggiator UI regression failed.' }
             & $vvp $outputFile '+lesson'

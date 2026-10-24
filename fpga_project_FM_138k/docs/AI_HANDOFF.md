@@ -363,3 +363,18 @@ DECAY 基础反馈范围 0.50..0.90。原整数 DC 阻断器留下永久尾音�
   `tmp/checks_arp_rgb.log`、`tmp/checks_seq_rgb.log` 已通过。最后一组重新编译的 UI 互斥/回归与 FPGA 构建仍在执行。
 - `tmp/build_seq.log` 为踏板修订前的音序器构建，不能当最终新发布；最终需重新构建并更新此处的校验值与时序。
 - IDE 和两份 CLI 构建已列入新模块，`check_project_files.py` 检查 51 个 RTL 文件通过。
+
+### 自动演奏切换补充检查
+
+- `tmp/build_seq.log` 的踏板修订前位流已于 13:06 完成，四域时序为 50.017 / 35.511 / 37.997 / 297.560 MHz，TNS=0；
+  已另存 `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-24_seq_pre_pedal.fs`，不能作为最终发布。
+- `tmp/checks_seq_ui_release.log` 以及 `checks_final_ui_seq/arp/lesson/performance.log` 已通过功能和互斥检查。
+- 后续发现 MIDI 模式事件与 0x69 读回走不同队列：一个工具刚恢复滑音后，另一个工具立即读回可能读到旧 OFF。
+  新增 `set_glide()`：发送模式后等待 0x00C 读回确认（轮询预算 20 ms，保留原单次访问超时，不把 0xFFFF 当作 ON），统一用于工具切换。
+  ARP/SEQ 互换还保留前一工具的逻辑保存值，避免后续改变传输延迟又引入此问题。
+- `tb_touch_ui +seq +glide_delay` 模拟初始 GLIDE ON、延迟 2000 个时钟才更新模式读回，检查录入/停止/ARP/SEQ/练习/退出恢复。
+  `tmp/checks_auto_glide_modes.log` 已通过完整场景。对应最新固件 56,432/65,536 字节。
+- `tmp/build_arp_seq_final.log` 因上述固件修订主动停止，当前最终候选重建日志为 `tmp/build_arp_seq_release.log`。
+  构建完成必须重新确认时序与哈希，尚未实机烧录。
+- 最终回归脚本登记 29 个 testbench、45 个场景；ARP 阶段整套 40 场景通过，SEQ/踏板/模式切换阶段按改动重新编译相关专项，未声称完整复跑全部 45 项。
+- `render_ui_capture.py --prefix arp_` / `--prefix seq_` 可读取各自实际固件字符日志，避免多项 UI 仿真覆盖同一份截图日志。
