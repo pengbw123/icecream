@@ -378,3 +378,23 @@ DECAY 基础反馈范围 0.50..0.90。原整数 DC 阻断器留下永久尾音�
   构建完成必须重新确认时序与哈希，尚未实机烧录。
 - 最终回归脚本登记 29 个 testbench、45 个场景；ARP 阶段整套 40 场景通过，SEQ/踏板/模式切换阶段按改动重新编译相关专项，未声称完整复跑全部 45 项。
 - `render_ui_capture.py --prefix arp_` / `--prefix seq_` 可读取各自实际固件字符日志，避免多项 UI 仿真覆盖同一份截图日志。
+
+### 最终发布：ARP + SEQ + 踏板保护 + 滑音切换同步
+
+- 功能代码提交 `973b8cb`（此前 `88bf67e` 为 ARP，`c678ced` 为 SEQ）；2026-10-24 13:40:38 生成最终位流。
+- 烧录文件 `impl/pnr/fm_138k_rgb_hdmi.fs`，42,107,303 字节，
+  SHA256 **`0960E23B918975BDEB47459EF389ED6AD7DF1E2045C85A4F4714F3129B0FBA4D`**。
+- 最终日志 **`tmp/build_arp_seq_release.log`**；CLI 自动门禁和独立 `check_timing.py fm_138k_rgb_hdmi` 均通过。
+- Fmax：主域 **50.007 MHz**（要求 50）、RGB **34.770 MHz**（33.333）、HDMI 像素 **35.736 MHz**（25）、串行 **238.948 MHz**（125）。
+  四域 setup/hold TNS=0，无失败端点。主域余量很小，后续每次重新构建必须重新检查，不能沿用本次结论。
+- PnR 资源：Logic 40,739/138,240，Register 20,789/139,095，BSRAM **314/340（剩 26）**，DSP 65/298。
+  固件 **56,432/65,536** 字节。没有新软核或外部存储依赖。
+- 新模块都已列入 IDE/CLI 工程；最终 `check_project_files.py` 确认 51 个 RTL 文件的实例定义齐全。
+- 最终验证矩阵：ARP 阶段全套 40 场景通过；后续分别重新编译并通过 SEQ RTL、自动演奏寄存器/原子提交、
+  ARP/SEQ 页面 RGB 琴键、真实 UI SEQ/ARP/练习/128 音色与滑音，以及最终 **初始滑音 ON + 延迟读回** 完整互斥测试。
+  `tmp/checks_auto_glide_modes.log` 对应最终 56,432 字节固件；`checks_arp_rtl_final.log` 包括自动演奏踏板屏蔽。
+- `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-24_arp_88bf67e.fs` 可回退到独立 ARP 版；
+  `_seq_pre_pedal.fs` 仅为开发中间备份。`build_arp_seq_final.log` 为主动中止的旧构建，勿与最终 release 日志混用。
+- 本轮只更新 138K 双屏位流，25K MIDI 桥接板无需更新。**没有执行实机烧录或听音**。
+  待实机验证：五种 ARP 顺序/HOLD/踏板、SEQ 录入/休止/连音/长度/换组、音色与 FX、触屏/外部键盘、
+  以及原先开启滑音时来回切换 ARP/SEQ/PRACTICE 的状态恢复和停音。8 组模式掉电不保存。
