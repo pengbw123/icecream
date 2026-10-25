@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-25",
+  "timezone": "Asia/Shanghai",
+  "bitstream_time": "21:05:40",
+  "production_commit": "22e955e6e076e08d1509ecde5026a020e5bac480",
+  "bitstream": "impl/pnr/fm_138k_rgb_hdmi.fs",
+  "bytes": 42340871,
+  "sha256": "6953519ED85D38F8ABEB8BCD7889AA4EF1294DDD1423263759C2959A8B60C592",
+  "resources": {
+    "logic": 61332,
+    "logic_total": 138240,
+    "ff": 32897,
+    "ff_total": 139095,
+    "bsram": 294,
+    "bsram_total": 340,
+    "dsp": 73.5,
+    "dsp_total": 298
+  },
+  "previous_bsram": 319,
+  "net_bsram_saved": 25,
+  "bsram_percentage_points_saved": 7.352941176470589,
+  "fmax_mhz": {
+    "clk_50m": 50.12,
+    "pixel_33m": 36.557,
+    "hdmi_pixel_25m": 32.124,
+    "hdmi_serial_125m": 160.03
+  },
+  "all_setup_hold_tns_zero": true,
+  "minimum_main_setup_slack_ns": 0.048,
+  "firmware": {
+    "load_bytes": 73876,
+    "text": 73820,
+    "data": 56,
+    "bss": 10792,
+    "data_ram_bytes": 98304,
+    "stack_headroom_bytes": 13636
+  },
+  "model": {
+    "shape": [
+      48,
+      32,
+      8
+    ],
+    "weight_count": 1792,
+    "bias_count": 40,
+    "inference_clocks": 3664,
+    "prototype": true,
+    "source": "POP909 small subset; derived constrained low-voice labels"
+  },
+  "targeted_tests_pass": {
+    "check_bram_ui_banked.log": "f2a2f31b50ee2e35455a03511cdd9aa59eabc3770ad47613b3cbdf718dbebace",
+    "check_ui_memory96.log": "a89433da08650d8827432fb27e17a57921e2a01940a6ad5e60ffb95c55d64d54",
+    "check_algo_scanline.log": "a5505f3125992ed1ccb35d96eff5372a2fdc1e49b9cc3a5e17f86d0a79f814dc",
+    "check_ai_inference.log": "758f02c919b7a632c68dbd03ea02c606af3a1c4922ee696477c382f8e563e32b",
+    "check_ai_accompaniment.log": "4a17f68aba8d0ac7e7fbfce050c39f506c0ec121e50440de9617076d9f38243c",
+    "check_ai_audio_final.log": "5c8ed4f6f14acb33e32382d58e610463edd0a87cbde968014e0fdb62908f4d36",
+    "check_ui_ai.log": "9f7489a852b9c865813e6a7eaf92cd3f97b88a2909327f4650f87fc727865bbc",
+    "check_ai_ui_seq.log": "6a57b13baa9914d6b97bff43451a0342f856aeee94f5cf40a0e052e9fc15ed52",
+    "check_ai_ui_glide_time.log": "844a4212f2f014cb9dd63b3002f526c0e5bdacf2e1f66c38c8d45da3528eba53",
+    "check_rgb_ai_scanline.log": "269d71af664d27b7b693893745b9591974d0d4aa6e42078b18f7f9dfaa722a78",
+    "check_ai_cpu_optimized.log": "89ae5f6ad1db54eeb03d32cad4e245b30b93abdf30ab842fbe8724d5c10f4af3"
+  },
+  "full_regression_matrix_rerun": false,
+  "hardware_programmed": false,
+  "build_log": "tmp/build_ai_scanline.log",
+  "isolated_snapshot": "tmp/ai_build_22e955e"
+}

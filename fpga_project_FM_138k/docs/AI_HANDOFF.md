@@ -1,6 +1,23 @@
 # 给后续 AI 的工程交接说明
 
-## 2026-10-25 BSRAM与AI伴奏（开发中，尚未发布新位流）
+## 2026-10-25 BSRAM与AI伴奏（最新发布）
+
+- 已完成代码、针对性回归、整机PnR和四域时序验收；没有自动烧录，实机音质/兼容性待用户验证。
+- 标准双屏位流impl/pnr/fm_138k_rgb_hdmi.fs已更新，2026-10-25 **21:05:40**（北京时间），**42,340,871 B**。
+  SHA256 **6953519ED85D38F8ABEB8BCD7889AA4EF1294DDD1423263759C2959A8B60C592**。
+- 最终Logic **61332/138240（45%）**、FF **32897/139095（24%）**、BSRAM **294/340（87%，精确86.47%）**、DSP **73.5/298（25%）**。
+  含AI与新增菜单后，比上次319块仍净少 **25块、7.35个百分点**，剩余46块；不要把中间失败版的287当作最终占用。
+- Fmax主域 **50.120**、RGB **36.557**、HDMI pixel **32.124**、serial **160.030 MHz**，四域setup/hold TNS=0。
+  主域最紧slack **0.048ns**（FM scheduler_voice→voice_age使能），余量仍小，不能直接提高时钟。
+- 最终硬件源码为22e955e，后续提交仅测试/文档。隔离构建tmp/ai_build_22e955e，日志tmp/build_ai_scanline.log；
+  生成物和源码清单已复制回标准impl，根目录重新运行时序与62文件清单检查通过。CRLF规范化后全部生产src与快照一致。
+- 使用与限制见AI_BASS.md、USER_MANUAL_UI.md；阶段表见AI_ACCOMPANIMENT_PROGRESS.md。
+  首版为指定和声的单轨流行低音伴奏，共享BACKING，与ARP/SEQ/PRACTICE互斥；总32复音、共享FX/音量。
+- 本轮新/修改路径的针对性回归通过，未重跑整个sim/run_checks.ps1全矩阵。
+  额外做了现有RV32I无M扩展的优化C基线，真实特征109248周期、全127压力特征413584周期，RTL均3664周期，分数一致。
+  这是周期仿真内核对照，不是桌面CPU结论或应用整体延迟。详见AI_BASS.md。
+
+### 开发过程记录（历史；以下失败与恢复状态均已由上述最终发布取代）
 
 - 用户要求先释放BSRAM，再构建AI伴奏，并要求19:30前持续推进；不是19:30停止任务。
 - 开始前标签archive/pre_bram_ai_20261025；代码提交b51f3f2（矩形图+96KiB RAM）、a167590（训练INT8伴奏）、
@@ -29,12 +46,11 @@
   预览tmp/ai_menu_preview.png、tmp/bram_algo_preview.png来自固件日志，未叠加纯RTL琴键；AI页琴键另有RGB像素回归。
 - 进度及日志索引见AI_ACCOMPANIMENT_PROGRESS.md、AI_BASS.md。数据manifest和许可证在assets/ai，原始曲库留tmp不入Git。
   assets/ai/ai_bass_demo.mid为原创主奏+模型输出演示，不是FPGA实机录音；GM试听音色与板载DX7音色不同。
-- 当前最终候选构建：隔离快照tmp/ai_build_22e955e，源码与SHA256清单build_source_manifest.json，
-  日志tmp/build_ai_scanline.log；exec会话12082。必须等待实际PnR与四域STA，失败则继续修复，不能提前交付。
-  首次并行绘图失败日志tmp/build_bram_banked.log；中间a167590/7f18fbe隔离构建已中止，不能使用。
-  最终成功后需备份旧报告、复制候选impl生成物回标准路径，并核对位流哈希、资源、源文件一致性，更新此节与进度表。
+- 隔离快照tmp/ai_build_22e955e已完成并通过，源码与SHA256清单build_source_manifest.json。
+  首次并行绘图失败日志tmp/build_bram_banked.log，报告备份tmp/bram_parallel_failed_reports；中间a167590/7f18fbe隔离构建已中止，不能使用。
+  旧通过版备份impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-25_pre_bram_ai.fs；FAILED_TIMING位流只留作审计。
 
-## 2026-10-25 HOLD 调参、滑音时间与双 Part（最新发布）
+## 2026-10-25 HOLD 调参、滑音时间与双 Part（历史发布）
 
 - 已完成用户要求的三项：HOLD 调参不中断、SETUP 增加 GLIDE MS（10..1000 ms，默认170 ms）、
   单流水线32复音 LIVE/BACKING 两 Part。详细操作、协议和限制见 `TWO_PARTS.md`。
