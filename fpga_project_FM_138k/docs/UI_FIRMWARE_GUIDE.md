@@ -1,5 +1,13 @@
 # UI 软核与菜单固件说明
 
+2026-10-25：连接图改为最多256个有序矩形，UI不再保存32KiB像素缓冲。UI物理数据RAM为96KiB，
+显式64+32KiB两块；地址窗口仍17bit。栈顶由链接器_stack_top决定，构建断言至少12KiB栈余量。
+当前AI版指令镜像73876/81920B，bss10792B，静态结束0x10014abc，栈等余13636B。
+新增AI BASS子页13，UI[60]读取AI状态，参数通过已有0x6A辅助命令写入。
+ARP/SEQ/PRACTICE启动前调用ai_stop；AI启动前停止其他伴奏并抓取独立BACKING音色。
+按键处理、连发与触屏琴键已包含PAGE_AI；ROM镜像与主程序必须同步更新。细节见AI_BASS.md。
+以下2026-10-24容量数字为历史记录。
+
 2026-10-24 SD 用户音色版：UI 指令窗口扩为 **80 KiB（64+16）**，数据 RAM 仍128 KiB；
 `build_firmware.ps1` 使用 `-Oz` 并同时生成 `firmware.hex` 和 `firmware_high.hex`。
 旧章节中的64 KiB指令上限已不适用于此版。ARP/SEQ 加减点按一步，450 ms 后每50 ms重复；
@@ -27,10 +35,10 @@ UI[56]=快照索引，UI[57]=只读数据，UI[58] bit0=捕获、bit1=清统计�
 
 | 部分 | 位置 | 做什么 |
 |---|---|---|
-| RV32I 软核 | `usb_midi/rtl/rv32i.v` + `ui_firmware/main.c` | 触摸、页面、字符格、参数命令/回读、主题、用户槽、图形位图绘制 |
+| RV32I 软核 | `usb_midi/rtl/rv32i.v` + `ui_firmware/main.c` | 触摸、页面、字符格、参数命令/回读、主题、用户槽、图形布局与矩形列表 |
 | 字符层 | `rtl_char_display.v` | 128×32 格 ×16 bit，4 块 BSRAM，16 色可写调色板 |
 | 包络曲线 | `ui_eg_curve.v` | 256×256 面板，256 个高度样本查表画填充/亮边/网格 |
-| 算法位图 | `ui_algo_map.v` | 512×256 2bpp 画布（32 KiB BSRAM）；类 1=载波绿、2=调制蓝、3=白 |
+| 算法图 | `ui_algo_map.v` | 最多256个有序矩形，寄存器存储、两拍像素流水；类1/2/3由当前主题映射颜色 |
 | 效果器 | `audio_fx.v` | 32×16 位配置寄存器；FILTER→REVERB→DELAY→DIST→CHORUS→PHASER + 软限幅；失真为 tanh 软削波、动态响度匹配与干湿混合，连续参数平滑 |
 | 注意 | — | 音频算术必须先扩位再相减；16 位 wet-dry 差会溢出（已修） |
 | 合唱 | `audio_chorus.v` | 2048 样本延迟线 + LFO，freq/depth/mix |
@@ -38,10 +46,10 @@ UI[56]=快照索引，UI[57]=只读数据，UI[58] bit0=捕获、bit1=清统计�
 | 延迟 | `audio_delay.v` | 40..670 ms 延迟线，decay/rate/mix（下一步扩到 20..1000 ms） |
 | 混响 | `audio_reverb.v` | 3 梳状（各自反馈）+ 全通 + DC 阻断，type/decay/mix |
 | EG 六面板 | `ui_eg_multi.v` | 6×128 样本包络面板（3×2）；面板 p 显示算子 5-p（DX7 内部序号 0=OP6） |
-| 光栅合成 | `rgb_visualizer.v` | 800×480 RGB565：波形/XY/EG/键盘 + 字符层/曲线/位图叠加 |
+| 光栅合成 | `rgb_visualizer.v` | 800×480 RGB565：波形/XY/EG/键盘 + 字符层/曲线/算法图叠加 |
 | FM 引擎 | `fm_poly_synth.v` 等 | 与 UI 解耦，只收命令/MIDI |
 
-没有软核帧缓冲：软核写"字符格"和图形位图，像素由 RTL 扫描时实时合成。
+软核写字符格、曲线数据和算法图矩形列表；像素由RTL扫描时实时合成，没有整屏帧缓冲。
 
 字符格 `addr=(row<<7)|col`（col 0..99、row 0..29），`{attr[3:0],pal[3:0],char[7:0]}`；
 attr bit0 反显、bit1 下划线（末两行）、bit2 填充。

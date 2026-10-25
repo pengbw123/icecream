@@ -24,6 +24,7 @@ static void seq_backing(u8 capture){
     backing_upload(b);
 }
 static void seq_prepare(void){
+    ai_stop();
     if(!seq_run&&!seq_record){
         // A preceding tool may have just queued restoration of glide. Its
         // logical saved state is newer than the synth's asynchronous readback.

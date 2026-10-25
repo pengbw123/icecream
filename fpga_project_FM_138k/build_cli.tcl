@@ -1,3 +1,5 @@
+add_file -type verilog "src/ai_bass_inference.v"
+add_file -type verilog "src/ai_bass_accompaniment.v"
 add_file -type verilog "src/sd_spi_byte.v"
 add_file -type verilog "src/ch376/ch376_spi_command.v"
 add_file -type verilog "src/ch376/ch376_control_transfer.v"

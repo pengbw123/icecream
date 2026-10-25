@@ -1,5 +1,18 @@
 # FM 合成器触摸屏使用说明（零基础版）
 
+## 2026-10-25 AI BASS 原型
+
+SETUP下方原PERFORMANCE入口拆为METERS（性能监测）和AI BASS。连接图外观保留，内部改为RTL按矩形/线段绘制。
+
+1. 先在PATCH选一个贝斯音色，进入SETUP → AI BASS，按START，当前音色成为伴奏音色。
+2. 返回PATCH选电钢琴等LIVE音色，再通过MIDI键盘或触屏弹奏。AI根据近期演奏与指定和声产生单轨低音。
+3. BPM调速，KEY选择根音；HARMONY为I-vi-IV-V时每小节一个和弦，为STATIC时持续一个和弦，STATIC TYPE选大小调。
+4. DENSITY选SPARSE/NORMAL，VELOCITY调伴奏力度。修改参数不中断播放；离开AI页也继续。
+5. STOP停止伴奏；启动ARP、SEQ或PRACTICE会停止AI。需要换伴奏音色时，先STOP、选择新音色、再START。
+
+总计仍32复音，主音量和效果器共享。模型目前是小样本流行伴奏原型，和声由设置给定；未实现听旋律猜任意和弦或通用多风格编曲。
+出现全局panic后需STOP再START。MISSED STEPS正常应为0。模型、数据和验证细节见AI_BASS.md，发布状态见AI_ACCOMPANIMENT_PROGRESS.md。
+
 ## 双 Part 与可调滑音时间
 
 SETUP → GLIDE MS 调节10～1000毫秒，默认170毫秒；GLIDE MONO仍控制单音连奏开关。
@@ -28,7 +41,7 @@ HOLD 琶音中修改速度、顺序等参数保持和弦与播放。音序中改
 
 ## 2026-10-24 性能监测
 
-在 **SETUP → PERFORMANCE >** 打开性能页，连接 MIDI 键盘照常演奏即可查看。
+在 **SETUP → METERS >** 打开性能页，连接 MIDI 键盘照常演奏即可查看。
 左列显示复音、FM 计算/结果就绪耗时、引擎忙占比和采样周期；右列显示超时、丢采样、抢音、
 桥接丢事件和 MIDI 等待情况。正常演奏中，DEADLINE MISSES、LOST SAMPLE TICKS、BRIDGE DROPS 应为 0。
 FREEZE METRICS 冻结数值供查看，RESUME METRICS 恢复刷新；CLEAR COUNTERS 清零计数与峰值，均不停止声音。

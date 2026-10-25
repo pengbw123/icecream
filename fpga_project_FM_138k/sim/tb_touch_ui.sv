@@ -36,7 +36,12 @@ module tb_touch_ui;
     end
     reg [15:0] captured_cells[0:4095];
     initial performance_case=$test$plusargs("performance");
-    wire [15:0] pr_response=dut.command_payload[9:0]==10'h00d ? model_glide_ms : dut.command_payload[9:0]==10'h00c ? {15'd0,model_glide}:pr_data;
+    reg [47:0] preview_flags[0:31];
+    initial $readmemh("src/generated/fm_algorithm_flags.mem",preview_flags);
+    wire [9:0] preview_addr=dut.command_payload[9:0];
+    wire [15:0] preview_response=preview_addr==0?16'd4:preview_addr==9?preview_flags[4][15:0]:
+        preview_addr==10?preview_flags[4][31:16]:preview_addr==11?preview_flags[4][47:32]:pr_data;
+    wire [15:0] pr_response=dut.command_payload[9:0]==10'h00d ? model_glide_ms : dut.command_payload[9:0]==10'h00c ? {15'd0,model_glide}:$test$plusargs("algo_preview")?preview_response:pr_data;
     reg pr_valid=0;
     integer cmd_69=0,cmd_60=0,cmd_61=0,cmd_62=0,cmd_63=0,cmd_64=0,cmd_65=0,cmd_70=0,text_cells=0,pal_writes=0;
     wire perf_snap,perf_clear;wire [4:0] perf_index;
@@ -52,7 +57,16 @@ module tb_touch_ui;
         if(perf_snap)begin perf_snaps<=perf_snaps+1;perf_model[4]<=perf_model[4]+1;end
         if(perf_clear)begin perf_clears<=perf_clears+1;perf_model[8]<=0;perf_model[9]<=0;perf_model[11]<=0;end
     end
-    touch_ui_controller dut(.clk(clk),.reset_n(reset_n),.tp_scl(scl),.tp_sda(sda),
+    wire [31:0] ai_status;
+    wire [31:0] test_ai_data;wire test_ai_valid;
+    integer ai_note_ons=0;
+    ai_bass_accompaniment test_ai(.clk(clk),.reset_n(reset_n),
+        .cfg_write(dut.command_valid&&dut.command==8'h6a),.cfg_address(dut.command_payload[9:0]),
+        .cfg_value(dut.command_payload[31:16]),.suspend(dut.lesson_state[16]||dut.sequencer_active||dut.arp_config[0]),
+        .observe_data(event_word),.observe_valid(valid&&arp_test_ready),
+        .out_data(test_ai_data),.out_valid(test_ai_valid),.out_ready(1'b1),.status(ai_status));
+    always @(posedge clk)if(test_ai_valid&&test_ai_data[23:20]==9)ai_note_ons<=ai_note_ons+1;
+    touch_ui_controller dut(.clk(clk),.reset_n(reset_n),.tp_scl(scl),.tp_sda(sda),.ai_status(ai_status),
         .perf_data(perf_model[perf_index]),.perf_index(perf_index),.perf_snapshot(perf_snap),.perf_clear(perf_clear),
         .tp_int(int_pin),.tp_rst(rst_pin),.uart_tx(uart),.midi_event_data(event_word),
         .sd_miso(1'b1),.midi_event_valid(valid),.midi_event_ready(arp_test_ready),.monitor_event($test$plusargs("seq")?event_word:32'd0),
@@ -87,14 +101,14 @@ module tb_touch_ui;
         end
     end
     integer cell_fd,eg_fd,algo_fd,eg6_fd,palette_fd;
-    string capture_prefix=$test$plusargs("poly32")?"poly32_":$test$plusargs("metrics")?"metrics_":$test$plusargs("seq")?"seq_":$test$plusargs("arp")?"arp_":"tail_";
-    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) palette_fd=$fopen({"tmp/",capture_prefix,"menu_palette.txt"},"w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
+    string capture_prefix=$test$plusargs("algo_preview")?"algo_":$test$plusargs("ai")?"ai_":$test$plusargs("poly32")?"poly32_":$test$plusargs("metrics")?"metrics_":$test$plusargs("seq")?"seq_":$test$plusargs("arp")?"arp_":"tail_";
+    initial if($test$plusargs("algo_preview")||$test$plusargs("ai")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) palette_fd=$fopen({"tmp/",capture_prefix,"menu_palette.txt"},"w");else palette_fd=$fopen("tmp/menu_palette.txt","w");
     always @(posedge clk)if(dut.palette_write)$fwrite(palette_fd,"%0d %0d %0d\n",dut.palette_index,dut.palette_data,$time);
     reg [9:0] eg6_base;
-    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) cell_fd=$fopen({"tmp/",capture_prefix,"menu_cells.txt"},"w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
-    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) eg_fd=$fopen({"tmp/",capture_prefix,"eg_curve.txt"},"w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
-    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) algo_fd=$fopen({"tmp/",capture_prefix,"algo_map.txt"},"w");else algo_fd=$fopen("tmp/algo_map.txt","w");
-    initial if($test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) eg6_fd=$fopen({"tmp/",capture_prefix,"eg6_panels.txt"},"w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
+    initial if($test$plusargs("algo_preview")||$test$plusargs("ai")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) cell_fd=$fopen({"tmp/",capture_prefix,"menu_cells.txt"},"w");else cell_fd=$fopen("tmp/menu_cells.txt","w");
+    initial if($test$plusargs("algo_preview")||$test$plusargs("ai")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) eg_fd=$fopen({"tmp/",capture_prefix,"eg_curve.txt"},"w");else eg_fd=$fopen("tmp/eg_curve.txt","w");
+    initial if($test$plusargs("algo_preview")||$test$plusargs("ai")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) algo_fd=$fopen({"tmp/",capture_prefix,"algo_map.txt"},"w");else algo_fd=$fopen("tmp/algo_map.txt","w");
+    initial if($test$plusargs("algo_preview")||$test$plusargs("ai")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("ui_tail")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq")) eg6_fd=$fopen({"tmp/",capture_prefix,"eg6_panels.txt"},"w");else eg6_fd=$fopen("tmp/eg6_panels.txt","w");
     always @(posedge clk)begin
         if(dut.text_write)captured_cells[dut.text_address]<=dut.text_data;
         if(dut.text_write)
@@ -143,7 +157,7 @@ module tb_touch_ui;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
-    initial if($test$plusargs("rename")||$test$plusargs("sd")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
+    initial if($test$plusargs("algo_preview")||$test$plusargs("ai")||$test$plusargs("rename")||$test$plusargs("sd")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
     integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -248,6 +262,11 @@ module tb_touch_ui;
             if(frame_kind==98)begin px=550;py=320;end
             if(frame_kind==100)begin px=664;py=248;end
             if(frame_kind==101)begin px=600;py=390;end
+            if(frame_kind==103)begin px=300;py=390;end
+            if(frame_kind==104)begin px=80;py=104;end
+            if(frame_kind==105)begin px=360;py=152;end
+            if(frame_kind==106)begin px=750;py=152;end
+            if(frame_kind==107)begin px=200;py=200;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -313,7 +332,7 @@ module tb_touch_ui;
     always @(posedge clk)if(valid&&arp_test_ready&&event_word[31]&&event_word[23:20]==9)seq_ons<=seq_ons+1;
     always @(posedge clk)if(valid&&arp_test_ready)begin
         $display("UI MIDI %h at %t",event_word,$time);
-        if($test$plusargs("arp")||$test$plusargs("seq"))begin
+        if($test$plusargs("ai")||$test$plusargs("arp")||$test$plusargs("seq"))begin
             if(event_word[23:16]==8'hb0&&event_word[14:8]==22&&!$test$plusargs("glide_delay"))model_glide<=event_word[6:0]!=0;
         end else if($test$plusargs("lesson"))begin
             if(event_word!==32'h00b04000&&event_word!==32'h00903064&&event_word!==32'h00803000)
@@ -346,6 +365,39 @@ module tb_touch_ui;
         force dut.reset_ready=1'b1;
         wait(present);
         if(volume!==5)$fatal(1,"Power-up volume must be 5");
+        if($test$plusargs("algo_preview"))begin
+            #10000000;touch_kind=12;wait(menu_page==1);#30000000;
+            $display("PASS ALGO rectangle menu capture from real firmware");$finish;
+        end
+        if($test$plusargs("ai"))begin
+            #10000000;touch_kind=17;wait(menu_page==7);#10000000;
+            touch_kind=0;#8000000;touch_kind=103;wait(menu_page==13);#10000000;
+            touch_kind=0;#8000000;touch_kind=104;wait(ai_status[0]);#5000000;
+            if(aux_words[1023]!==1||aux_words[0]!==16'h0021)$fatal(1,"AI did not snapshot BACKING");
+            if($test$plusargs("ai_preview"))begin
+                #30000000;
+                $display("PASS AI menu capture from real RV32I firmware");$finish;
+            end
+            pr_data=16'h002a;
+            touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);#5000000;
+            if(!ai_status[0])$fatal(1,"Page exit stopped AI");
+            touch_kind=0;#8000000;touch_kind=2;#10000000;touch_kind=0;#10000000;
+            if(!ai_status[0]||aux_words[0]!==16'h0021)$fatal(1,"LIVE playing/patch change overwrote AI backing");
+            touch_kind=17;wait(menu_page==7);#5000000;
+            touch_kind=0;#8000000;touch_kind=103;wait(menu_page==13);#5000000;
+            touch_kind=0;#8000000;touch_kind=105;wait(test_ai.step_us<125000);#5000000;
+            touch_kind=0;#8000000;touch_kind=106;wait(test_ai.config_word[7:4]==1);#5000000;
+            touch_kind=0;#8000000;touch_kind=107;wait(test_ai.config_word[1]);#5000000;
+            if(!ai_status[0])$fatal(1,"AI parameter edit stopped transport");
+            touch_kind=0;#8000000;touch_kind=104;wait(ai_status[2:0]==0);#5000000;
+            touch_kind=0;#8000000;touch_kind=104;wait(ai_status[0]);#5000000;
+            touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
+            touch_kind=0;#8000000;touch_kind=67;wait(menu_page==10);#5000000;
+            touch_kind=0;#8000000;touch_kind=68;wait(dut.arp_config[0]);#5000000;
+            if(ai_status[2:0]!=0)$fatal(1,"ARP did not stop/flush AI");
+            if(ai_note_ons<1)$fatal(1,"Trained policy never generated a bass event");
+            $display("PASS real UI AI entry/start/stop, compiled backing snapshot, LIVE independence, tempo/key/density edits, ARP mutual exclusion and learned MIDI");$finish;
+        end
         if($test$plusargs("glide_time"))begin
             touch_kind=0;#10000000;touch_kind=17;wait(menu_page==7);#10000000;
             touch_kind=0;#8000000;touch_kind=101;#10000000;

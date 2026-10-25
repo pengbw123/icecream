@@ -20,6 +20,7 @@ module top #(
     input  wire clk,
     input  wire key_s2,
     input wire [159:0] arp_config,input wire arp_suspend,input wire sequence_active,
+    output wire [31:0] ai_status,
     output wire [31:0] arp_status,output wire [127:0] arp_notes,
     input wire headphone_select,
     output wire headphone_din,
@@ -350,8 +351,20 @@ module top #(
         .in_data(selected_midi_data),.in_brightness(selected_brightness),.in_valid(selected_midi_valid),.in_ready(ingress_ready),
         .out_data(arp_midi_data),.out_brightness(arp_brightness),.out_valid(arp_valid),.out_ready(arp_ready),
         .status(arp_status),.chord_notes(arp_notes));
+    wire [31:0] ai_midi_data,merged_midi_data;
+    wire ai_midi_valid,ai_midi_ready,merged_midi_valid,merged_midi_ready;
+    wire [6:0] merged_brightness;
+    ai_bass_accompaniment u_ai_bass(.clk(clk),.reset_n(audio_reset_n),
+        .cfg_write(aux_write_valid),.cfg_address(aux_write_address),.cfg_value(aux_write_value),
+        .suspend(arp_suspend||arp_config[0]),
+        .observe_data(arp_midi_data),.observe_valid(arp_valid&&arp_ready),
+        .out_data(ai_midi_data),.out_valid(ai_midi_valid),.out_ready(ai_midi_ready),.status(ai_status));
+    ai_midi_merge u_ai_merge(.clk(clk),.reset_n(audio_reset_n),
+        .live_data(arp_midi_data),.live_brightness(arp_brightness),.live_valid(arp_valid),.live_ready(arp_ready),
+        .ai_data(ai_midi_data),.ai_valid(ai_midi_valid),.ai_ready(ai_midi_ready),
+        .out_data(merged_midi_data),.out_brightness(merged_brightness),.out_valid(merged_midi_valid),.out_ready(merged_midi_ready));
     midi_owner_queue #(.INDEPENDENT_PARTS(1)) u_note_queue(.clk(clk),.reset_n(audio_reset_n),
-        .in_data(arp_midi_data),.in_brightness(arp_brightness),.in_valid(arp_valid),.in_ready(arp_ready),
+        .in_data(merged_midi_data),.in_brightness(merged_brightness),.in_valid(merged_midi_valid),.in_ready(merged_midi_ready),
         .out_data(synth_midi_event_data),.out_brightness(synth_midi_event_brightness),
         .out_valid(synth_midi_event_valid),.out_ready(synth_midi_event_ready));
     assign raw_midi_event_ready = ingress_ready &

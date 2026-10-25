@@ -92,6 +92,11 @@ static void release_all(void){int i,j,n;for(i=0;i<16;i++)if(slot_note[i]>=0){
 #define PAGE_ARP 10
 #define PAGE_SEQ 11
 #define PAGE_METRICS 12
+#define PAGE_AI 13
+static u8 ai_on;
+static void ai_stop(void);
+static void ai_adj(u8 row,int d);
+static void ai_poll(void);
 static void seq_stop(void);
 static u8 seq_is_active(void);
 static void seq_publish(void);
@@ -1128,6 +1133,7 @@ static void adj_fx(u8 row,int d){
 
 static void adj(u8 row,int d){
     if(page>=1&&page<=4)patch_dirty=1;
+    if(page==PAGE_AI){ai_adj(row,d);return;}
     if(page==PAGE_SEQ){seq_adj(row,d);return;}
     if(page==PAGE_ARP){arp_adj(row,d);return;}
     if(page==7){adj_setup(row,d);return;}
@@ -1142,9 +1148,9 @@ static void menu_repeat(void){
     if(page==PAGE_PERF||held_id==0xFF)return;
     if(held_kind==1||held_kind==2){
         u32 dt=(u32)(now()-held_t);
-        u32 start=(page==PAGE_ARP||page==PAGE_SEQ)?450000u:1500000u;
+        u32 start=(page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI)?450000u:1500000u;
         if(dt>=start){
-            u32 period=(page==PAGE_ARP||page==PAGE_SEQ)?50000u:150000u;
+            u32 period=(page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI)?50000u:150000u;
             u32 n=1u+(dt-start)/period;
             if(n>held_count){held_count=n;adj(held_row,held_kind==1?-1:1);}
         }
@@ -1175,7 +1181,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         else{x=(int)(raw_x*800/x_res);y=(int)(raw_y*480/y_res);}
         if(x>799)x=799;if(y>479)y=479;
         note=-1;
-        if((page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ)&&!dialog&&x>=0&&x<800&&y>=352&&y<480){
+        if((page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI)&&!dialog&&x>=0&&x<800&&y>=352&&y<480){
             static const u8 whites[15]={0,2,4,5,7,9,11,12,14,16,17,19,21,23,24};
             static const u8 edges[10]={1,2,4,5,6,8,9,11,12,13};
             static const u8 blacks[10]={1,3,6,8,10,13,15,18,20,22};
@@ -1185,7 +1191,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         }
         next[id]=note;px[id]=x;py[id]=y;
     }
-    if(page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ){
+    if(page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI){
         /* Compare note sets, not individual fingers: two fingers on the same
          * key share one Note On, and only the final finger sends Note Off. */
         for(id=0;id<16;id++){
@@ -1215,7 +1221,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
             control_down|=(u16)(1u<<id);
             control_x[id]=px[id];control_y[id]=py[id];
             
-            if(page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ){
+            if(page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI){
                 if(next[id]<0){held_id=(u8)id;held_kind=0;held_x=px[id];menu_press(px[id],py[id]);}
             }else if(page==PAGE_PERF){
                 if(dialog||py[id]<48){menu_press(px[id],py[id]);}
@@ -1292,7 +1298,7 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
                 }
             }
         }
-        menu_repeat();perf_repeat();lesson_poll();arp_poll();seq_poll();metrics_poll();}
+        menu_repeat();perf_repeat();lesson_poll();arp_poll();seq_poll();metrics_poll();ai_poll();}
         else if((u32)(now()-retry)>500000u){retry=now();present=detect();publish();}
         delay_us(2000);
     }

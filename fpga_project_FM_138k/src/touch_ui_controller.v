@@ -2,6 +2,7 @@
 // It changes control registers only. Audio synthesis and pixel rendering
 // never wait for firmware, I2C, UART diagnostics or touch events.
 module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
+    input wire [31:0] ai_status,
     input wire clk, input wire reset_n,
     inout wire tp_scl, tp_sda, tp_int,
     output wire tp_rst,
@@ -166,6 +167,7 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
             // formerly reserved [26:24], separate from preset [23:22].
             4:ui_data={5'd0,active_voices[7:5],preset_index[6:5],active_voices[4:0],algorithm,preset_index[4:0],volume};
             59:ui_data=VOICE_CAPACITY;
+            60:ui_data=ai_status;
             5:ui_data=ui_state;
             9:ui_data={31'd0,command_ready&&!command_valid};
             17:ui_data={31'd0,text_enable};

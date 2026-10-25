@@ -16,7 +16,7 @@ static void arp_publish(void){
         ((u32)(page!=PAGE_ARP)<<16);
 }
 static void arp_enable(u8 enable){u32 t;u8 from_sequence=(u8)(enable&&seq_is_active());
-    if(enable)seq_stop();
+    if(enable){ai_stop();seq_stop();}
     release_all();
     if(enable){backing_capture(&arp_patch);backing_upload(&arp_patch);arp_saved_glide=from_sequence?glide_on:(u8)(rd(0x00c)!=0);
         set_glide(0);}

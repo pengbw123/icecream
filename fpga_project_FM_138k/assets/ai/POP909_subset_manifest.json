@@ -1,0 +1,592 @@
+{
+  "repository": "https://github.com/music-x-lab/POP909-Dataset",
+  "revision": "d83e6edba6872a704f5d3b8b32f5cb540088dae6",
+  "citation": "Wang et al., POP909: A Pop-song Dataset for Music Arrangement Generation, ISMIR 2020",
+  "license_file": "LICENSE",
+  "files": [
+    {
+      "path": "LICENSE",
+      "sha256": "95534af5d84c6209430eb63a37ce177c3ac3c97a2d0677871773b0e04d93a4bb"
+    },
+    {
+      "path": "README.md",
+      "sha256": "f5f0ed094863ba801a10ea7e96c8f32bcdab0c75ece8fb5191c88ccaebfc242d"
+    },
+    {
+      "path": "POP909/001/001.mid",
+      "sha256": "a93079efb82bdf1e27e75951b7eb454509efb130f0bc0e936257df5c73aabcb0"
+    },
+    {
+      "path": "POP909/001/chord_midi.txt",
+      "sha256": "3a2a062ac30441ee98618e6ed83ee9282b741bcf2923b42f5a78bb06058e2bc3"
+    },
+    {
+      "path": "POP909/001/beat_midi.txt",
+      "sha256": "a7376477e287e5980c047548e75baef80ff3d49dcdb685420edc6996a04bcedd"
+    },
+    {
+      "path": "POP909/002/002.mid",
+      "sha256": "5c6d62a8bbace19b95e01964cf0dfbe0219111478fa4e08c10a505af50a77e62"
+    },
+    {
+      "path": "POP909/002/chord_midi.txt",
+      "sha256": "d4cac3e9ff9cd27c3ba235610ef88afb80017f99ee4a1e4c233813f34e46eee2"
+    },
+    {
+      "path": "POP909/002/beat_midi.txt",
+      "sha256": "c872228de940b92778f97db02fdee8bead0175444094a551d2b42d85f3355ec0"
+    },
+    {
+      "path": "POP909/003/003.mid",
+      "sha256": "22e913530ff39f9c3702758f6353b027f1f6197d7c06f79df8a34347762b4c1d"
+    },
+    {
+      "path": "POP909/003/chord_midi.txt",
+      "sha256": "c88197abc038355415b8d7cfe05ca22eb1e95326525578d8765ee7d89cd58e93"
+    },
+    {
+      "path": "POP909/003/beat_midi.txt",
+      "sha256": "f891ca4976af7db099b78cc48ab947667c79fe35794baf503fbe012f18ac9644"
+    },
+    {
+      "path": "POP909/004/004.mid",
+      "sha256": "bc7c43fc8a11257eac69dc4bc827fd3a2653916674b105e863e179e86afe1490"
+    },
+    {
+      "path": "POP909/004/chord_midi.txt",
+      "sha256": "bbe7da3a005663f063a9d878ebf2679a2635bfab0728c436a7637b6c45a15a36"
+    },
+    {
+      "path": "POP909/004/beat_midi.txt",
+      "sha256": "c06ce5c3b12877b38c6c85dc3ed2c8be7c42b1d9b6d58e70c24d128667653ec8"
+    },
+    {
+      "path": "POP909/005/005.mid",
+      "sha256": "ebc1a3cb2c84e38b1d6e0375f6a079919173709c3c70c4a4f960d5c4c4b6fc44"
+    },
+    {
+      "path": "POP909/005/chord_midi.txt",
+      "sha256": "2fc85939f44c2448175328a09b47aa43aa0533be3f0613e5a917b2ee34a101fd"
+    },
+    {
+      "path": "POP909/005/beat_midi.txt",
+      "sha256": "4ce1d556e3ad1583808f8841a49bff20941d163481fa6213c266264538c3e5db"
+    },
+    {
+      "path": "POP909/006/006.mid",
+      "sha256": "68acb53b43c6a603a87c29d2868baacec10b7f7fbc4a8e9dff1c1bcec432a571"
+    },
+    {
+      "path": "POP909/006/chord_midi.txt",
+      "sha256": "e9f04c61a739111f864881ccd01cb91add2e6bceb497683dbcca38eec3c025f5"
+    },
+    {
+      "path": "POP909/006/beat_midi.txt",
+      "sha256": "a0ecb109f0b08cad55ed1a512c959f223755aded72f76dfba1b2f03407cf70c0"
+    },
+    {
+      "path": "POP909/007/007.mid",
+      "sha256": "d2ad108f0b353b9ba00f40e0dfb470535cbb94676bbe186cf191b77693556f5e"
+    },
+    {
+      "path": "POP909/007/chord_midi.txt",
+      "sha256": "5aced9b027cfc675605340e77c94ce29d645be124df62dc852f7b36980ed232c"
+    },
+    {
+      "path": "POP909/007/beat_midi.txt",
+      "sha256": "e54e12f7a106a3faabf89b25ba30928cd3f12fb87eb07edd6e82bb2a42ceae80"
+    },
+    {
+      "path": "POP909/008/008.mid",
+      "sha256": "fdb45b4546d5464e23b5f0a40cc818c54a9dbf66e1f10da6416713fb6e6e7a2c"
+    },
+    {
+      "path": "POP909/008/chord_midi.txt",
+      "sha256": "70e1e0d8612ca12c5235cec90cba0d5a6a061ee3506affa01699dbfefa9d3e60"
+    },
+    {
+      "path": "POP909/008/beat_midi.txt",
+      "sha256": "df8e669518880481d8d4a3153797beedad176946ccd95e0d731e80bd413024e6"
+    },
+    {
+      "path": "POP909/009/009.mid",
+      "sha256": "c834f5e5fb62b8e88e276f89c05273a2178e345f3c490f7b7410930a59d4070d"
+    },
+    {
+      "path": "POP909/009/chord_midi.txt",
+      "sha256": "097ecdf3a80af2fc724f3ef9eac1ca6cf6dee83b87b077745f9510f32ef29382"
+    },
+    {
+      "path": "POP909/009/beat_midi.txt",
+      "sha256": "8b446f009d25d202805f652702fa14728adfa208984c75d88f5de9c3830cf28a"
+    },
+    {
+      "path": "POP909/010/010.mid",
+      "sha256": "887e6eaa163edd8a5ce7a862479eb7054b3fb64333c31b31c51bffecd520a8f0"
+    },
+    {
+      "path": "POP909/010/chord_midi.txt",
+      "sha256": "cd2d6e9cd47eb2c4ec25f4007ed3d70f66e6f96df4b2129a16225027d8937b17"
+    },
+    {
+      "path": "POP909/010/beat_midi.txt",
+      "sha256": "e184280e9971b3f535b305770d10b0252a3fbb466dde9c16bda0e9bd8bbb353e"
+    },
+    {
+      "path": "POP909/011/011.mid",
+      "sha256": "5867d686c9d378e3d89284a1002c441f90a027e06add886b7904157f050e181e"
+    },
+    {
+      "path": "POP909/011/chord_midi.txt",
+      "sha256": "92d2e1bac1d3fb7cbb6af1fdf87b4c8f5c2793b027c8cf56f8228f04e7113c08"
+    },
+    {
+      "path": "POP909/011/beat_midi.txt",
+      "sha256": "7dfc1266059adca3ac73b0285d3eba64c5d205a2e51daf1e835fa72b80c5601b"
+    },
+    {
+      "path": "POP909/012/012.mid",
+      "sha256": "1c1982d738756a2f2e2e87313d06ff5d56bad812fba21e68ce1e6d2c9da3227e"
+    },
+    {
+      "path": "POP909/012/chord_midi.txt",
+      "sha256": "86375afe081de5b7be4355ac20f33e60a1eae2d32a7b28254f85adc8bb1a7d3b"
+    },
+    {
+      "path": "POP909/012/beat_midi.txt",
+      "sha256": "ae52573afa6e17c9925c2b6a381f2a4d12088ee3fab38bdb48b6bbccc518553e"
+    },
+    {
+      "path": "POP909/013/013.mid",
+      "sha256": "433f575776eb1665718bbdf2e6814a1da97bdda3d2a49d4decfd1c3ada567be0"
+    },
+    {
+      "path": "POP909/013/chord_midi.txt",
+      "sha256": "82df3c8deaab55f6456bee1de93162780ad54c88039a8a05e949dcbfde1f600d"
+    },
+    {
+      "path": "POP909/013/beat_midi.txt",
+      "sha256": "d03f9fafcbf1d456d5c551a801145a87ca36ff6b642b429a3b4cbb69b03edafe"
+    },
+    {
+      "path": "POP909/014/014.mid",
+      "sha256": "dec906182d8ac808aa7f1d43f20024ec37cd6e14f8772dd5656d7ac63b6d998b"
+    },
+    {
+      "path": "POP909/014/chord_midi.txt",
+      "sha256": "5325c3f8b6d5e878a595b832703110cdef495d035c75ac6e252180ee19601c71"
+    },
+    {
+      "path": "POP909/014/beat_midi.txt",
+      "sha256": "2d066b06f5faf32023f199a7b9e1ab37ddd26682f0574beae818ad3773491dad"
+    },
+    {
+      "path": "POP909/015/015.mid",
+      "sha256": "ca5bc097e202449ccae653ba84397195641bd013557a33795ad0e6e093118833"
+    },
+    {
+      "path": "POP909/015/chord_midi.txt",
+      "sha256": "5072edccf410c1de0b484fa7d637a0c60f974eda279ffeb8351594cfa7f099fc"
+    },
+    {
+      "path": "POP909/015/beat_midi.txt",
+      "sha256": "3fec77fd17950bfafa4c99a394eb3050498d58cfa929b722886e7e72fdce34ea"
+    },
+    {
+      "path": "POP909/016/016.mid",
+      "sha256": "d8fa5a1edc3d4458b197207076324e4ed1ae76a6b79220b9cfea11608b3c0ea4"
+    },
+    {
+      "path": "POP909/016/chord_midi.txt",
+      "sha256": "5c8e657eb5aa874f8310132659c7118f1ea7cae679df74ba1bbe3029c0639a0f"
+    },
+    {
+      "path": "POP909/016/beat_midi.txt",
+      "sha256": "9e1e7f026f65920e20f658228a9c9dac32dbf4386548e553444b2f39bc2f8c3e"
+    },
+    {
+      "path": "POP909/017/017.mid",
+      "sha256": "6457955a8e5bb4c0a0f482e5ebf58d1834094555e7ae15e457e62464956f8726"
+    },
+    {
+      "path": "POP909/017/chord_midi.txt",
+      "sha256": "f7eeb8625aeff5d8efef3db2f6cc6bd69e57b9b784a1fbf2b76e6ac0d9255ca0"
+    },
+    {
+      "path": "POP909/017/beat_midi.txt",
+      "sha256": "f186a6e3a43cd571fe42943c9d2d5d199f1faec3431188d28f488b4abef8501b"
+    },
+    {
+      "path": "POP909/018/018.mid",
+      "sha256": "852dd54faad03effe759919bd24d4f2b86e06eec01b9a5b26cf46caa16572f73"
+    },
+    {
+      "path": "POP909/018/chord_midi.txt",
+      "sha256": "f1dc159850f15f550c905e54c2edfe785135b2228dd4f622160420515b08e278"
+    },
+    {
+      "path": "POP909/018/beat_midi.txt",
+      "sha256": "e70bee4098d444ae3d931dceb915709562208f8cc85fe9e645dece9595f21cc5"
+    },
+    {
+      "path": "POP909/019/019.mid",
+      "sha256": "ca3bcd65789cb02257adfa4857673f38ea98b18acb612628688cc14385dfb844"
+    },
+    {
+      "path": "POP909/019/chord_midi.txt",
+      "sha256": "a9c668b435df35a34cb75b8383c2c4135c0f63dfa589bb1122d903fa31f06433"
+    },
+    {
+      "path": "POP909/019/beat_midi.txt",
+      "sha256": "42d0432b1f862371470344813fc4bf6a601122e4476051edda2d115679f1aa55"
+    },
+    {
+      "path": "POP909/020/020.mid",
+      "sha256": "f7a076f2fe30780d73690f44a44ef894af873ce14de6db96575930156075f48f"
+    },
+    {
+      "path": "POP909/020/chord_midi.txt",
+      "sha256": "a9d0b436f084b8e7098478203bb0e1efa7d8b74ee03e2fa78f78f1bff74c474a"
+    },
+    {
+      "path": "POP909/020/beat_midi.txt",
+      "sha256": "44f035cacd342377394bcc677e5262557f16e52339396040927570e3fb13e11a"
+    },
+    {
+      "path": "POP909/021/021.mid",
+      "sha256": "fad6fb054b5ce652424de8f7c144f5b974922c5478d18df6e297627b372aec3b"
+    },
+    {
+      "path": "POP909/021/chord_midi.txt",
+      "sha256": "4d005aefc1e743d12552ba5d695e6aa2525292d793d765b2ed3715bd35045fe7"
+    },
+    {
+      "path": "POP909/021/beat_midi.txt",
+      "sha256": "992f0421c6d9de56d0e2948ec6ec1b271bc69bef96d545307bbb6f77ff7e75d8"
+    },
+    {
+      "path": "POP909/022/022.mid",
+      "sha256": "7cfae8884c174bcd7dabd089fcaf30570ef6b26320a62cdf8f9141c0c338ce41"
+    },
+    {
+      "path": "POP909/022/chord_midi.txt",
+      "sha256": "0f83111837cc763075c24cf2ad1a0db12a74ac9d93e77ced83cea03d843519cf"
+    },
+    {
+      "path": "POP909/022/beat_midi.txt",
+      "sha256": "3bea78840cfa3ed978f4fe688e6b3d4ae67c13205cd8e1849d97d919ab9b60a2"
+    },
+    {
+      "path": "POP909/023/023.mid",
+      "sha256": "c7adeef6afb1940d17b0dbbda34d168629e5338252b6ff73c46d014a280d0222"
+    },
+    {
+      "path": "POP909/023/chord_midi.txt",
+      "sha256": "d2895a905ee31c952e0efd8aba2afc0cd83420303a49d4980843c076891ac409"
+    },
+    {
+      "path": "POP909/023/beat_midi.txt",
+      "sha256": "49961ec49f782987c107e617f20a6b094b27db99cf645286b9c00979b2e52151"
+    },
+    {
+      "path": "POP909/024/024.mid",
+      "sha256": "c3cc42526c6b0ae37b3b2dca4baff17a85a9764d436de9d019370a811793b2cf"
+    },
+    {
+      "path": "POP909/024/chord_midi.txt",
+      "sha256": "247c604d7aa98c37763322b3dd7ae0386898932d1f3f13e866114bd96ee995dc"
+    },
+    {
+      "path": "POP909/024/beat_midi.txt",
+      "sha256": "1eac3f2746e2c4bccc673ab15b2416da352d06077c6f95bb7bd38cda4e881644"
+    },
+    {
+      "path": "POP909/025/025.mid",
+      "sha256": "399fab08bcf7e229d0cbd040890585d37d9c52e1dc1d56a421fc0862152605d9"
+    },
+    {
+      "path": "POP909/025/chord_midi.txt",
+      "sha256": "b50e05c3f3f89977c9930ef1eea12466c4110f0dadb8331f180855cb5e700942"
+    },
+    {
+      "path": "POP909/025/beat_midi.txt",
+      "sha256": "3448f5bc589808a80ed8604edfb0c87c0116b56b55195c305e3c8c5698f74209"
+    },
+    {
+      "path": "POP909/026/026.mid",
+      "sha256": "419edde86248615ddde00d076e3494917598e818c25f00ca62448025e19c602d"
+    },
+    {
+      "path": "POP909/026/chord_midi.txt",
+      "sha256": "a05a0d7fccc880836982452ee1213de6efb5fedc6698cbedae1315b4a9db1a7b"
+    },
+    {
+      "path": "POP909/026/beat_midi.txt",
+      "sha256": "4ac743680a7016f52172fb15a647f1bf69b6c2008e1a6d78897926e239099cfa"
+    },
+    {
+      "path": "POP909/027/027.mid",
+      "sha256": "1d72ed5f38955a7fb31aff3077ab43123ec024c6d0ab0255aa603393692a7d0f"
+    },
+    {
+      "path": "POP909/027/chord_midi.txt",
+      "sha256": "1f141de009a763c278df6fce3622fa5b2e3bd4255875f5d433effe83bd1e65cd"
+    },
+    {
+      "path": "POP909/027/beat_midi.txt",
+      "sha256": "4c725fbb280a1b2dbe4dfc916fc751f96a94a67dac2166c4e28bd43d2649f7af"
+    },
+    {
+      "path": "POP909/028/028.mid",
+      "sha256": "dc6927b1dfe55a6cb6fcd78570b1cf70b340283802e9cb4e8fa04cbfe44ef1b9"
+    },
+    {
+      "path": "POP909/028/chord_midi.txt",
+      "sha256": "204373f6a94d51982387eff9e2511bc005190d57c6535ba51612b1b093218ca1"
+    },
+    {
+      "path": "POP909/028/beat_midi.txt",
+      "sha256": "f5bfcce85f01cc7ea3d75b8916f259005b1de47224ae9b268f8e5e5167d72d76"
+    },
+    {
+      "path": "POP909/029/029.mid",
+      "sha256": "657b40eba5d1775aad82dde847df2e02da6ceb1ff2e2f805e256fd8a83fc21bd"
+    },
+    {
+      "path": "POP909/029/chord_midi.txt",
+      "sha256": "c8d6a2586419df3221d0a0b503d196ac0f3f402fb0732aa77f272ed3c31fe983"
+    },
+    {
+      "path": "POP909/029/beat_midi.txt",
+      "sha256": "8e3164dc293c3794ef936d62d163fdd0eefb673b080b09635129cb6a88f3efbb"
+    },
+    {
+      "path": "POP909/030/030.mid",
+      "sha256": "237fba644aad59f016c5dfcb1033d787b30cc188f05b4b7b6e9a8fdf82aca949"
+    },
+    {
+      "path": "POP909/030/chord_midi.txt",
+      "sha256": "86ac9d893e0524ee923a1c4d22f1070202c1c978f3fa10c198b9707e6dce10c7"
+    },
+    {
+      "path": "POP909/030/beat_midi.txt",
+      "sha256": "abc59281d8c4402e4b63717f9c9ee11ecc75d62a7b42415f0182c814efc544e3"
+    },
+    {
+      "path": "POP909/031/031.mid",
+      "sha256": "3fdeb63ce4d204e49ce00ffa261d33d618a78fd60ac59429dc5e83ace20bf710"
+    },
+    {
+      "path": "POP909/031/chord_midi.txt",
+      "sha256": "e9a03ec53214b2a188bba7fc6b5fbaf68e2604b401c0954b7a6e0fee703442a5"
+    },
+    {
+      "path": "POP909/031/beat_midi.txt",
+      "sha256": "358be127d2bf40c7ac04da97cb4004a71c5d3ac5d8872ed6db2928f3708aa7f6"
+    },
+    {
+      "path": "POP909/032/032.mid",
+      "sha256": "05a911387f857e686cffcc027332c7045945860cb591201cd87b1d339a429a20"
+    },
+    {
+      "path": "POP909/032/chord_midi.txt",
+      "sha256": "d67ae627270649d1fc1eee2460b00a04930c2ef68d921861c6e18c27b1088e5e"
+    },
+    {
+      "path": "POP909/032/beat_midi.txt",
+      "sha256": "5a66796c87c1573200f494c41062c498361fda05216feb1cd86cfc31b55a8c45"
+    },
+    {
+      "path": "POP909/033/033.mid",
+      "sha256": "c12c694aeb8a0dae5ab2e575334be8ab94c4f5259c991ec8ebf180c325db3e58"
+    },
+    {
+      "path": "POP909/033/chord_midi.txt",
+      "sha256": "35b0ff21594c15d0c218b746ca430904e06739a5103fb71839b8d41cd915698f"
+    },
+    {
+      "path": "POP909/033/beat_midi.txt",
+      "sha256": "7a905412f0b295c29cfb6542947077c732c847cf9d83d0b4112e75ed757d12f1"
+    },
+    {
+      "path": "POP909/034/034.mid",
+      "sha256": "29ce860e40f3a35b6fa111da18f3a8904737b6218b96e150d0e8d1a4037b3b54"
+    },
+    {
+      "path": "POP909/034/chord_midi.txt",
+      "sha256": "921a334932ed649447d575860ebe319495c2263fd936b65b13565302a0ea7c2a"
+    },
+    {
+      "path": "POP909/034/beat_midi.txt",
+      "sha256": "fd9b3c06e06f1381f6688e7778f3df1f9ab984b00bed1f1527e931be49039aab"
+    },
+    {
+      "path": "POP909/035/035.mid",
+      "sha256": "45c0215aa2e60cbb1cc5bc8f50816ded686d7ed97838a46802ffc888c81af010"
+    },
+    {
+      "path": "POP909/035/chord_midi.txt",
+      "sha256": "8e7461f79125e26e4eec9ac3725cadefa072584ac81b7ab4dcb31de757db32a1"
+    },
+    {
+      "path": "POP909/035/beat_midi.txt",
+      "sha256": "362dc5a90643a18b17b89a48f2cf684e2330c4e391ae0bc7c4de17b4be13a084"
+    },
+    {
+      "path": "POP909/036/036.mid",
+      "sha256": "9fb98554f9772e2cde5693b4f2cca86fe927e8f9ebd1350237f41d31d2fc6f0c"
+    },
+    {
+      "path": "POP909/036/chord_midi.txt",
+      "sha256": "414ee587b547d33b30d415a1123abd5f7ca4253cdc8865c7b3ccb1cbed1abad5"
+    },
+    {
+      "path": "POP909/036/beat_midi.txt",
+      "sha256": "11dddae25bbb025fdae77e28a00ea801c1a8640d136883844cf794cbc6e41bd6"
+    },
+    {
+      "path": "POP909/037/037.mid",
+      "sha256": "f7c87abdf72c45c21e6db21c312112fd76710f05fdc62373facf9093ec4afb10"
+    },
+    {
+      "path": "POP909/037/chord_midi.txt",
+      "sha256": "b381d55c08f0467953c816baede7a4e9c291d66516aec53c82df86e27be8e68a"
+    },
+    {
+      "path": "POP909/037/beat_midi.txt",
+      "sha256": "6c1f17ce42eb6bb8784b2eae6cb1ffdf8adf6d7fec11c925d7668863ad9d8e75"
+    },
+    {
+      "path": "POP909/038/038.mid",
+      "sha256": "2976ca8bbc0ca2b843f3f8528c2c9ce794904f3fce96ba4901fcc89de71a2ba7"
+    },
+    {
+      "path": "POP909/038/chord_midi.txt",
+      "sha256": "5fb8fea8d4f57fc331a469f0be157aeecf54ec70cbabed7f1dc99648b47aad58"
+    },
+    {
+      "path": "POP909/038/beat_midi.txt",
+      "sha256": "9e62e34225cf9b01e460e3700ad253c8b1f1f356139d5a883bb7ee027697fa13"
+    },
+    {
+      "path": "POP909/039/039.mid",
+      "sha256": "85b6475c7005b3791395150b46401e92760141688501dd7ca2670c8635c4b845"
+    },
+    {
+      "path": "POP909/039/chord_midi.txt",
+      "sha256": "7840d0d3582bc3f3a1617ab4c2ae4e136ceb46b11c40f82ef6581b3abf51f3bc"
+    },
+    {
+      "path": "POP909/039/beat_midi.txt",
+      "sha256": "73223fb8a1220e606cdfd1bff9f2afd24a183500c4d256084c6b0f6ecc142e0b"
+    },
+    {
+      "path": "POP909/040/040.mid",
+      "sha256": "3a5616e7b2d3d4a327f3f81b5419cbd7640bcfa25a908ab80244bf360de14b63"
+    },
+    {
+      "path": "POP909/040/chord_midi.txt",
+      "sha256": "63463643173dad3cf997e15521da5656b26158956ee76e83c39aa6fef8400225"
+    },
+    {
+      "path": "POP909/040/beat_midi.txt",
+      "sha256": "33deeaa54f7c1aec647063f7d7e09c778c05101dc8b5dc971d8e13cfdcef70bb"
+    },
+    {
+      "path": "POP909/041/041.mid",
+      "sha256": "68a1cd18e7c63f0a8762a6bcfa4a45d66fd6b779af720ee369bf1802fe95a078"
+    },
+    {
+      "path": "POP909/041/chord_midi.txt",
+      "sha256": "b3c1e6b676222d079ada233347e053519011b59c83faab0485b7944ef6f8859d"
+    },
+    {
+      "path": "POP909/041/beat_midi.txt",
+      "sha256": "3d0019a6def19c027d0e33b3630479650c1839dda3b7afd0cb20a73b52cb60f8"
+    },
+    {
+      "path": "POP909/042/042.mid",
+      "sha256": "76e6ad4897c48ab41e0b735393cc098a58bee9906e074e6fed393420950147c1"
+    },
+    {
+      "path": "POP909/042/chord_midi.txt",
+      "sha256": "51dc6b28142be3dc0a8e0d70a31395172f4f1bb363bf56c88b7c42d6922efadc"
+    },
+    {
+      "path": "POP909/042/beat_midi.txt",
+      "sha256": "173bbb517451f5a2b12371366d5143ab818368de138fbcd212aebc3c42f8103d"
+    },
+    {
+      "path": "POP909/043/043.mid",
+      "sha256": "7615d0b8fe978c80c83587436f0b31b2da3286f04491458d9db8b78287e09af3"
+    },
+    {
+      "path": "POP909/043/chord_midi.txt",
+      "sha256": "35667d47b8cce233b2906c982c7785b7747ba093b0035424e28438f461a0b5f5"
+    },
+    {
+      "path": "POP909/043/beat_midi.txt",
+      "sha256": "714dfe4099dc854559221fbb55f94ee8fc0a553f74ab9fb18241df4327f6f978"
+    },
+    {
+      "path": "POP909/044/044.mid",
+      "sha256": "fa2de4f7311b483b6b6d59a24abb9f6ee1f35834144ced6c6e0f4d7c3a359cbc"
+    },
+    {
+      "path": "POP909/044/chord_midi.txt",
+      "sha256": "edaf9ec4a05204754b3cd7d4704e7665eb48049b1256cffbe8eb75d3127ffe74"
+    },
+    {
+      "path": "POP909/044/beat_midi.txt",
+      "sha256": "e2d1af611d69c35e2f902ef8038532436fe792781f26b15f2beaded310b35316"
+    },
+    {
+      "path": "POP909/045/045.mid",
+      "sha256": "30339e73e7adb8594f447a5fe6117c916411c96183f6391852932fef91f26f7d"
+    },
+    {
+      "path": "POP909/045/chord_midi.txt",
+      "sha256": "25eef241366b0416439c13c8c2ba14599a444b3c816b5dc2f77b5057af001ee0"
+    },
+    {
+      "path": "POP909/045/beat_midi.txt",
+      "sha256": "5d09ea54f45747b152080b0c9738d1ad3d7ea99cb924ba5cd58310bfe334216e"
+    },
+    {
+      "path": "POP909/046/046.mid",
+      "sha256": "59969a0077d16393412796b0a6817eca0a7d04d24fedc503435df7f41b131cde"
+    },
+    {
+      "path": "POP909/046/chord_midi.txt",
+      "sha256": "22fb078fa62353f1a12fa53853128ade3907a9a13a30d91347f03dbbb3ef307c"
+    },
+    {
+      "path": "POP909/046/beat_midi.txt",
+      "sha256": "6e4d7a5073cae80fcf706689f15ee038b7fdf9ffce12a1e465ace3a7a3307d85"
+    },
+    {
+      "path": "POP909/047/047.mid",
+      "sha256": "e15780a4a58992fe5611676d7dda7b5b3e83830bfcaaeb5f2a23f4abf9913627"
+    },
+    {
+      "path": "POP909/047/chord_midi.txt",
+      "sha256": "511618eea3a6217c5fe54c2130543845d138fc6c4a746942902fd6325a19113f"
+    },
+    {
+      "path": "POP909/047/beat_midi.txt",
+      "sha256": "7d49ece1f0ef4da051a8c615074e88c6aad0bcae4b602b3f092d332200aa388b"
+    },
+    {
+      "path": "POP909/048/048.mid",
+      "sha256": "585deebbaa636c270e4c51bca365ecb03c579146db01085f542809460b5de9ef"
+    },
+    {
+      "path": "POP909/048/chord_midi.txt",
+      "sha256": "5d3bdb62d6c231f9f5e5736d16b02e03a9f984609ce330be7f362653f7496fdd"
+    },
+    {
+      "path": "POP909/048/beat_midi.txt",
+      "sha256": "324ee6142d1327ba08a66d5e78f886ce0b912a09956f87a68fd3d3250795db31"
+    }
+  ]
+}
