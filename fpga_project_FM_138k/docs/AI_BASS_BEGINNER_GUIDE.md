@@ -6,7 +6,7 @@
 没有调用云端训练服务，没有使用 GPU，也没有让板上的软核运行训练。
 工程根目录：`D:\a_My_projects\Gowin_publish\fpga_project_FM_138k`。
 
-训练日志在 `tmp/ai_train.log`，下载的数据在 `tmp/ai_pop909/POP909`。
+训练日志保存为 `assets/ai/ai_bass_training.log`，下载的数据在 `tmp/ai_pop909/POP909`。
 tmp 是本机临时目录，不提交 Git；换一台电脑需要重新下载数据。
 源码、训练结果、权重和数据来源清单均在工程内，已纳入 Git。
 
@@ -65,6 +65,7 @@ tmp 是本机临时目录，不提交 Git；换一台电脑需要重新下载数
 | `src/ai_bass_accompaniment.v` | MIDI 特征整理、节拍、动作转音符、音符管理 |
 | `src/ui_firmware/ai_menu.h` | AI 菜单及控制命令 |
 | `assets/ai/POP909_subset_manifest.json` | 数据固定版本及下载清单 |
+| `assets/ai/ai_bass_training.log` | 本次 45 轮训练过程的原始控制台记录 |
 | `sim/tb_ai_bass_inference.sv` | 核对 RTL 结果与软件整数参考是否一致 |
 
 ## 怎样重新训练
