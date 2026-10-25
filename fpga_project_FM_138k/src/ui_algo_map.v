@@ -1,24 +1,27 @@
-// Ordered rectangle list, inclusive coordinates, later entries paint on top.
-// Byte format at index*8: x0[8:0],x1[8:0],y0[7:0],y1[7:0],class[1:0].
-// Count is at 0x7ff8/9. Firmware disables and drains the video pipeline
-// before modifying this bundled-data list; it enables after the count write.
+// Compact ordered rectangles in one 36-bit BSRAM, rendered one scanline ahead.
+// Two 512x2-bit register line buffers replace both the framebuffer and the
+// previous 256-way per-pixel comparator array. Byte upload: index*8 + 0..4;
+// low four bytes first, byte4 commits. Count at 0x7ff8/9. Later rectangles win.
+// Firmware disables and drains before upload, enabling after the final count.
+// Actual six-operator lists take <=401 pclk cycles/line (1056 are available).
 module ui_algo_map #(parameter integer PANEL_X=144, PANEL_Y=160)(
     input wire pclk,input wire video_reset_n,
     input wire [10:0] h,input wire [9:0] v,input wire enable,
     input wire wclk,input wire we,input wire [14:0] waddr,
     input wire [7:0] wdata,output wire ink,output wire [1:0] cls
 );
-    reg [35:0] rectangles[0:255] /* synthesis syn_ramstyle = "registers" */;
+    reg [35:0] rectangles[0:255] /* synthesis syn_ramstyle = "block_ram" */;
+    reg [31:0] staging;
     reg [8:0] count=0;
-    always @(posedge wclk) if(we)begin
+    always @(posedge wclk)if(we)begin
         if(waddr==15'h7ff8)count[7:0]<=wdata;
         else if(waddr==15'h7ff9)count[8]<=wdata[0];
         else if(waddr<2048)case(waddr[2:0])
-            0:rectangles[waddr[10:3]][7:0]<=wdata;
-            1:rectangles[waddr[10:3]][15:8]<=wdata;
-            2:rectangles[waddr[10:3]][23:16]<=wdata;
-            3:rectangles[waddr[10:3]][31:24]<=wdata;
-            4:rectangles[waddr[10:3]][35:32]<=wdata[3:0];
+            0:staging[7:0]<=wdata;
+            1:staging[15:8]<=wdata;
+            2:staging[23:16]<=wdata;
+            3:staging[31:24]<=wdata;
+            4:rectangles[waddr[10:3]]<={wdata[3:0],staging};
         endcase
     end
     reg en_meta=0,en_sync=0;
@@ -26,40 +29,83 @@ module ui_algo_map #(parameter integer PANEL_X=144, PANEL_Y=160)(
         if(!video_reset_n)begin en_meta<=0;en_sync<=0;end
         else begin en_meta<=enable;en_sync<=en_meta;end
     end
-    wire inside_panel=(h>=PANEL_X)&&(h<PANEL_X+512)&&(v>=PANEL_Y)&&(v<PANEL_Y+256);
+    reg [15:0] line0[0:63] /* synthesis syn_ramstyle = "registers" */;
+    reg [15:0] line1[0:63] /* synthesis syn_ramstyle = "registers" */;
+    reg [35:0] rect_read;
+    reg [7:0] rect_index;
+    always @(posedge pclk)rect_read<=rectangles[rect_index];
+    localparam IDLE=0,CLEAR=1,WAIT_RAM=2,CHECK=3,FILL=4,DONE=5;
+    reg [2:0] state=IDLE;
+    reg [7:0] render_y;
+    reg work_bank,ready=0,display_valid=0;
+    reg [8:0] span_first,span_last;
+    reg [1:0] span_cls;
+    reg [5:0] column;
+    wire last_rect=({1'b0,rect_index}+9'd1)>=count;
+    reg [15:0] mask,paint;
+    integer b;
+    always @*begin
+        mask=0;paint=0;
+        for(b=0;b<8;b=b+1)if(({column,3'b000}+b)>=span_first&&({column,3'b000}+b)<=span_last)begin
+            mask[b*2+:2]=2'b11;paint[b*2+:2]=span_cls;
+        end
+    end
+    integer i;
+    always @(posedge pclk)begin
+        if(!video_reset_n||!en_sync)begin
+            state<=IDLE;ready<=0;display_valid<=0;rect_index<=0;
+            render_y<=0;work_bank<=0;span_first<=0;span_last<=0;span_cls<=0;column<=0;
+        end else if(h==0)begin
+            // Swap only complete rows. An unsupported oversized list blanks a
+            // row instead of exposing a partially overwritten line buffer.
+            display_valid<=v>=PANEL_Y&&v<PANEL_Y+256&&ready&&render_y==v-PANEL_Y;
+            if(v>=PANEL_Y-1&&v<PANEL_Y+255)begin
+                render_y<=v+1-PANEL_Y;work_bank<=(v+1-PANEL_Y)&1;
+                ready<=0;rect_index<=0;state<=CLEAR;
+            end
+        end else case(state)
+            CLEAR:begin
+                for(i=0;i<64;i=i+1)begin
+                    if(work_bank)line1[i]<=0;else line0[i]<=0;
+                end
+                state<=WAIT_RAM;
+            end
+            WAIT_RAM:state<=CHECK;
+            CHECK:begin
+                if(count==0)begin ready<=1;state<=DONE;end
+                else if(render_y>=rect_read[25:18]&&render_y<=rect_read[33:26]&&rect_read[8:0]<=rect_read[17:9])begin
+                    span_first<=rect_read[8:0];span_last<=rect_read[17:9];span_cls<=rect_read[35:34];
+                    column<=rect_read[8:3];state<=FILL;
+                end else if(last_rect)begin ready<=1;state<=DONE;end
+                else begin rect_index<=rect_index+1'b1;state<=WAIT_RAM;end
+            end
+            FILL:begin
+                if(work_bank)line1[column]<=(line1[column]&~mask)|paint;
+                else line0[column]<=(line0[column]&~mask)|paint;
+                if(column==span_last[8:3])begin
+                    if(last_rect)begin ready<=1;state<=DONE;end
+                    else begin rect_index<=rect_index+1'b1;state<=WAIT_RAM;end
+                end else column<=column+1'b1;
+            end
+            default:;
+        endcase
+    end
+    wire inside_panel=h>=PANEL_X&&h<PANEL_X+512&&v>=PANEL_Y&&v<PANEL_Y+256;
     wire [8:0] x=h-PANEL_X;
-    wire [7:0] y=v-PANEL_Y;
-    reg [1:0] hit[0:255];
-    reg [1:0] groups[0:15];
+    wire bank=(v-PANEL_Y)&1;
+    reg [15:0] word1;
+    reg [2:0] select1;
+    reg [1:0] pixel2;
     reg valid1=0,valid2=0;
     always @(posedge pclk)begin
-        valid1<=video_reset_n&&en_sync&&inside_panel;
-        valid2<=valid1&&video_reset_n&&en_sync;
-    end
-    genvar g,k;
-    generate for(g=0;g<16;g=g+1)begin:group_gen
-        for(k=0;k<16;k=k+1)begin:rect_gen
-            localparam integer N=g*16+k;
-            wire [35:0] r=rectangles[N];
-            always @(posedge pclk)begin
-                if(!en_sync||N>=count)hit[N]<=0;
-                else hit[N]<=(x>=r[8:0] && x<=r[17:9] &&
-                         y>=r[25:18] && y<=r[33:26])?r[35:34]:2'd0;
-            end
+        if(!video_reset_n)begin valid1<=0;valid2<=0;word1<=0;pixel2<=0;select1<=0;end
+        else begin
+            if(en_sync&&inside_panel&&display_valid)word1<=bank?line1[x[8:3]]:line0[x[8:3]];
+            else word1<=0;
+            select1<=x[2:0];pixel2<=word1[{select1,1'b0}+:2];
+            valid1<=en_sync&&inside_panel&&display_valid;valid2<=valid1&&en_sync;
         end
-        integer j;reg [1:0] chosen;
-        always @* begin
-            chosen=0;
-            for(j=0;j<16;j=j+1)if(hit[g*16+j]!=0)chosen=hit[g*16+j];
-        end
-        always @(posedge pclk)groups[g]<=chosen;
-    end endgenerate
-    integer i;reg [1:0] chosen_group;
-    always @* begin
-        chosen_group=0;
-        for(i=0;i<16;i=i+1)if(groups[i]!=0)chosen_group=groups[i];
     end
-    // Two pixel clocks, matching the existing character/graph layers.
-    assign cls=valid2?chosen_group:2'd0;
+    assign cls=valid2?pixel2:2'd0;
     assign ink=|cls;
 endmodule

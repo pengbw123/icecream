@@ -38,7 +38,7 @@ UI[56]=快照索引，UI[57]=只读数据，UI[58] bit0=捕获、bit1=清统计�
 | RV32I 软核 | `usb_midi/rtl/rv32i.v` + `ui_firmware/main.c` | 触摸、页面、字符格、参数命令/回读、主题、用户槽、图形布局与矩形列表 |
 | 字符层 | `rtl_char_display.v` | 128×32 格 ×16 bit，4 块 BSRAM，16 色可写调色板 |
 | 包络曲线 | `ui_eg_curve.v` | 256×256 面板，256 个高度样本查表画填充/亮边/网格 |
-| 算法图 | `ui_algo_map.v` | 最多256个有序矩形，寄存器存储、两拍像素流水；类1/2/3由当前主题映射颜色 |
+| 算法图 | `ui_algo_map.v` | 最多256个有序矩形存入一个BSRAM，双行寄存缓存提前绘制；两拍像素流水，类1/2/3由当前主题映射颜色 |
 | 效果器 | `audio_fx.v` | 32×16 位配置寄存器；FILTER→REVERB→DELAY→DIST→CHORUS→PHASER + 软限幅；失真为 tanh 软削波、动态响度匹配与干湿混合，连续参数平滑 |
 | 注意 | — | 音频算术必须先扩位再相减；16 位 wet-dry 差会溢出（已修） |
 | 合唱 | `audio_chorus.v` | 2048 样本延迟线 + LFO，freq/depth/mix |
