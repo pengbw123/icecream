@@ -21,6 +21,7 @@ static int present;
 static int visual_mode;
 static int display_auto_gain=1;
 static int xy_delay=24;
+static u16 glide_ms=170;
 static u8 touch_velocity=100, headphone_select=0,glide_on=0,arp_on;
 static int slot_note[16];
 static u16 control_down;
@@ -210,6 +211,15 @@ static u16 rd(u16 addr){u32 t;cmd(0x69,(u32)addr,0);t=now();
     {u16 v=(u16)(UI[14]&0xFFFFu);UI[15]=0;return v;}}
 /* MIDI and readback travel through separate queues. Wait for the mode change
  * before another tool snapshots/restores it; never mistake a timeout for ON. */
+/* ceil(2^32 / samples) is calculated only by firmware on edits. */
+static void set_glide_time(u16 ms){u32 samples,recip;
+    if(ms<10)ms=10;if(ms>1000)ms=1000;glide_ms=ms;
+    samples=((u32)ms*3125u+32u)/64u;
+    recip=0xFFFFFFFFu/samples+1u;
+    cmd(0x6a,0x3fdu|((recip&65535u)<<16),0);
+    cmd(0x6a,0x3feu|((recip>>16)<<16),0);
+    cmd(0x6a,0x3fcu|((u32)ms<<16),0);
+}
 static void set_glide(u8 enable){u32 t;
     emit(0xb0,22,enable?127:0);t=now();
     do{if(rd(0x00c)==(u16)enable)break;}while((u32)(now()-t)<20000u);
@@ -756,6 +766,24 @@ static void slot_read_all(struct slot_t *s){
         s->pitch[i*3+2]=rd((u16)(a+2u));
     }
 }
+/* Volatile, full compiled timbre images; independent of user SD slots. */
+struct backing_t {struct slot_t patch;u16 flags[3];};
+static struct backing_t arp_patch,seq_patch[8];
+static char backing_name[11];
+static void backing_capture(struct backing_t *b){u8 i;
+    slot_read_all(&b->patch);for(i=0;i<3;i++)b->flags[i]=rd((u16)(9u+i));
+}
+static void backing_word(u16 a,u16 v){cmd(0x6a,(u32)a|((u32)v<<16),0);}
+static void backing_upload(struct backing_t *b){u8 i,j;
+    if(b->patch.magic!=SLOT_MAGIC)return;
+    backing_word(0x3ff,0);
+    for(i=0;i<9;i++)backing_word(i,b->patch.globals[i]);
+    for(i=0;i<3;i++)backing_word((u16)(9u+i),b->flags[i]);
+    for(i=0;i<6;i++)for(j=0;j<17;j++)backing_word((u16)(0x40u+(u16)i*32u+j),b->patch.op[i][j]);
+    for(i=0;i<4;i++)for(j=0;j<3;j++)backing_word((u16)(0x140u+(u16)i*8u+j),b->patch.pitch[i*3u+j]);
+    backing_word(0x3ff,1);
+    for(i=0;i<11;i++)backing_name[i]=b->patch.name[i];
+}
 static void slot_save(void){
     if(slot_sel>7u)slot_sel=0;
     slot_read_all(&slots[slot_sel]);
@@ -995,6 +1023,7 @@ static int get_sel(int *cur,int *lo,int *hi,int *cyc){
         else if(sel_row==5){*cur=touch_velocity;*lo=1;*hi=127;}
         else if(sel_row==6){*cur=headphone_select;*hi=1;*cyc=2;}
         else if(sel_row==8){*cur=glide_on;*hi=1;*cyc=2;}
+        else if(sel_row==10){*cur=glide_ms;*lo=10;*hi=1000;}
         else return 0;return 1;
     }
     return 0;
@@ -1234,6 +1263,7 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
     for(i=0;i<16;i++)slot_note[i]=-1;
     lines=0;UI[0]=0;
     page=0;sel_row=0;sel_op=5;held_id=0xFF;
+    set_glide_time(glide_ms);
     apply_theme(0);
     name_from_preset(0);
     clear_all();

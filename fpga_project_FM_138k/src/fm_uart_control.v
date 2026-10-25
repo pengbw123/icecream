@@ -76,6 +76,8 @@ module fm_uart_control (
     output reg  [9:0]  fm_note_gain_address,
     output reg  [15:0] fm_note_gain_value,
     output reg         fm_patch_commit,
+    output reg aux_write_valid,output reg [9:0] aux_write_address,
+    output reg [15:0] aux_write_value,
 
     // 0x69 parameter readback.  The softcore supplies an address, the synth
     // returns the live patch value; readback_valid is a one-clock pulse.
@@ -175,6 +177,7 @@ module fm_uart_control (
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
+            aux_write_valid<=0;aux_write_address<=0;aux_write_value<=0;
             parser_state <= WAIT_A5;
             local_pending <= 0;
             hold_valid <= 1'b0;
@@ -256,6 +259,7 @@ module fm_uart_control (
             preset_pitch_index <= 3'd0;
             preset_read_wait <= 1'b0;
         end else begin
+            aux_write_valid<=0;
             local_pending<=0;
             // Buffer physical UART bytes so a local-command injection cycle can
             // never swallow one.
@@ -419,6 +423,10 @@ module fm_uart_control (
                                 8'h67: begin
                                     fm_algorithm_flags <= payload[47:0];
                                     fm_algorithm_flags_write_valid <= 1'b1;
+                                end
+                                8'h6a: begin
+                                    aux_write_valid<=1;aux_write_address<=payload[9:0];
+                                    aux_write_value<=payload[31:16];
                                 end
                                 8'h68: begin
                                     // Deprecated: per-key gain was only consumed

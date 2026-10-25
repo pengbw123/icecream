@@ -1,12 +1,12 @@
 `timescale 1ns/1ps
 module tb_midi_arpeggiator;
     reg clk=0;always #5 clk=~clk;
-    reg reset_n=0,suspend=0,sync_step=0,external_sync=0;
+    reg reset_n=0,suspend=0,sync_step=0,external_sync=0,sequence_mode=0;
     reg [159:0] config_data={32'd7000,32'd7000,32'd10000,32'd10000,32'h6000};
     reg [31:0] din=0;reg vin=0,ready=1;
     wire rin,vout;wire [31:0] dout,status;wire [6:0] brightness;wire [127:0] notes;
     midi_arpeggiator #(.CLOCKS_PER_US(1)) dut(.clk(clk),.reset_n(reset_n),
-        .config_data(config_data),.suspend(suspend),.sync_step(sync_step),.sync_restart(1'b0),.external_sync(external_sync),
+        .config_data(config_data),.suspend(suspend),.sequence_mode(sequence_mode),.sync_step(sync_step),.sync_restart(1'b0),.external_sync(external_sync),
         .in_data(din),.in_brightness(din[6:0]),.in_valid(vin),.in_ready(rin),
         .out_data(dout),.out_brightness(brightness),.out_valid(vout),.out_ready(ready),
         .status(status),.chord_notes(notes));
@@ -110,6 +110,10 @@ module tb_midi_arpeggiator;
         if(sounding!=0||notes!=0)$fatal(1,"Practice suspend left notes");
         before_cc=ccs;midi(8'hb0,64,127);wait(ccs>before_cc);
         if(dout[6:0]!=0)$fatal(1,"Automatic mode let global sustain destroy note gates");
+        sequence_mode=1;
+        before_cc=ccs;midi(8'hb0,64,127);wait(ccs>before_cc);
+        if(dout[6:0]!=127)$fatal(1,"Sequence mode blocked LIVE sustain");
+        sequence_mode=0;
         before_on=ons;midi(8'h90,62,90);expect_pitch(before_on,62);midi(8'h80,62,0);
         @(negedge clk);suspend=0;wait(status[1]);repeat(10)@(negedge clk);
         if(status[2])$fatal(1,"Resume must wait for a new key");

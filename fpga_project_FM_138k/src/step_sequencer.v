@@ -61,7 +61,7 @@ module step_sequencer #(
         end
     endfunction
     task send_off;
-        begin midi_data<=32'h80800000|({25'd0,active_note}<<8);midi_valid<=1;end
+        begin midi_data<=32'h90800000|({25'd0,active_note}<<8);midi_valid<=1;end
     endtask
     always @(posedge clk or negedge reset_n)begin
         if(!reset_n)begin
@@ -129,7 +129,7 @@ module step_sequencer #(
                         if(active&&!current_tie)send_off();
                         else begin
                             if(current_note)begin
-                                midi_data<=32'h80900000|{17'd0,current_word[6:0],8'd0}|{25'd0,current_word[14:8]};
+                                midi_data<=32'h90900000|{17'd0,current_word[6:0],8'd0}|{25'd0,current_word[14:8]};
                                 midi_valid<=1;
                             end else begin
                                 step_left<=step_length;
@@ -148,7 +148,11 @@ module step_sequencer #(
                 timing<=timing_data;
                 running<=control_data[0]&&!control_data[1]&&!suspend;
                 recording<=control_data[1]&&!suspend;
-                if(!control_data[0]||control_data[1]||(!running&&control_data[0])||restart_seen!=control_data[2])
+                // A timing refresh of an already idle sequencer must not
+                // advertise cleanup/busy: that signal suspends the ARP.
+                if((running&&!control_data[0]) || (recording!=control_data[1]) ||
+                   (!running&&control_data[0]&&!control_data[1]) ||
+                   restart_seen!=control_data[2])
                     reset_pending<=1;
                 restart_seen<=control_data[2];
             end

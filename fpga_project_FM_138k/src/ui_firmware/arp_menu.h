@@ -18,7 +18,7 @@ static void arp_publish(void){
 static void arp_enable(u8 enable){u32 t;u8 from_sequence=(u8)(enable&&seq_is_active());
     if(enable)seq_stop();
     release_all();
-    if(enable){arp_saved_glide=from_sequence?glide_on:(u8)(rd(0x00c)!=0);
+    if(enable){backing_capture(&arp_patch);backing_upload(&arp_patch);arp_saved_glide=from_sequence?glide_on:(u8)(rd(0x00c)!=0);
         set_glide(0);}
     arp_on=enable;arp_publish();
     if(!enable){
@@ -52,8 +52,7 @@ static void draw_arp(void){
     arp_row(2,11,"OCTAVES",u1d(arp_octaves));arp_row(52,11,"GATE %",u2d(arp_gate));
     arp_row(2,14,"VELOCITY",arp_fixed?u3d(arp_velocity):"INPUT");arp_row(52,14,"SWING %",u2d(arp_swing));
     button_box(2,17,14,3,"OCT -",0);row_box(18,17,14,3,"VIEW",sgn1(octave),0);button_box(34,17,14,3,"OCT +",0);
-    text(53,17,"HOLD: LEAVE PAGE TO PLAY SOLO",2,0);
-    text(53,18,"VELOCITY: TAP VALUE TO SWITCH",2,0);
+    row_box(52,17,46,3,"BACKING",backing_name[0]?backing_name:"LIVE AT START",0);
     draw_arp_status();
 }
 static void arp_adj(u8 row,int d){int v;

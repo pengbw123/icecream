@@ -18,6 +18,12 @@ module tb_touch_ui;
     reg [7:0] model_voices=32;
     reg [11:0] model_glide_delay=0;
     reg model_glide_target=0;
+    reg [15:0] model_glide_ms=170;
+    reg [15:0] aux_words[0:1023];integer aux_count=0;
+    always @(posedge clk)if(dut.command_valid&&dut.command==8'h6a)begin
+        aux_words[dut.command_payload[9:0]]<=dut.command_payload[31:16];aux_count<=aux_count+1;
+        if(dut.command_payload[9:0]==10'h3fc)model_glide_ms<=dut.command_payload[31:16];
+    end
     initial if($test$plusargs("glide_delay"))model_glide=1;
     always @(posedge clk)if($test$plusargs("glide_delay"))begin
         if(model_glide_delay!=0)begin
@@ -30,7 +36,7 @@ module tb_touch_ui;
     end
     reg [15:0] captured_cells[0:4095];
     initial performance_case=$test$plusargs("performance");
-    wire [15:0] pr_response=dut.command_payload[9:0]==10'h00c ? {15'd0,model_glide}:pr_data;
+    wire [15:0] pr_response=dut.command_payload[9:0]==10'h00d ? model_glide_ms : dut.command_payload[9:0]==10'h00c ? {15'd0,model_glide}:pr_data;
     reg pr_valid=0;
     integer cmd_69=0,cmd_60=0,cmd_61=0,cmd_62=0,cmd_63=0,cmd_64=0,cmd_65=0,cmd_70=0,text_cells=0,pal_writes=0;
     wire perf_snap,perf_clear;wire [4:0] perf_index;
@@ -60,7 +66,7 @@ module tb_touch_ui;
     wire [127:0] test_arp_notes;
     wire [31:0] arp_test_out;wire arp_test_valid,arp_test_ready;
     midi_arpeggiator test_arp(.clk(clk),.reset_n(reset_n),.config_data(test_arp_config),
-        .suspend(dut.lesson_state[16]||dut.sequencer_active),.sync_step(1'b0),.sync_restart(1'b0),.external_sync(1'b0),
+        .suspend(dut.lesson_state[16]||dut.sequencer_active),.sequence_mode(dut.sequencer_active),.sync_step(1'b0),.sync_restart(1'b0),.external_sync(1'b0),
         .in_data(event_word),.in_brightness(event_word[6:0]),.in_valid(valid),.in_ready(arp_test_ready),
         .out_data(arp_test_out),.out_brightness(),.out_valid(arp_test_valid),.out_ready(1'b1),
         .status(test_arp_status),.chord_notes(test_arp_notes));
@@ -237,6 +243,7 @@ module tb_touch_ui;
             if(frame_kind==97)begin px=700;py=408;end
             if(frame_kind==98)begin px=550;py=320;end
             if(frame_kind==100)begin px=664;py=248;end
+            if(frame_kind==101)begin px=600;py=390;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -335,6 +342,17 @@ module tb_touch_ui;
         force dut.reset_ready=1'b1;
         wait(present);
         if(volume!==5)$fatal(1,"Power-up volume must be 5");
+        if($test$plusargs("glide_time"))begin
+            touch_kind=0;#10000000;touch_kind=17;wait(menu_page==7);#10000000;
+            touch_kind=0;#8000000;touch_kind=101;#10000000;
+            touch_kind=0;#8000000;touch_kind=14;wait(model_glide_ms==171);#5000000;
+            touch_kind=0;#8000000;
+            if(aux_words[1021]==0||aux_count<6)$fatal(1,"Glide reciprocal not sent");
+            touch_kind=23;wait(model_glide_ms>400);#10000000;touch_kind=0;#8000000;
+            if(model_glide_ms<10||model_glide_ms>1000)$fatal(1,"Glide slider range");
+            if(event_count!=0)$fatal(1,"Glide time edit changed enable / emitted notes");
+            $display("PASS real UI GLIDE MS selection, tap adjustment, slider, raw reciprocal upload and enable isolation");$finish;
+        end
         if($test$plusargs("rename"))begin
             #10000000;touch_kind=22;wait(menu_page==6);#10000000;
             touch_kind=0;#8000000;touch_kind=24;
@@ -405,21 +423,27 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=81;wait(dut.u_sequencer.edit_address==20);#5000000;
             if(dut.u_sequencer.steps[18]!==0||dut.u_sequencer.steps[19]!==32'h40000000)$fatal(1,"REST/TIE step entry");
             touch_kind=0;#8000000;touch_kind=79;wait(!dut.u_sequencer.recording);#5000000;
+            // Model a different LIVE patch after recording. Playback must
+            // upload the recording's compiled snapshot, not this new value.
+            pr_data=16'h002a;
             if($test$plusargs("glide_delay")&&!model_glide)$fatal(1,"Sequence STOP lost original glide mode");
             touch_kind=0;#8000000;touch_kind=85;wait(dut.u_sequencer.steps[20]==32'h8000603d);#5000000;
             touch_kind=0;#8000000;touch_kind=86;wait(dut.u_sequencer.steps[20]==32'h8000613d);#5000000;
             touch_kind=0;#8000000;touch_kind=78;wait(seq_ons>=1);#5000000;
             if(!dut.u_sequencer.running)$fatal(1,"Sequence START");
+            if(aux_words[0]!==16'h0021||aux_words[9]!==16'h0021||aux_words[64]!==16'h0021||aux_words[1023]!==1)
+                $fatal(1,"Recorded BACKING patch was replaced by current LIVE parameters");
             touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);#5000000;
             if(!dut.u_sequencer.running)$fatal(1,"Page exit stopped sequence");
             touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
             touch_kind=0;#8000000;touch_kind=77;wait(menu_page==11);#5000000;
-            touch_kind=0;#8000000;touch_kind=78;wait(!dut.u_sequencer.running);#5000000;
             touch_kind=0;#8000000;touch_kind=83;#5000000;
             touch_kind=0;#8000000;touch_kind=89;wait(dut.seq_timing[31:0]<125000);#5000000;
             touch_kind=0;#8000000;touch_kind=90;wait(dut.seq_timing[31:0]<80000);#5000000;
             touch_kind=0;#8000000;touch_kind=91;wait(dut.seq_timing[95:64]>dut.seq_timing[31:0]*70/100);#5000000;
             touch_kind=0;#8000000;touch_kind=92;wait(dut.seq_timing[31:0]>dut.seq_timing[63:32]);#5000000;
+            if(!dut.u_sequencer.running)$fatal(1,"Live tempo/rate/gate/swing edit stopped sequence");
+            touch_kind=0;#8000000;touch_kind=78;wait(!dut.u_sequencer.running);#5000000;
             touch_kind=0;#8000000;touch_kind=82;#5000000;
             if(dut.u_sequencer.steps[16]!==32'h80006430)$fatal(1,"CLEAR lacked confirmation");
             touch_kind=0;#8000000;touch_kind=82;wait(dut.u_sequencer.steps[16]==0);#5000000;
@@ -485,6 +509,13 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=2;wait(test_arp_notes[48]);#5000000;
             touch_kind=0;#8000000;
             if(!test_arp_notes[48])$fatal(1,"UI HOLD failed");
+            // Reproduce field failure: parameter writes also publish the
+            // stopped sequencer's timing; these must not suspend the ARP.
+            touch_kind=70;wait(dut.arp_config[63:32]<240000);#10000000;
+            touch_kind=0;#8000000;
+            if(!test_arp_notes[48]||!test_arp_status[2])$fatal(1,"HOLD tempo edit cleared chord");
+            touch_kind=72;#15000000;touch_kind=0;#8000000;
+            if(!test_arp_notes[48]||!test_arp_status[2])$fatal(1,"HOLD order edit cleared chord");
             touch_kind=11;wait(menu_page==0);wait(dut.arp_config[16]);#5000000;
             touch_kind=0;#8000000;touch_kind=2;wait(test_arp.live_notes[48]);#5000000;
             if(test_arp_notes!=(128'd1<<48))$fatal(1,"PLAY solo changed background chord");

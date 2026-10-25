@@ -56,6 +56,7 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2,parameter integer TEST_C
     wire fm_note_gain_write_valid;
     wire [9:0] fm_note_gain_address;
     wire [15:0] fm_note_gain_value;
+    wire aux_write_valid;wire [9:0] aux_write_address;wire [15:0] aux_write_value;
     wire fm_patch_commit;
     wire [9:0] patch_read_address;
     wire [15:0] patch_read_data;
@@ -115,6 +116,7 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2,parameter integer TEST_C
         .fm_note_gain_write_valid(fm_note_gain_write_valid),
         .fm_note_gain_address(fm_note_gain_address),
         .fm_note_gain_value(fm_note_gain_value), .fm_patch_commit(fm_patch_commit),
+        .aux_write_valid(aux_write_valid),.aux_write_address(aux_write_address),.aux_write_value(aux_write_value),
         .patch_read_address(patch_read_address), .patch_read_data(patch_read_data),
         .readback_data(readback_data), .readback_valid(readback_valid),
         .fx_cfg_addr(fx_cfg_addr), .fx_cfg_value(fx_cfg_value),
@@ -124,6 +126,7 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2,parameter integer TEST_C
         .current_preset(current_preset)
     );
 
+    reg reference_frozen=0;reg [31:0] test_tag=0;reg [13:0] test_bend=0;
     reg test_tick=0,test_valid=0;reg [31:0] test_event=0;reg [6:0] test_porta=0;
     // Real synth readback source (idle engine, sample_tick held low).
     wire signed [15:0] sample_out;
@@ -189,64 +192,75 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2,parameter integer TEST_C
         .fm_note_gain_write_valid(fm_note_gain_write_valid),
         .fm_note_gain_address(fm_note_gain_address),
         .fm_note_gain_value(fm_note_gain_value),
+        .aux_write_valid(aux_write_valid),.aux_write_address(aux_write_address),.aux_write_value(aux_write_value),
         .fm_patch_commit(fm_patch_commit),
         .patch_read_address(patch_read_address), .patch_read_data(patch_read_data),
-        .pitch_bend(14'd0), .vibrato_depth(7'd0), .vibrato_rate(7'd64),
+        .pitch_bend(test_bend), .vibrato_depth(7'd0), .vibrato_rate(7'd64),
         .portamento_time(test_porta), .sample_out(sample_out),
         .active_voice_count(active_voice_count),
         .operator_envelope_levels(operator_envelope_levels)
     );
     wire signed [15:0] reference_sample;wire [7:0] reference_count;wire reference_ready;
+    wire signed [31:0] reference_voice_output;
+    wire [107:0] reference_operator_state[0:5];
     generate if(TEST_COMPARE)begin:g_reference
     fm_poly_synth #(.VOICE_COUNT(16)) u_reference (
         .perf_busy(),.perf_pending(),.perf_render_start(),
         .perf_render_done(),.perf_voice_steal(),
         .clk(clk), .reset_n(reset_n), .sample_tick(test_tick),
-        .midi_event_data(test_event), .midi_event_valid(test_valid),
+        .midi_event_data(TEST_COMPARE==2 ? (test_event&32'hafffffff) : test_event), .midi_event_valid(test_valid && (TEST_COMPARE!=2 || !reference_frozen || test_tag!=0)),
         .midi_event_brightness(7'd0), .midi_event_ready(reference_ready),
-        .fm_algorithm(fm_algorithm), .fm_feedback(fm_feedback),
-        .fm_osc_sync(fm_osc_sync), .fm_transpose(fm_transpose),
-        .fm_lfo_waveform(fm_lfo_waveform), .fm_lfo_speed(fm_lfo_speed),
-        .fm_lfo_delay(fm_lfo_delay), .fm_lfo_sync(fm_lfo_sync),
-        .fm_lfo_pitch_depth(fm_lfo_pitch_depth),
-        .fm_lfo_amp_depth(fm_lfo_amp_depth),
-        .fm_pitch_mod_sensitivity(fm_pitch_mod_sensitivity),
-        .fm_operator_write_valid(fm_operator_write_valid),
+        .fm_algorithm(fm_algorithm), .fm_feedback(reference_frozen ? u_synth.back_fm_feedback : fm_feedback),
+        .fm_osc_sync(reference_frozen ? u_synth.back_fm_osc_sync : fm_osc_sync), .fm_transpose(reference_frozen ? u_synth.back_fm_transpose : fm_transpose),
+        .fm_lfo_waveform(reference_frozen ? u_synth.back_fm_lfo_waveform : fm_lfo_waveform), .fm_lfo_speed(reference_frozen ? u_synth.back_fm_lfo_speed : fm_lfo_speed),
+        .fm_lfo_delay(reference_frozen ? u_synth.back_fm_lfo_delay : fm_lfo_delay), .fm_lfo_sync(reference_frozen ? u_synth.back_fm_lfo_sync : fm_lfo_sync),
+        .fm_lfo_pitch_depth(reference_frozen ? u_synth.back_fm_lfo_pitch_depth : fm_lfo_pitch_depth),
+        .fm_lfo_amp_depth(reference_frozen ? u_synth.back_fm_lfo_amp_depth : fm_lfo_amp_depth),
+        .fm_pitch_mod_sensitivity(reference_frozen ? u_synth.back_fm_pitch_mod_sensitivity : fm_pitch_mod_sensitivity),
+        .fm_operator_write_valid(fm_operator_write_valid && !reference_frozen),
         .fm_operator_index(fm_operator_index), .fm_operator_enable(fm_operator_enable),
         .fm_operator_fixed(fm_operator_fixed), .fm_operator_detune(fm_operator_detune),
         .fm_operator_frequency(fm_operator_frequency),
         .fm_operator_output_gain(fm_operator_output_gain),
-        .fm_envelope_write_valid(fm_envelope_write_valid),
+        .fm_envelope_write_valid(fm_envelope_write_valid && !reference_frozen),
         .fm_envelope_operator(fm_envelope_operator),
         .fm_envelope_stage(fm_envelope_stage),
         .fm_envelope_coefficient(fm_envelope_coefficient),
         .fm_envelope_level(fm_envelope_level), .fm_rate_scaling(fm_rate_scaling),
         .fm_velocity_sensitivity(fm_velocity_sensitivity),
         .fm_amp_mod_sensitivity(fm_amp_mod_sensitivity),
-        .fm_scaling_write_valid(fm_scaling_write_valid),
+        .fm_scaling_write_valid(fm_scaling_write_valid && !reference_frozen),
         .fm_scaling_operator(fm_scaling_operator),
         .fm_scaling_breakpoint(fm_scaling_breakpoint),
         .fm_scaling_left_depth(fm_scaling_left_depth),
         .fm_scaling_right_depth(fm_scaling_right_depth),
         .fm_scaling_left_curve(fm_scaling_left_curve),
         .fm_scaling_right_curve(fm_scaling_right_curve),
-        .fm_pitch_envelope_write_valid(fm_pitch_envelope_write_valid),
+        .fm_pitch_envelope_write_valid(fm_pitch_envelope_write_valid && !reference_frozen),
         .fm_pitch_envelope_stage(fm_pitch_envelope_stage),
         .fm_pitch_envelope_coefficient(fm_pitch_envelope_coefficient),
         .fm_pitch_envelope_ratio(fm_pitch_envelope_ratio),
-        .fm_algorithm_flags_write_valid(fm_algorithm_flags_write_valid),
+        .fm_algorithm_flags_write_valid(fm_algorithm_flags_write_valid && !reference_frozen),
         .fm_algorithm_flags(fm_algorithm_flags),
-        .fm_note_gain_write_valid(fm_note_gain_write_valid),
+        .fm_note_gain_write_valid(fm_note_gain_write_valid && !reference_frozen),
         .fm_note_gain_address(fm_note_gain_address),
         .fm_note_gain_value(fm_note_gain_value),
-        .fm_patch_commit(fm_patch_commit),
+        .aux_write_valid(aux_write_valid),.aux_write_address(aux_write_address),.aux_write_value(aux_write_value),
+        .fm_patch_commit(fm_patch_commit && !reference_frozen),
         .patch_read_address(patch_read_address), .patch_read_data(),
-        .pitch_bend(14'd0), .vibrato_depth(7'd0), .vibrato_rate(7'd64),
+        .pitch_bend(test_bend), .vibrato_depth(7'd0), .vibrato_rate(7'd64),
         .portamento_time(test_porta), .sample_out(reference_sample),
         .active_voice_count(reference_count),
         .operator_envelope_levels()
     );
-    end else begin assign reference_sample=0;assign reference_count=0;assign reference_ready=1;end endgenerate
+    assign reference_voice_output=u_reference.voice_output[0];
+    for(genvar rs=0;rs<6;rs=rs+1)begin:g_states
+        assign reference_operator_state[rs]=u_reference.operator_state_memory[rs];
+    end
+    end else begin
+        assign reference_sample=0;assign reference_count=0;assign reference_ready=1;assign reference_voice_output=0;
+        for(genvar rs=0;rs<6;rs=rs+1)begin:g_states_zero assign reference_operator_state[rs]=0;end
+    end endgenerate
 
 
     // New FX register file / readback path (command 0x70, 0x69 0x200+addr).
@@ -330,7 +344,7 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2,parameter integer TEST_C
 
     task key_event(input [7:0] status,input [6:0] note,value);
         begin
-            wait(synth_midi_ready);@(negedge clk);test_event={8'd0,status,1'b0,note,1'b0,value};test_valid=1;
+            wait(synth_midi_ready);@(negedge clk);test_event=test_tag|{8'd0,status,1'b0,note,1'b0,value};test_valid=1;
             @(negedge clk);test_valid=0;
             repeat(400)@(negedge clk);
         end
@@ -385,6 +399,103 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2,parameter integer TEST_C
             $display("PASS mono legato: overlap, preserved phase/EG, signed glide, exact endpoint, last priority, sustain, panic and poly bypass");
         end
     endtask
+    task fast_command(input [7:0] c,input [63:0] d);
+        begin wait(local_ready);@(negedge clk);local_cmd=c;local_payload=d;local_valid=1;
+            @(negedge clk);local_valid=0;repeat(12)@(negedge clk);end
+    endtask
+    task aux(input [9:0] a,input [15:0] v);
+        begin fast_command(8'h6a,{32'd0,v,6'd0,a});end
+    endtask
+    task fast_read(input [9:0] a);
+        begin rb_flag=0;fast_command(8'h69,{54'd0,a});wait(rb_flag);got=rb_value;rb_flag=0;end
+    endtask
+    task copy_backing;
+        integer op,w,st;
+        begin
+            aux(10'h3ff,0);
+            for(w=0;w<12;w=w+1)begin fast_read(w);aux(w,got);end
+            for(op=0;op<6;op=op+1)for(w=0;w<17;w=w+1)begin
+                fast_read(10'h40+op*32+w);aux(10'h40+op*32+w,got);
+            end
+            for(st=0;st<4;st=st+1)for(w=0;w<3;w=w+1)begin
+                fast_read(10'h140+st*8+w);aux(10'h140+st*8+w,got);
+            end
+            aux(10'h3ff,1);
+        end
+    endtask
+    task check_parts;
+        integer n,z,live_v,back_v;reg [31:0] inc_before,recip;
+        reg [31:0] back_phase;reg [25:0] env_before;
+        begin
+            test_bend=8192;
+            // Make patch LFO pitch modulation audible in the comparison.
+            fast_command(8'h60,{8'd60,8'd40,8'd0,8'd45,5'd0,fm_lfo_waveform,1'b0,fm_transpose,3'd0,1'b1,fm_osc_sync,fm_feedback,3'd0,fm_algorithm});
+            fast_command(8'h61,3);
+            copy_backing();reference_frozen=1;
+            test_tag=32'h40000000;key_event(8'h90,60,100);
+            back_v=u_synth.display_voice;
+            if(!u_synth.voice_part[back_v])$fatal(1,"BACKING note owner missing");
+            for(n=0;n<256;n=n+1)begin audio_frame();
+                if(sample_out!==reference_sample)$fatal(1,"BACKING PCM mismatch at %d: %d / %d",n,sample_out,reference_sample);
+            end
+            inc_before=u_synth.operator_state_memory[back_v*6][75:44];
+            back_phase=u_synth.back_lfo_phase;
+            // Changing LIVE preset must neither kill BACKING nor reset its LFO.
+            @(negedge clk);preset_select=11;preset_select_valid=1;
+            @(negedge clk);preset_select_valid=0;repeat(500)@(negedge clk);
+            if(!u_synth.voice_gate[back_v]||u_synth.back_lfo_phase!=back_phase)$fatal(1,"LIVE load disturbed BACKING");
+            for(n=0;n<256;n=n+1)begin audio_frame();
+                if(sample_out!==reference_sample)$fatal(1,"LIVE load changed BACKING PCM %d: %d / %d",n,sample_out,reference_sample);
+            end
+            test_tag=0;key_event(8'h90,60,100);live_v=u_synth.display_voice;
+            if(live_v==back_v||u_synth.voice_part[live_v]||active_voice_count!=2)$fatal(1,"Same pitch not independent");
+            if(u_synth.operator_state_memory[live_v*6][75:44]==inc_before)$fatal(1,"Two timbres used same operator frequency");
+            for(n=0;n<128;n=n+1)begin
+                audio_frame();
+                if(u_synth.voice_output[back_v]!==reference_voice_output)$fatal(1,"Mixed timbres changed BACKING bus output");
+                for(z=0;z<6;z=z+1)
+                    if(u_synth.operator_state_memory[back_v*6+z]!==reference_operator_state[z])
+                        $fatal(1,"Mixed timbres corrupted independent operator state");
+            end
+            key_event(8'hb0,64,127);key_event(8'h80,60,0);
+            if(!u_synth.voice_gate[live_v]||!u_synth.voice_gate[back_v])$fatal(1,"LIVE sustain isolation");
+            test_tag=32'h40000000;key_event(8'h80,60,0);
+            if(u_synth.voice_gate[back_v]||!u_synth.voice_gate[live_v])$fatal(1,"BACKING release / LIVE sustain overlap");
+            test_tag=0;key_event(8'hb0,64,0);
+            if(u_synth.voice_gate[live_v])$fatal(1,"LIVE sustain release");
+            test_tag=32'h10000000;key_event(8'h90,64,90);
+            back_v=u_synth.display_voice;
+            test_tag=0;key_event(8'h90,67,90);live_v=u_synth.display_voice;
+            test_tag=32'h40000000;key_event(8'hb0,123,0);
+            if(u_synth.voice_gate[back_v]||!u_synth.voice_gate[live_v])$fatal(1,"ARP stop killed LIVE / failed to release sequence part");
+            test_tag=0;key_event(8'hb0,120,0);
+            if(active_voice_count!=0)$fatal(1,"Global panic");
+            $display("PASS dual part: exact BACKING PCM, LIVE preset isolation, same pitch independent voices, sustain, ARP/SEQ tags and scoped stop");
+        end
+    endtask
+    task check_glide_time;
+        integer n;reg [31:0] samples,recip,start,target,fast_step,slow_step,previous;
+        begin
+            test_porta=127;repeat(5)@(negedge clk);
+            key_event(8'h90,60,100);key_event(8'h90,72,100);
+            samples=(10*3125+32)/64;recip=32'hffffffff/samples+1;
+            aux(10'h3fd,recip[15:0]);aux(10'h3fe,{8'd0,recip[23:16]});
+            if(u_synth.glide_reciprocal!=524288)$fatal(1,"Glide half-written reciprocal visible");
+            aux(10'h3fc,10);fast_read(10'h00d);if(got!=10)$fatal(1,"Glide time readback");
+            key_event(8'h90,84,100);start=u_synth.operator_state_memory[0][75:44];
+            target=u_synth.glide_memory[0][31:0];fast_step=u_synth.glide_memory[0][64:32];previous=start;
+            for(n=0;n<samples+2;n=n+1)begin audio_frame();
+                if(u_synth.operator_state_memory[0][75:44]<previous||u_synth.operator_state_memory[0][75:44]>target)$fatal(1,"10 ms glide discontinuity");
+                previous=u_synth.operator_state_memory[0][75:44];
+            end
+            if(previous!=target)$fatal(1,"10 ms glide duration");
+            samples=(1000*3125+32)/64;recip=32'hffffffff/samples+1;
+            aux(10'h3fd,recip[15:0]);aux(10'h3fe,{8'd0,recip[23:16]});aux(10'h3fc,1000);
+            key_event(8'h90,96,100);slow_step=u_synth.glide_memory[0][64:32];
+            if(slow_step>=fast_step/40||slow_step==0)$fatal(1,"1000 ms glide rate not slower");
+            $display("PASS adjustable glide: atomic reciprocal, 10/1000 ms endpoints, readback, monotonic samples and exact fast endpoint");
+        end
+    endtask
     integer bank_n;
     reg [63:0] payload;
     integer race_ok;
@@ -393,7 +504,7 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2,parameter integer TEST_C
     always @(negedge clk)if(poly_clock)begin poly_div<=poly_div+1'b1;test_tick<=poly_div==0;end
     task burst_event(input [7:0] status,input [6:0] note,value);
         begin
-            wait(synth_midi_ready);@(negedge clk);test_event={8'd0,status,1'b0,note,1'b0,value};test_valid=1;
+            wait(synth_midi_ready);@(negedge clk);test_event=test_tag|{8'd0,status,1'b0,note,1'b0,value};test_valid=1;
             @(negedge clk);test_valid=0;
         end
     endtask
@@ -493,6 +604,27 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2,parameter integer TEST_C
             $display("PASS real FM telemetry: voices=%0d render=%0d response=%0d frames=%0d steals=1",TEST_VOICES,perf_render_expected,perf_response_expected,TEST_VOICES+1);$finish;
         end
 
+        if($test$plusargs("parts_dense"))begin
+            copy_backing();poly_clock=1;
+            for(poly_v=0;poly_v<32;poly_v=poly_v+1)begin
+                test_tag=poly_v[0]?32'h40000000:0;
+                burst_event(8'h90,48+poly_v/2,100);
+            end
+            repeat(1024)@(negedge clk);
+            if(active_voice_count!=32)$fatal(1,"Dual part full voice allocation: %d",active_voice_count);
+            for(poly_v=0;poly_v<400;poly_v=poly_v+1)begin
+                test_tag=poly_v[0]?32'h40000000:0;
+                burst_event(8'h90,48+(poly_v%16),80+poly_v%40);
+            end
+            repeat(512*1024)@(negedge clk);
+            poly_clock=0;test_tick=0;wait(!perf_busy&&!perf_pending);
+            @(negedge clk);perf_snapshot=1;@(negedge clk);perf_snapshot=0;
+            perf_index=8;#1;if(perf_data!=0)$fatal(1,"Dual part missed deadline %d",perf_data);
+            perf_index=9;#1;if(perf_data!=0)$fatal(1,"Dual part dropped samples %d",perf_data);
+            $display("PASS dual part 32 voices / 432 dense events / fixed 1024-clock sample cadence: no deadline misses or dropped samples");$finish;
+        end
+        if($test$plusargs("parts"))begin check_parts();$finish;end
+        if($test$plusargs("glide_time"))begin check_glide_time();$finish;end
         if($test$plusargs("legato"))begin repeat(500)@(negedge clk);check_mono();$finish;end
 
         // 1. operator field write then read back through the synth.
@@ -622,7 +754,6 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2,parameter integer TEST_C
     end
     initial begin
         if($test$plusargs("legato"))#500000000;else #40000000; // 40 ms guard: each UART packet is ~0.95 ms at 115200
-        $display("FAIL timeout");
-        $finish;
+        $fatal(1,"FM regression timeout");
     end
 endmodule

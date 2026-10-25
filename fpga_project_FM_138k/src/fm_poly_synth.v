@@ -68,6 +68,8 @@ module fm_poly_synth #(
     input  wire [9:0]         fm_note_gain_address,
     input  wire [15:0]        fm_note_gain_value,
     input  wire               fm_patch_commit,
+    input wire aux_write_valid,input wire [9:0] aux_write_address,
+    input wire [15:0] aux_write_value,
     // 0x69 parameter readback: live patch values for the on-device editor.
     input  wire [9:0]         patch_read_address,
     output reg  [15:0]        patch_read_data,
@@ -162,6 +164,47 @@ module fm_poly_synth #(
     reg signed [22:0] patch_pitch_target [0:3];
     reg [7:0]  patch_algorithm_flags [0:5];
 
+    reg        back_patch_op_enable [0:5];
+    reg        back_patch_op_fixed [0:5];
+    reg [31:0] back_patch_op_frequency [0:5];
+    reg [3:0]  back_patch_op_detune [0:5];
+    reg [15:0] back_patch_op_gain [0:5];
+    // Compiled DX7 rate-clock value.  This replaces the old one-pole
+    // coefficient whose asymptotic tail caused ten-second notes.
+    reg [5:0]  back_patch_eg_qrate [0:23];
+    reg [15:0] back_patch_eg_level [0:23];
+    reg [2:0]  back_patch_rate_scaling [0:5];
+    reg [2:0]  back_patch_velocity_sensitivity [0:5];
+    reg [1:0]  back_patch_amp_mod_sensitivity [0:5];
+    reg [6:0]  back_patch_breakpoint [0:5];
+    reg [6:0]  back_patch_left_depth [0:5];
+    reg [6:0]  back_patch_right_depth [0:5];
+    reg [1:0]  back_patch_left_curve [0:5];
+    reg [1:0]  back_patch_right_curve [0:5];
+    reg [7:0] back_patch_pitch_step [0:3];
+    reg signed [22:0] back_patch_pitch_target [0:3];
+    reg [7:0]  back_patch_algorithm_flags [0:5];
+
+    reg [2:0] back_fm_feedback;
+    reg [0:0] back_fm_osc_sync;
+    reg [6:0] back_fm_transpose;
+    reg [2:0] back_fm_lfo_waveform;
+    reg [6:0] back_fm_lfo_speed;
+    reg [6:0] back_fm_lfo_delay;
+    reg [0:0] back_fm_lfo_sync;
+    reg [6:0] back_fm_lfo_pitch_depth;
+    reg [6:0] back_fm_lfo_amp_depth;
+    reg [2:0] back_fm_pitch_mod_sensitivity;
+    reg backing_valid;
+    reg [9:0] glide_time_ms;
+    reg [23:0] glide_reciprocal;
+    reg [23:0] glide_reciprocal_shadow;
+    // Auxiliary address map matches the editor's compiled words. 0x3ff
+    // marks a complete BACKING upload, 0x3fc..3fe configure LIVE glide.
+    wire [2:0] aux_op=aux_write_address[9:5]-3'd2;
+    wire [4:0] aux_off=aux_write_address[4:0];
+    wire [1:0] aux_stage=aux_write_address[4:3];
+
     // Patch readback for the on-device editor (UART command 0x69).
     //   0x000..0x00B global fields + 48-bit routing flags
     //   0x040 + op*0x20 + off  per-operator fields (op 0..5)
@@ -188,6 +231,8 @@ module fm_poly_synth #(
                 4'hA: patch_read_data <= fm_algorithm_flags[31:16];
                 4'hB: patch_read_data <= fm_algorithm_flags[47:32];
                 4'hC: patch_read_data <= {15'd0,(portamento_time!=0)};
+                4'hD: patch_read_data <= {6'd0,glide_time_ms};
+                4'hE: patch_read_data <= {15'd0,backing_valid};
                 default: patch_read_data <= 16'd0;
             endcase
         end else if (patch_read_address < 10'h100) begin
@@ -240,6 +285,10 @@ module fm_poly_synth #(
     end
 
     // Per-voice and per-operator real-time state.
+    reg voice_part [0:VOICE_COUNT-1];
+    reg event_part;
+    wire pending_part=pending_event[30]|pending_event[28];
+    reg back_sustain_active;
     reg        voice_active [0:VOICE_COUNT-1];
     reg        voice_gate [0:VOICE_COUNT-1];
     reg        voice_key_down [0:VOICE_COUNT-1];
@@ -273,7 +322,7 @@ module fm_poly_synth #(
     wire mono_candidate=mono_held[mono_scan_index] && mono_scan_age<mono_best_age;
     always @(posedge clk)begin
         mono_history_q<=mono_history[mono_scan_index];
-        if(reset_n && engine_state==ENGINE_IDLE && event_pending && mono_mode &&
+        if(reset_n && engine_state==ENGINE_IDLE && event_pending && mono_mode && !pending_part &&
            pending_event[23:20]==4'h9 && pending_event[6:0]!=0)
             mono_history[pending_event[14:8]]<={mono_sequence,pending_event[6:0]};
     end
@@ -491,21 +540,6 @@ module fm_poly_synth #(
         end
     endfunction
 
-    function [4:0] glide_shift;
-        input [6:0] value;
-        begin
-            case (value[6:4])
-                3'd0: glide_shift = 5'd4;
-                3'd1: glide_shift = 5'd6;
-                3'd2: glide_shift = 5'd8;
-                3'd3: glide_shift = 5'd10;
-                3'd4: glide_shift = 5'd11;
-                3'd5: glide_shift = 5'd12;
-                3'd6: glide_shift = 5'd13;
-                default: glide_shift = 5'd14;
-            endcase
-        end
-    endfunction
 
     // Global LFO. The patch LFO and physical modulation strip share the same
     // oscillator; the strip adds depth and its RATE knob can override speed.
@@ -583,6 +617,75 @@ module fm_poly_synth #(
         (pitch_index_combined > 11'sd511) ? 9'd511 : pitch_index_combined[8:0];
     reg [16:0] global_pitch_ratio;
 
+
+    // Independent BACKING modulation; physical wheel/bend belong to LIVE.
+    reg [31:0] back_lfo_phase;
+    reg [31:0] back_lfo_delay_state;
+    reg [5:0] back_lfo_delay_block_sample;
+    reg signed [7:0] back_lfo_sample_hold;
+    reg [15:0] back_lfo_amp_base;
+    // Global LFO. The patch LFO and physical modulation strip share the same
+    // oscillator; the strip adds depth and its RATE knob can override speed.
+    wire [7:0] back_lfo_ramp = back_lfo_phase[31:24];
+    wire signed [8:0] back_lfo_triangle = back_lfo_phase[31]
+        ? (9'sd255 - $signed({1'b0, back_lfo_phase[30:23]}) * 2)
+        : ($signed({1'b0, back_lfo_phase[30:23]}) * 2 - 9'sd255);
+    reg signed [8:0] back_lfo_value;
+    always @* begin
+        case (back_fm_lfo_waveform)
+            3'd0: back_lfo_value = back_lfo_triangle;
+            3'd1: back_lfo_value = 9'sd255 - $signed({1'b0, back_lfo_ramp}) * 2;
+            3'd2: back_lfo_value = $signed({1'b0, back_lfo_ramp}) * 2 - 9'sd255;
+            3'd3: back_lfo_value = back_lfo_phase[31] ? -9'sd255 : 9'sd255;
+            3'd4: back_lfo_value = dx7_lfo_sine[back_lfo_phase[31:24]];
+            default: back_lfo_value = $signed(back_lfo_sample_hold) <<< 1;
+        endcase
+    end
+    // DX7 amplitude modulation is one-sided: a maximum LFO sample gives no
+    // attenuation and a minimum sample gives the deepest attenuation.  The
+    // former absolute value made two AM pulses per LFO cycle and removed the
+    // intended slow brightness/level sweep from AMS-heavy patches.
+    wire [8:0] back_lfo_amp_unipolar =
+        (10'sd255 - $signed({back_lfo_value[8], back_lfo_value})) >>> 1;
+    wire [6:0] back_selected_lfo_speed = (7'd64 != 7'd64)
+        ? 7'd64 : back_fm_lfo_speed;
+    wire [31:0] back_lfo_phase_increment =
+        dx7_lfo_phase_increment[back_selected_lfo_speed];
+
+    wire [6:0] back_lfo_delay_table_address = (back_fm_lfo_delay > 7'd99)
+        ? 7'd99 : back_fm_lfo_delay;
+    wire [31:0] back_lfo_delay_increment = back_lfo_delay_state[31]
+        ? dx7_lfo_delay_inc2[back_lfo_delay_table_address]
+        : dx7_lfo_delay_inc[back_lfo_delay_table_address];
+    wire [32:0] back_lfo_delay_advance = {1'b0, back_lfo_delay_state} +
+        {1'b0, back_lfo_delay_increment};
+    wire [7:0] back_lfo_delay_advance_fade = back_lfo_delay_advance[32]
+        ? 8'hff
+        : back_lfo_delay_advance[31] ? back_lfo_delay_advance[30:23] : 8'd0;
+    reg [7:0] back_lfo_fade;
+    wire signed [17:0] back_lfo_value_delayed_product = back_lfo_value *
+        $signed({1'b0, back_lfo_fade});
+    reg signed [8:0] back_lfo_value_delayed;
+    wire [7:0] back_patch_pitch_sensitivity =
+        pitch_mod_sensitivity_scale(back_fm_pitch_mod_sensitivity);
+    wire signed [26:0] back_lfo_patch_pitch_product = back_lfo_value_delayed *
+        $signed({1'b0, back_fm_lfo_pitch_depth}) *
+        $signed({1'b0, back_patch_pitch_sensitivity});
+    // The physical MOD strip remains useful even when the loaded DX7 voice
+    // has PMS=0.  Its fixed scale is close to DX7 sensitivity setting 5.
+    wire signed [25:0] back_lfo_manual_pitch_product = back_lfo_value_delayed *
+        $signed({1'b0, 7'd0}) * 8'sd92;
+    wire signed [27:0] back_lfo_pitch_product =
+        $signed({back_lfo_patch_pitch_product[26], back_lfo_patch_pitch_product}) +
+        $signed({{2{back_lfo_manual_pitch_product[25]}}, back_lfo_manual_pitch_product});
+    wire signed [11:0] back_lfo_pitch_index_wide = back_lfo_pitch_product >>> 16;
+    wire signed [9:0] back_lfo_pitch_index = back_lfo_pitch_index_wide[9:0];
+    wire signed [10:0] back_pitch_index_combined =
+        $signed({2'b00, 9'd256}) + back_lfo_pitch_index;
+    wire [8:0] back_pitch_table_address = (back_pitch_index_combined < 0) ? 9'd0 :
+        (back_pitch_index_combined > 11'sd511) ? 9'd511 : back_pitch_index_combined[8:0];
+    reg [16:0] back_global_pitch_ratio;
+
     // Operator issue combinational path.
     wire [SLOT_BITS-1:0] issue_slot_wide = scheduler_voice * 6 + scheduler_operator;
     wire event_read_slot=(engine_state==ENGINE_EVENT_INIT || engine_state==ENGINE_EVENT_GAIN_WAIT ||
@@ -590,7 +693,7 @@ module fm_poly_synth #(
         engine_state==ENGINE_EVENT_GAIN_CAPTURE);
     assign operator_state_read_address = event_read_slot ?
         event_target_voice*6+event_init_operator : issue_slot_wide;
-    wire [7:0] issue_flags = patch_algorithm_flags[scheduler_operator];
+    wire [7:0] issue_flags = (voice_part[scheduler_voice] ? back_patch_algorithm_flags[scheduler_operator] : patch_algorithm_flags[scheduler_operator]);
     wire [1:0] issue_input_bus = issue_flags[5:4];
     wire signed [31:0] issue_bus_value =
         (issue_input_bus == 2'd1) ? voice_bus_one[scheduler_voice] :
@@ -601,8 +704,8 @@ module fm_poly_synth #(
         $signed({voice_feedback_new[scheduler_voice][27],
                  voice_feedback_new[scheduler_voice]});
     wire signed [28:0] issue_feedback_shifted =
-        issue_feedback_sum >>> (4'd9 - fm_feedback);
-    wire signed [31:0] issue_feedback_value = (fm_feedback == 0)
+        issue_feedback_sum >>> (4'd9 - (voice_part[scheduler_voice] ? back_fm_feedback : fm_feedback));
+    wire signed [31:0] issue_feedback_value = ((voice_part[scheduler_voice] ? back_fm_feedback : fm_feedback) == 0)
         ? 32'sd0
         : $signed({{3{issue_feedback_shifted[28]}}, issue_feedback_shifted}) <<< 8;
     wire signed [32:0] issue_modulation_sum =
@@ -612,8 +715,8 @@ module fm_poly_synth #(
 
     wire [31:0] render_phase = operator_state_read_data[107:76];
     wire [31:0] render_increment = operator_state_read_data[75:44];
-    // Fixed ~168 ms linear-frequency glide (8192 samples), without an onset
-    // interval test. Current increments live in the existing operator RAM.
+    // Linear-frequency glide, with a precomputed Q0.32 reciprocal duration.
+    // Current increments live in the existing operator RAM.
     reg [64:0] glide_memory[0:SLOT_COUNT-1];
     reg [64:0] glide_q;
     reg [107:0] event_old_state;
@@ -626,7 +729,9 @@ module fm_poly_synth #(
     wire signed [32:0] event_glide_delta=$signed({1'b0,event_corrected_increment})-
                                                $signed({1'b0,event_old_state[75:44]});
     wire [32:0] event_glide_abs=event_glide_delta[32]?-event_glide_delta:event_glide_delta;
-    wire [32:0] event_glide_magnitude=(event_glide_abs+33'd8191)>>13;
+    reg [56:0] event_glide_product;
+    wire [57:0] event_glide_rounded={1'b0,event_glide_product}+58'd4294967295;
+    wire [32:0] event_glide_magnitude={7'd0,event_glide_rounded[57:32]};
     wire signed [32:0] event_glide_step=event_glide_delta[32] ?
         -$signed(event_glide_magnitude):$signed(event_glide_magnitude);
     always @(posedge clk)begin
@@ -654,7 +759,7 @@ module fm_poly_synth #(
     // the intended behavior, this keeps a mux out of the DSP input path and
     // preserves the small but important margin over the 50 MHz constraint.
     wire [36:0] issue_frequency_wide =
-        patch_op_fixed[operator_read_operator]
+        (voice_part[operator_read_voice] ? back_patch_op_fixed[operator_read_operator] : patch_op_fixed[operator_read_operator])
         ? {5'd0, render_increment} : issue_global_pitch_product[52:16];
     wire [31:0] issue_frequency = |issue_frequency_wide[36:32]
         ? 32'hffffffff : issue_frequency_wide[31:0];
@@ -668,7 +773,7 @@ module fm_poly_synth #(
 
     wire [4:0] issue_eg_patch_index = operator_read_operator * 4 + render_env_stage;
     wire signed [17:0] issue_env_target_integer_wide =
-        $signed({1'b0, patch_eg_level[issue_eg_patch_index]}) +
+        $signed({1'b0, (voice_part[operator_read_voice] ? back_patch_eg_level[issue_eg_patch_index] : patch_eg_level[issue_eg_patch_index])}) +
         $signed(render_level_offset);
     wire [11:0] issue_env_target_integer =
         (issue_env_target_integer_wide < 18'sd16) ? 12'd16 :
@@ -683,19 +788,19 @@ module fm_poly_synth #(
         ? ((issue_note_third - 7'd7 > 7'd31)
            ? 5'd31 : issue_note_third - 7'd7) : 5'd0;
     wire [7:0] issue_rate_scale_product = issue_rate_group *
-        patch_rate_scaling[operator_read_operator];
+        (voice_part[operator_read_voice] ? back_patch_rate_scaling[operator_read_operator] : patch_rate_scaling[operator_read_operator]);
     wire [5:0] issue_rate_scale_delta = issue_rate_scale_product >> 3;
-    wire [6:0] issue_qrate_sum = patch_eg_qrate[issue_eg_patch_index] +
+    wire [6:0] issue_qrate_sum = (voice_part[operator_read_voice] ? back_patch_eg_qrate[issue_eg_patch_index] : patch_eg_qrate[issue_eg_patch_index]) +
         issue_rate_scale_delta;
     wire [5:0] issue_qrate = issue_qrate_sum > 7'd63
         ? 6'd63 : issue_qrate_sum[5:0];
     wire [23:0] issue_env_step = dx7_eg_block_step[issue_qrate];
-    wire [23:0] issue_amp_lfo_fade_product = lfo_amp_base * lfo_fade;
+    wire [23:0] issue_amp_lfo_fade_product = (voice_part[operator_read_voice] ? back_lfo_amp_base : lfo_amp_base) * (voice_part[operator_read_voice] ? back_lfo_fade : lfo_fade);
     wire [7:0] issue_amp_lfo_depth = issue_amp_lfo_fade_product[23:16];
     wire [6:0] issue_amp_lfo_depth_clamped =
         (issue_amp_lfo_depth > 8'd99) ? 7'd99 : issue_amp_lfo_depth[6:0];
     wire [8:0] issue_ams_address =
-        {patch_amp_mod_sensitivity[operator_read_operator],
+        {(voice_part[operator_read_voice] ? back_patch_amp_mod_sensitivity[operator_read_operator] : patch_amp_mod_sensitivity[operator_read_operator]),
          issue_amp_lfo_depth_clamped};
     wire [15:0] issue_ams_attenuation =
         dx7_ams_attenuation_q15[issue_ams_address];
@@ -910,7 +1015,7 @@ module fm_poly_synth #(
     // PitchEnv::getsample in msfa/Dexed. The former one-pole ratio mover slowed
     // down near every target and gave exaggerated bends on wide intervals.
     wire [2:0] prep_pitch_index = voice_pitch_stage[scheduler_voice];
-    wire signed [22:0] prep_pitch_target = patch_pitch_target[prep_pitch_index];
+    wire signed [22:0] prep_pitch_target = (voice_part[scheduler_voice] ? back_patch_pitch_target[prep_pitch_index] : patch_pitch_target[prep_pitch_index]);
     wire signed [23:0] prep_pitch_delta_input =
         $signed(prep_pitch_target) -
         $signed(voice_pitch_level[scheduler_voice]);
@@ -951,11 +1056,11 @@ module fm_poly_synth #(
             default: prep_pitch_ratio_resolved = prep_fraction_ratio_latched << 3;
         endcase
     end
-    wire [37:0] prep_combined_product = prep_pitch_ratio_resolved * global_pitch_ratio;
+    wire [37:0] prep_combined_product = prep_pitch_ratio_resolved * (voice_part[prep_voice_latched] ? back_global_pitch_ratio : global_pitch_ratio);
     wire [20:0] prep_combined_ratio = |prep_combined_product[37]
         ? 21'h1fffff : prep_combined_product[36:16];
 
-    wire [6:0] event_transposed_note = transpose_note(event_note, fm_transpose);
+    wire [6:0] event_transposed_note = transpose_note(event_note, (event_part ? back_fm_transpose : fm_transpose));
     wire [63:0] event_frequency_product =
         event_note_increment_latched * event_patch_frequency_latched;
     wire [31:0] event_operator_increment = event_patch_fixed_latched
@@ -963,12 +1068,12 @@ module fm_poly_synth #(
     wire signed [8:0] event_velocity_curve_signed =
         $signed({1'b0, dx7_velocity_curve[event_velocity[6:1]]}) - 9'sd239;
     wire signed [12:0] event_velocity_product = event_velocity_curve_signed *
-        $signed({1'b0, patch_velocity_sensitivity[event_init_operator]});
+        $signed({1'b0, (event_part ? back_patch_velocity_sensitivity[event_init_operator] : patch_velocity_sensitivity[event_init_operator])});
     wire signed [15:0] event_velocity_delta =
         (($signed(event_velocity_product) + 13'sd7) >>> 3) <<< 4;
     wire signed [8:0] event_scale_note_offset =
         $signed({2'b00, event_note}) -
-        $signed({2'b00, patch_breakpoint[event_init_operator]}) - 9'sd17;
+        $signed({2'b00, (event_part ? back_patch_breakpoint[event_init_operator] : patch_breakpoint[event_init_operator])}) - 9'sd17;
     wire event_scale_right = !event_scale_note_offset[8];
     wire [8:0] event_scale_distance = event_scale_right
         ? event_scale_note_offset : -event_scale_note_offset;
@@ -976,11 +1081,11 @@ module fm_poly_synth #(
     wire [5:0] event_scale_group_wire = (event_scale_group_raw > 32)
         ? 6'd32 : event_scale_group_raw[5:0];
     wire [6:0] event_scale_depth_wire = event_scale_right
-        ? patch_right_depth[event_init_operator]
-        : patch_left_depth[event_init_operator];
+        ? (event_part ? back_patch_right_depth[event_init_operator] : patch_right_depth[event_init_operator])
+        : (event_part ? back_patch_left_depth[event_init_operator] : patch_left_depth[event_init_operator]);
     wire [1:0] event_scale_curve_wire = event_scale_right
-        ? patch_right_curve[event_init_operator]
-        : patch_left_curve[event_init_operator];
+        ? (event_part ? back_patch_right_curve[event_init_operator] : patch_right_curve[event_init_operator])
+        : (event_part ? back_patch_left_curve[event_init_operator] : patch_left_curve[event_init_operator]);
     wire [7:0] event_scale_source =
         ((event_scale_curve == 0) || (event_scale_curve == 3))
         ? {2'd0, event_scale_group} : dx7_exp_scale(event_scale_group);
@@ -1020,6 +1125,8 @@ module fm_poly_synth #(
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             engine_state <= ENGINE_IDLE;
+            event_part<=0;back_sustain_active<=0;backing_valid<=0;
+            glide_time_ms<=168;glide_reciprocal<=24'd524288;glide_reciprocal_shadow<=24'd524288;event_glide_product<=0;
             event_pending <= 1'b0;
             pending_event <= 32'd0;
             pending_brightness <= 7'd0;
@@ -1073,12 +1180,21 @@ module fm_poly_synth #(
             lfsr <= 16'h1ace;
             lfo_amp_base <= 16'd0;
             global_pitch_ratio <= 17'h10000;
+            back_lfo_phase <= 32'd0;
+            back_lfo_delay_state <= 32'hffffffff;
+            back_lfo_delay_block_sample <= 6'd0;
+            back_lfo_fade <= 8'hff;
+            back_lfo_value_delayed <= 9'sd0;
+            back_lfo_sample_hold <= 8'sd0;
+            back_lfo_amp_base <= 16'd0;
+            back_global_pitch_ratio <= 17'h10000;
             master_volume_target <= 7'd5;
             master_volume_current <= 7'd5;
             sustain_active <= 1'b0;
             allocation_cursor <= {VOICE_BITS{1'b0}};
             display_voice <= {VOICE_BITS{1'b0}};
             operator_envelope_levels <= 48'd0;
+            for(i=0;i<VOICE_COUNT;i=i+1)voice_part[i]<=0;
             voice_carrier_alive <= {VOICE_COUNT{1'b0}};
             a0_valid <= 1'b0;
             b0_valid <= 1'b0;
@@ -1134,6 +1250,34 @@ module fm_poly_synth #(
             operator_read_flags <= 0;
             operator_read_modulation <= 0;
 
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_op_enable[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_op_fixed[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_op_frequency[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_op_detune[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_op_gain[init_index]<=0;
+            for(init_index=0;init_index<=23;init_index=init_index+1)back_patch_eg_qrate[init_index]<=0;
+            for(init_index=0;init_index<=23;init_index=init_index+1)back_patch_eg_level[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_rate_scaling[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_velocity_sensitivity[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_amp_mod_sensitivity[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_breakpoint[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_left_depth[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_right_depth[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_left_curve[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_right_curve[init_index]<=0;
+            for(init_index=0;init_index<=3;init_index=init_index+1)back_patch_pitch_step[init_index]<=0;
+            for(init_index=0;init_index<=3;init_index=init_index+1)back_patch_pitch_target[init_index]<=0;
+            for(init_index=0;init_index<=5;init_index=init_index+1)back_patch_algorithm_flags[init_index]<=0;
+            back_fm_feedback<=0;
+            back_fm_osc_sync<=0;
+            back_fm_transpose<=24;
+            back_fm_lfo_waveform<=0;
+            back_fm_lfo_speed<=0;
+            back_fm_lfo_delay<=0;
+            back_fm_lfo_sync<=0;
+            back_fm_lfo_pitch_depth<=0;
+            back_fm_lfo_amp_depth<=0;
+            back_fm_pitch_mod_sensitivity<=0;
             // Default electric-piano patch. Operators are OP6..OP1.
             for (init_index = 0; init_index < 6; init_index = init_index + 1) begin
                 patch_op_enable[init_index] <= 1'b1;
@@ -1195,6 +1339,57 @@ module fm_poly_synth #(
             operator_state_write_valid <= 1'b0;
             operator_read_pending <= 1'b0;
             // Runtime patch writes are intentionally narrow and deterministic.
+            if(aux_write_valid)begin
+                if(aux_write_address==10'h3fc)begin
+                    glide_time_ms<=aux_write_value<10?10:aux_write_value>1000?1000:aux_write_value;
+                    if(|glide_reciprocal_shadow)glide_reciprocal<=glide_reciprocal_shadow;
+                end
+                else if(aux_write_address==10'h3fd)glide_reciprocal_shadow[15:0]<=aux_write_value;
+                else if(aux_write_address==10'h3fe)glide_reciprocal_shadow[23:16]<=aux_write_value[7:0];
+                else if(aux_write_address==10'h3ff)begin
+                    backing_valid<=aux_write_value[0];
+                    if(!aux_write_value[0])begin
+                        back_sustain_active<=0;
+                        for(i=0;i<VOICE_COUNT;i=i+1)if(voice_part[i])begin
+                            voice_active[i]<=0;voice_gate[i]<=0;voice_key_down[i]<=0;
+                        end
+                    end
+                end
+                else if(aux_write_address<10'h040)case(aux_write_address)
+                    1:back_fm_feedback<=aux_write_value[2:0];
+                    2:begin back_fm_osc_sync<=aux_write_value[0];back_fm_lfo_sync<=aux_write_value[1];back_fm_lfo_waveform<=aux_write_value[4:2];end
+                    3:back_fm_transpose<=aux_write_value[6:0];
+                    4:back_fm_lfo_speed<=aux_write_value[6:0];
+                    5:back_fm_lfo_delay<=aux_write_value[6:0];
+                    6:back_fm_lfo_pitch_depth<=aux_write_value[6:0];
+                    7:back_fm_lfo_amp_depth<=aux_write_value[6:0];
+                    8:back_fm_pitch_mod_sensitivity<=aux_write_value[2:0];
+                    9:begin back_patch_algorithm_flags[0]<=aux_write_value[7:0];back_patch_algorithm_flags[1]<=aux_write_value[15:8];end
+                    10:begin back_patch_algorithm_flags[2]<=aux_write_value[7:0];back_patch_algorithm_flags[3]<=aux_write_value[15:8];end
+                    11:begin back_patch_algorithm_flags[4]<=aux_write_value[7:0];back_patch_algorithm_flags[5]<=aux_write_value[15:8];end
+                    default:begin end
+                endcase
+                else if(aux_write_address<10'h100&&aux_op<6)case(aux_off)
+                    0:begin back_patch_op_enable[aux_op]<=aux_write_value[0];back_patch_op_fixed[aux_op]<=aux_write_value[1];back_patch_op_detune[aux_op]<=aux_write_value[5:2];end
+                    1:back_patch_op_frequency[aux_op][15:0]<=aux_write_value;
+                    2:back_patch_op_frequency[aux_op][31:16]<=aux_write_value;
+                    3:back_patch_op_gain[aux_op]<=aux_write_value;
+                    4:back_patch_breakpoint[aux_op]<=aux_write_value[6:0];
+                    5:back_patch_left_depth[aux_op]<=aux_write_value[6:0];
+                    6:back_patch_right_depth[aux_op]<=aux_write_value[6:0];
+                    7:begin back_patch_left_curve[aux_op]<=aux_write_value[1:0];back_patch_right_curve[aux_op]<=aux_write_value[3:2];end
+                    8:begin back_patch_rate_scaling[aux_op]<=aux_write_value[2:0];back_patch_velocity_sensitivity[aux_op]<=aux_write_value[5:3];back_patch_amp_mod_sensitivity[aux_op]<=aux_write_value[7:6];end
+                    9,10,11,12:back_patch_eg_qrate[aux_op*4+aux_off-9]<=aux_write_value[5:0];
+                    13,14,15,16:back_patch_eg_level[aux_op*4+aux_off-13]<=aux_write_value;
+                    default:begin end
+                endcase
+                else if(aux_write_address>=10'h140&&aux_write_address<10'h160)case(aux_write_address[2:0])
+                    0:back_patch_pitch_step[aux_stage]<=aux_write_value[7:0];
+                    1:back_patch_pitch_target[aux_stage][15:0]<=aux_write_value;
+                    2:back_patch_pitch_target[aux_stage][22:16]<=aux_write_value[6:0];
+                    default:begin end
+                endcase
+            end
             if (fm_operator_write_valid && fm_operator_index < 6) begin
                 patch_op_enable[fm_operator_index] <= fm_operator_enable;
                 patch_op_fixed[fm_operator_index] <= fm_operator_fixed;
@@ -1243,7 +1438,7 @@ module fm_poly_synth #(
                 mono_held<=0;
                 // Avoid a half-old/half-new timbre. The editor also sends All
                 // Notes Off, but this local guard covers interrupted transfers.
-                for (i = 0; i < VOICE_COUNT; i = i + 1) begin
+                for (i = 0; i < VOICE_COUNT; i = i + 1) if(!voice_part[i])begin
                     voice_active[i] <= 1'b0;
                     voice_gate[i] <= 1'b0;
                     voice_key_down[i] <= 1'b0;
@@ -1266,6 +1461,19 @@ module fm_poly_synth #(
                 if (&lfo_phase[31:24]) lfo_sample_hold <= lfsr[7:0];
                 lfo_amp_base <= lfo_amp_unipolar * fm_lfo_amp_depth;
                 global_pitch_ratio <= pitch_ratio_table[pitch_table_address];
+                back_lfo_phase <= back_lfo_phase + back_lfo_phase_increment;
+                back_lfo_value_delayed <= back_lfo_value_delayed_product >>> 8;
+                if (back_lfo_delay_block_sample == 6'd63) begin
+                    back_lfo_delay_block_sample <= 6'd0;
+                    back_lfo_delay_state <= back_lfo_delay_advance[32]
+                        ? 32'hffffffff : back_lfo_delay_advance[31:0];
+                    back_lfo_fade <= back_lfo_delay_advance_fade;
+                end else begin
+                    back_lfo_delay_block_sample <= back_lfo_delay_block_sample + 1'b1;
+                end
+                if (&back_lfo_phase[31:24]) back_lfo_sample_hold <= lfsr[7:0];
+                back_lfo_amp_base <= back_lfo_amp_unipolar * back_fm_lfo_amp_depth;
+                back_global_pitch_ratio <= pitch_ratio_table[back_pitch_table_address];
                 if (master_volume_current < master_volume_target)
                     master_volume_current <= master_volume_current + 1'b1;
                 else if (master_volume_current > master_volume_target)
@@ -1411,7 +1619,7 @@ module fm_poly_synth #(
                     (voice_eg_block_position[operator_read_voice] == 6'd1);
                 e0_ams_attenuation <= issue_ams_attenuation;
                 e0_gain_state <= operator_gain_read_data;
-                e0_enabled <= patch_op_enable[operator_read_operator];
+                e0_enabled <= (voice_part[operator_read_voice] ? backing_valid&&back_patch_op_enable[operator_read_operator] : patch_op_enable[operator_read_operator]);
                 e0_phase <= render_phase;
                 e0_increment <= glide_next;
                 e0_frequency <= issue_frequency;
@@ -1426,18 +1634,19 @@ module fm_poly_synth #(
                 ENGINE_IDLE: begin
                     if(mono_mode!=(portamento_time!=0))begin
                         mono_mode<=portamento_time!=0;mono_held<=0;event_legato<=0;
-                        for(i=0;i<VOICE_COUNT;i=i+1)begin voice_active[i]<=0;voice_gate[i]<=0;voice_key_down[i]<=0;end
+                        for(i=0;i<VOICE_COUNT;i=i+1)if(!voice_part[i])begin voice_active[i]<=0;voice_gate[i]<=0;voice_key_down[i]<=0;end
                     end else if (event_pending && !sample_pending) begin
                         if (((pending_event[23:20] == 4'h9) &&
                              pending_event[6:0] != 0)) begin
+                            event_part<=pending_part;
                             event_note <= pending_event[14:8];
                             event_velocity <= pending_event[6:0];
                             event_scan_voice <= 0;
                             event_free_found <= 1'b0;
                             event_oldest_age <= 24'd0;
-                            event_oldest_voice <= allocation_cursor;
+                            event_oldest_voice <= (mono_mode&&allocation_cursor==0)?1:allocation_cursor;
                             event_legato<=0;mono_return_scan<=0;
-                            if(mono_mode)begin
+                            if(mono_mode&&!pending_part)begin
                                 mono_held[pending_event[14:8]]<=1;
                                 mono_sequence<=mono_sequence+1'b1;
                                 event_legato<= (|mono_held)&&voice_active[0];
@@ -1451,7 +1660,7 @@ module fm_poly_synth #(
                             if ((pending_event[23:20] == 4'h8) ||
                                 ((pending_event[23:20] == 4'h9) &&
                                  pending_event[6:0] == 0)) begin
-                                if(mono_mode)begin
+                                if(mono_mode&&!pending_part)begin
                                     mono_held[pending_event[14:8]]<=0;
                                     if(voice_note[0]==pending_event[14:8] && mono_held[pending_event[14:8]] &&
                                        (mono_held & ~(128'd1<<pending_event[14:8]))!=0)begin
@@ -1463,9 +1672,9 @@ module fm_poly_synth #(
                                     end
                                 end else for (i = 0; i < VOICE_COUNT; i = i + 1)
                                     if (voice_active[i] &&
-                                        voice_note[i] == pending_event[14:8]) begin
+                                        voice_note[i] == pending_event[14:8] && voice_part[i]==pending_part) begin
                                         voice_key_down[i] <= 1'b0;
-                                        if (!sustain_active) begin
+                                        if (!(pending_part ? back_sustain_active : sustain_active)) begin
                                             voice_gate[i] <= 1'b0;
                                             voice_pitch_stage[i] <= 2'd3;
                                         end
@@ -1474,17 +1683,18 @@ module fm_poly_synth #(
                                 if (pending_event[14:8] == 7'd20)
                                     master_volume_target <= pending_event[6:0];
                                 if (pending_event[14:8] == 7'd64) begin
-                                    sustain_active <= pending_event[6:0] >= 7'd64;
+                                    if(pending_part)back_sustain_active<=pending_event[6:0]>=64;
+                                    else sustain_active <= pending_event[6:0] >= 7'd64;
                                     if (pending_event[6:0] < 7'd64)
                                         for (i = 0; i < VOICE_COUNT; i = i + 1)
-                                            if (voice_active[i] && !voice_key_down[i]) begin
+                                            if (voice_active[i] && !voice_key_down[i] && voice_part[i]==pending_part) begin
                                                 voice_gate[i] <= 1'b0;
                                                 voice_pitch_stage[i] <= 2'd3;
                                             end
                                 end
                                 if (pending_event[14:8] == 7'd123 || pending_event[14:8]==7'd120)begin
-                                    mono_held<=0;
-                                    for (i = 0; i < VOICE_COUNT; i = i + 1) begin
+                                    if(!pending_part)mono_held<=0;
+                                    for (i = 0; i < VOICE_COUNT; i = i + 1) if(!pending_part || voice_part[i])begin
                                         voice_gate[i] <= 1'b0;
                                         voice_key_down[i] <= 1'b0;
                                         if(pending_event[14:8]==7'd120)voice_active[i]<=0;
@@ -1512,22 +1722,22 @@ module fm_poly_synth #(
                                 event_note<=mono_candidate?mono_scan_index:mono_best_note;
                                 event_velocity<=mono_candidate?mono_history_q[6:0]:mono_best_velocity;
                                 event_target_voice<=0;event_init_operator<=0;event_legato<=1;
-                                mono_return_scan<=0;engine_state<=ENGINE_EVENT_INIT;
+                                event_part<=0;mono_return_scan<=0;engine_state<=ENGINE_EVENT_INIT;
                             end else mono_scan_index<=mono_scan_index+1'b1;
                         end
                     end else begin
-                    if (!voice_active[event_scan_voice] && !event_free_found) begin
+                    if (!(mono_mode&&event_scan_voice==0) && !voice_active[event_scan_voice] && !event_free_found) begin
                         event_free_found <= 1'b1;
                         event_free_voice <= event_scan_voice;
                     end
-                    if (voice_age[event_scan_voice] >= event_oldest_age) begin
+                    if (!(mono_mode&&event_scan_voice==0) && voice_age[event_scan_voice] >= event_oldest_age) begin
                         event_oldest_age <= voice_age[event_scan_voice];
                         event_oldest_voice <= event_scan_voice;
                     end
                     if (event_scan_voice == VOICE_COUNT-1) begin
                         event_target_voice <= event_free_found ? event_free_voice :
-                            !voice_active[event_scan_voice] ? event_scan_voice :
-                            voice_age[event_scan_voice]>=event_oldest_age ? event_scan_voice :event_oldest_voice;
+                            (!voice_active[event_scan_voice]&&!(mono_mode&&event_scan_voice==0)) ? event_scan_voice :
+                            (!(mono_mode&&event_scan_voice==0)&&voice_age[event_scan_voice]>=event_oldest_age) ? event_scan_voice :event_oldest_voice;
                         event_init_operator <= 3'd0;
                         engine_state <= ENGINE_EVENT_INIT;
                     end else event_scan_voice <= event_scan_voice + 1'b1;
@@ -1542,18 +1752,31 @@ module fm_poly_synth #(
                     event_note_increment_latched <=
                         midi_phase_increment[event_transposed_note];
                     event_patch_frequency_latched <=
-                        patch_op_frequency[event_init_operator];
+                        (event_part ? back_patch_op_frequency[event_init_operator] : patch_op_frequency[event_init_operator]);
                     event_patch_fixed_latched <=
-                        patch_op_fixed[event_init_operator];
+                        (event_part ? back_patch_op_fixed[event_init_operator] : patch_op_fixed[event_init_operator]);
                     event_detune_address <=
                         (event_transposed_note * 11'd15) +
-                        patch_op_detune[event_init_operator];
+                        (event_part ? back_patch_op_detune[event_init_operator] : patch_op_detune[event_init_operator]);
                     if (event_init_operator == 0) begin
                       if(!event_legato)begin
                         // Dexed/msfa keydown() starts the synced LFO half a
                         // cycle before our former zero-phase reset.  The
                         // starting polarity is audible on voices with a
                         // strong pitch or amplitude modulation attack.
+                        if(event_part)begin
+                        if (back_fm_lfo_sync)
+                            back_lfo_phase <= 32'h7fffffff;
+                        // Dexed's Lfo::keydown() clears the delay phase, then
+                        // getdelay() advances it once for the first 64-sample
+                        // block. Apply that first increment here and continue
+                        // at the original block cadence below.
+                        back_lfo_delay_state <= dx7_lfo_delay_inc[back_lfo_delay_table_address];
+                        back_lfo_fade <= dx7_lfo_delay_inc[back_lfo_delay_table_address][31]
+                            ? dx7_lfo_delay_inc[back_lfo_delay_table_address][30:23]
+                            : 8'd0;
+                        back_lfo_delay_block_sample <= 6'd0;
+                        end else begin
                         if (fm_lfo_sync)
                             lfo_phase <= 32'h7fffffff;
                         // Dexed's Lfo::keydown() clears the delay phase, then
@@ -1565,14 +1788,16 @@ module fm_poly_synth #(
                             ? dx7_lfo_delay_inc[lfo_delay_table_address][30:23]
                             : 8'd0;
                         lfo_delay_block_sample <= 6'd0;
+                        end
                         voice_age[event_target_voice] <= 24'd0;
                         voice_eg_block_position[event_target_voice] <= 6'd0;
-                        voice_pitch_level[event_target_voice] <= patch_pitch_target[3];
+                        voice_pitch_level[event_target_voice] <= (event_part ? back_patch_pitch_target[3] : patch_pitch_target[3]);
                         voice_combined_pitch_ratio[event_target_voice] <= 21'h10000;
                         voice_pitch_stage[event_target_voice] <= 2'd0;
                         voice_feedback_old[event_target_voice] <= 28'sd0;
                         voice_feedback_new[event_target_voice] <= 28'sd0;
                       end
+                        voice_part[event_target_voice]<=event_part;
                         voice_active[event_target_voice]<=1;voice_gate[event_target_voice]<=1;voice_key_down[event_target_voice]<=1;
                         voice_note[event_target_voice]<=event_note;voice_velocity[event_target_voice]<=event_velocity;
                         display_voice <= event_target_voice;
@@ -1581,7 +1806,7 @@ module fm_poly_synth #(
                     event_scale_depth <= event_scale_depth_wire;
                     event_scale_curve <= event_scale_curve_wire;
                     event_scale_base_level <=
-                        dx7_scale_level(patch_op_gain[event_init_operator][6:0]);
+                        dx7_scale_level((event_part ? back_patch_op_gain[event_init_operator][6:0] : patch_op_gain[event_init_operator][6:0]));
                     engine_state <= ENGINE_EVENT_GAIN_WAIT;
                 end
 
@@ -1605,6 +1830,7 @@ module fm_poly_synth #(
                 end
 
                 ENGINE_EVENT_SCALE_FINISH: begin
+                    event_glide_product<=event_glide_abs*glide_reciprocal;
                     event_level_offset_latched <=
                         (event_level_offset_final > 17'sd8191) ? 16'sd8191 :
                         (event_level_offset_final < -17'sd8192) ? -16'sd8192 :
@@ -1617,7 +1843,7 @@ module fm_poly_synth #(
                     operator_state_write_address <=
                         event_target_voice * 6 + event_init_operator;
                     operator_state_write_data <= pack_operator_state(
-                        event_legato ? event_old_state[107:76] : (fm_osc_sync ? 32'd0 : lfo_phase),
+                        event_legato ? event_old_state[107:76] : ((event_part ? back_fm_osc_sync : fm_osc_sync) ? 32'd0 : (event_part ? back_lfo_phase : lfo_phase)),
                         event_legato ? event_old_state[75:44] : event_corrected_increment,
                         // Q14 envelope state is 26 bits. The former 24-bit
                         // field made the old concatenation only 106 bits wide.
@@ -1655,7 +1881,7 @@ module fm_poly_synth #(
                     prep_current_latched <= voice_pitch_level[scheduler_voice];
                     prep_target_latched <= prep_pitch_target;
                     prep_delta_latched <= prep_pitch_delta_input;
-                    prep_step_latched <= patch_pitch_step[prep_pitch_index];
+                    prep_step_latched <= (voice_part[scheduler_voice] ? back_patch_pitch_step[prep_pitch_index] : patch_pitch_step[prep_pitch_index]);
                     if (voice_active[scheduler_voice]) begin
                         if (voice_age[scheduler_voice] != 24'hffffff)
                             voice_age[scheduler_voice] <= voice_age[scheduler_voice] + 1'b1;

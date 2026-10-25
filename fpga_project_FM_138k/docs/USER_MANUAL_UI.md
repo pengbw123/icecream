@@ -1,10 +1,16 @@
 # FM 合成器触摸屏使用说明（零基础版）
 
+## 双 Part 与可调滑音时间
+
+SETUP → GLIDE MS 调节10～1000毫秒，默认170毫秒；GLIDE MONO仍控制单音连奏开关。
+HOLD 琶音中修改速度、顺序等参数保持和弦与播放。音序中改 BPM/RATE/GATE/SWING 不停止播放。
+音序播放或录制时先停止再切换 Pattern；八个 Pattern 及其伴奏音色仍为 RAM 数据。
+
 ## 2026-10-24 琶音即兴与 SD 用户音色
 
 - ARP/SEQ加减：点按一步，按住450 ms后每50 ms重复（每秒20步）。开关、START、STOP等仍只执行一次。
 - ARP页设置和弦并开启HOLD后，切到PLAY等页面可在伴奏上即兴。返回ARP页再按琴键可编辑和弦。
-- 当前音源仍共用音色和效果；独立伴奏音色尚未实现，见 `ACCOMPANIMENT_PATCH_PLAN.md`。
+- LIVE 与 BACKING 使用独立音色，共用主音量和效果器，合计32复音。ARP开启时抓取音色；SEQ保留各Pattern录制时的音色，停止后可在SETTINGS按CAPTURE LIVE PATCH替换。详见 `TWO_PARTS.md`。
 - PATCH新增READ SD和STORE SD。SD保存需要先在FAT32卡根目录创建FMUSER.BIN，步骤见 `SD_USER_PATCHES.md`。
 - RENAME点DONE后，当前音色名与选中非空USER槽名称立即同步；槽的音源参数保持原值。SD文件需STORE SD才更新，重命名本身不自动写卡。
 

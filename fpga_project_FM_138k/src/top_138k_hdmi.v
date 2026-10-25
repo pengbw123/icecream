@@ -133,7 +133,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     );
     top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1)) u_audio (
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),.perf_bridge_drop(bridge_drop),
-        .arp_config(arp_config),.arp_suspend(lesson_state[16]||sequencer_active),.arp_status(arp_status),.arp_notes(arp_notes),
+        .arp_config(arp_config),.arp_suspend(lesson_state[16]||sequencer_active),.sequence_active(sequencer_active),.arp_status(arp_status),.arp_notes(arp_notes),
         .clk(clk),.key_s2(~reset_n),.uart_rx_pin(uart_rx_pin),
         .headphone_select(headphone_select),.headphone_din(headphone_din),
         .ui_command_valid(ui_command_valid),.ui_command(ui_command),.ui_payload(ui_command_payload),

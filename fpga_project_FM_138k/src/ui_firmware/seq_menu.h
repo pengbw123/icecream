@@ -18,6 +18,11 @@ static void seq_stop(void){
     seq_run=0;seq_record=0;seq_publish();seq_wait();
     set_glide(seq_saved_glide);
 }
+static void seq_backing(u8 capture){
+    struct backing_t *b=&seq_patch[seq_pattern];
+    if(capture||b->patch.magic!=SLOT_MAGIC)backing_capture(b);
+    backing_upload(b);
+}
 static void seq_prepare(void){
     if(!seq_run&&!seq_record){
         // A preceding tool may have just queued restoration of glide. Its
@@ -48,6 +53,7 @@ static void draw_seq_status(void){u32 st=UI[49];
     if(seq_run){pair_text(81,20,"PLAY",5,0);pair_text(87,20,u2d(((st>>8)&15u)+1u),5,0);}
     pair_text(2,21,"RAM ONLY / NO POWER-OFF SAVE",5,0);
     if(seq_record)pair_text(48,21,"NEW NOTE = WRITE + NEXT STEP",5,0);
+    else {pair_text(48,21,"BACKING",5,0);pair_text(58,21,seq_patch[seq_pattern].patch.magic==SLOT_MAGIC?seq_patch[seq_pattern].patch.name:"LIVE AT START",5,0);}
 }
 static void draw_seq_grid(void){u8 i,c,r;u32 st=UI[49];char label[12];
     for(i=0;i<16;i++){
@@ -73,13 +79,13 @@ static void draw_seq(void){u32 word=seq_words[seq_step];
         arp_row(2,11,"GATE %",u2d(seq_gate));arp_row(52,11,"SWING %",u2d(seq_swing));
         arp_row(2,14,"LENGTH",u2d(seq_lengths[seq_pattern]));arp_row(52,14,"PATTERN",u1d(seq_pattern+1u));
         text(3,17,"ONE NOTE PER STEP / TIE EXTENDS",2,0);text(3,18,"REST IS SILENT FOR ONE STEP",2,0);
-        text(53,17,"BPM SHARED WITH ARPEGGIATOR",2,0);text(53,18,"PATTERNS USE THE CURRENT PATCH",2,0);
     }else{
         draw_seq_grid();
         arp_row(2,14,"NOTE",(word&0x80000000u)?lesson_note_name((u8)(word&127u)):(word&0x40000000u)?"TIE":"REST");
         arp_row(52,14,"VELOCITY",u3d((word>>8)&127u));
         arp_row(2,17,"PATTERN",u1d(seq_pattern+1u));arp_row(52,17,"LENGTH",u2d(seq_lengths[seq_pattern]));
     }
+    if(seq_settings)button_box(52,17,46,3,"CAPTURE LIVE PATCH",0);
     draw_seq_status();
 }
 static void seq_adj(u8 row,int d){int v;u32 w;
@@ -91,6 +97,7 @@ static void seq_adj(u8 row,int d){int v;u32 w;
         else{v=(int)((w>>8)&127u)+d;if(v<1)v=1;if(v>127)v=127;w=(w&~0x7f00u)|((u32)v<<8);}
         seq_store(w,0);
     }else if(row==2){
+        if(seq_run||seq_record)return;
         seq_pattern=(u8)(((int)seq_pattern+d+8)%8);seq_step=0;seq_confirm=0;seq_select();seq_cache();
     }else if(row==3){v=seq_lengths[seq_pattern]+d;if(v<1)v=1;if(v>16)v=16;seq_lengths[seq_pattern]=(u8)v;
         if(seq_step>=v){seq_step=0;seq_select();}}
@@ -101,11 +108,14 @@ static void seq_adj(u8 row,int d){int v;u32 w;
     seq_publish();draw_seq();
 }
 static void seq_press(int x,int y){int local,d=0;u8 row=0;
+    if(seq_settings&&y>=272&&y<320&&x>=416&&x<784){
+        if(!seq_run&&!seq_record){backing_capture(&seq_patch[seq_pattern]);draw_seq();}return;
+    }
     if(seq_record)seq_step=(u8)(UI[47]&15u);
     if(!(y>=80&&y<128&&x>=560&&x<656))seq_confirm=0;
     if(y>=80&&y<128){
-        if(x>=16&&x<160){if(seq_run)seq_stop();else{seq_prepare();seq_run=1;seq_record=0;seq_restart^=1;seq_publish();}draw_seq();return;}
-        if(x>=176&&x<320){if(seq_record)seq_stop();else{seq_prepare();seq_record=1;seq_run=0;seq_select();seq_publish();}draw_seq();return;}
+        if(x>=16&&x<160){if(seq_run)seq_stop();else{seq_prepare();seq_backing(0);seq_run=1;seq_record=0;seq_restart^=1;seq_publish();}draw_seq();return;}
+        if(x>=176&&x<320){if(seq_record)seq_stop();else{seq_prepare();seq_backing(1);seq_record=1;seq_run=0;seq_select();seq_publish();}draw_seq();return;}
         if(x>=336&&x<432){seq_store(0,seq_record);draw_seq();return;}
         if(x>=448&&x<544){seq_store(0x40000000u,seq_record);draw_seq();return;}
         if(x>=560&&x<656){

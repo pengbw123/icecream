@@ -7,7 +7,7 @@ module midi_arpeggiator #(
     // cfg: enable, hold, fixed velocity, order[5:3], octaves-1[7:6],
     // velocity[14:8], stop toggle[15], live playing outside editor[16].
     // Timing words are microseconds.
-    input wire [159:0] config_data,input wire suspend,
+    input wire [159:0] config_data,input wire suspend,input wire sequence_mode,
     input wire sync_step,sync_restart,input wire external_sync,
     input wire [31:0] in_data,input wire [6:0] in_brightness,
     input wire in_valid,output wire in_ready,
@@ -89,9 +89,9 @@ module midi_arpeggiator #(
                 if(change&&state!=CLEAN_PEDAL&&state!=CLEAN_ALL)begin
                     state<=CLEAN_PEDAL;running<=0;
                 end else case(state)
-                    CLEAN_PEDAL:begin send(32'h00b04000,0);state<=CLEAN_ALL;end
+                    CLEAN_PEDAL:begin send(32'h40b04000,0);state<=CLEAN_ALL;end
                     CLEAN_ALL:begin
-                        send(32'h00b07b00,0);enabled<=wanted;stop_seen<=cfg[15];hold_seen<=cfg[1];
+                        send(32'h40b07b00,0);enabled<=wanted;stop_seen<=cfg[15];hold_seen<=cfg[1];
                         physical<=0;chord<=0;live_notes<=0;count<=0;pedal<=0;running<=0;active<=0;external_pending<=0;
                         sequence_pos<=0;descending<=0;odd<=0;state<=IDLE;
                     end
@@ -110,10 +110,9 @@ module midi_arpeggiator #(
                                 requested_gate>=requested_step?(requested_step<2?1:requested_step-1):requested_gate;
                         end else if(in_valid&&in_ready)begin
                             if(!enabled)begin
-                                // The FM engine has one global sustain state.
-                                // Practice/sequence gates must not accumulate
-                                // automatic notes behind a held pedal.
-                                if(suspend&&cc&&note==64)send(in_data&32'hffffff80,in_brightness);
+                                // Practice shares LIVE with its demo. Sequence
+                                // playback has independent BACKING sustain.
+                                if(suspend&&!sequence_mode&&cc&&note==64)send(in_data&32'hffffff80,in_brightness);
                                 else send(in_data,in_brightness);
                             end else if(in_data[31])send(in_data,in_brightness);
                             else if(note_on&&(live_mode||live_notes[note]))begin
@@ -125,9 +124,8 @@ module midi_arpeggiator #(
                                 // editor; it never belonged to the solo part.
                                 physical[note]<=0;
                             end else if(cc&&note==64&&live_mode)begin
-                                // Sustain is global in the current FM engine.
-                                // Do not let a solo pedal turn ARP gates into drones.
-                                send(in_data&32'hffffff80,in_brightness);
+                                // LIVE sustain is independent of BACKING gates.
+                                send(in_data,in_brightness);
                             end
                             else if(note_on)begin
                                 physical[note]<=1;velocity[note]<=in_data[6:0];

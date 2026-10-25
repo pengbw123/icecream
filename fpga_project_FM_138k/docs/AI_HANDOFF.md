@@ -1,6 +1,37 @@
 # 给后续 AI 的工程交接说明
 
-## 2026-10-24 长按提速与用户槽重命名（最新发布）
+## 2026-10-25 HOLD 调参、滑音时间与双 Part（最新发布）
+
+- 已完成用户要求的三项：HOLD 调参不中断、SETUP 增加 GLIDE MS（10..1000 ms，默认170 ms）、
+  单流水线32复音 LIVE/BACKING 两 Part。详细操作、协议和限制见 `TWO_PARTS.md`。
+- HOLD 根因是 ARP 改共享BPM时刷新停止中的SEQ，SEQ错误置清理状态，UI又把内部busy当作transport占用。
+  现仅实际transport切换清理，内部初始化/编辑不暂停ARP。点按一步、450 ms后每50 ms重复保持不变。
+- LIVE为手动键盘/触屏；BACKING为ARP或SEQ，两者仍互斥。ARP开启时抓取当前音色；SEQ首次录制时抓取，
+  每个Pattern各有RAM快照。SEQ停止时可用 CAPTURE LIVE PATCH 更新伴奏音色。播放/录制中锁定Pattern切换。
+  LIVE换预设/改参数不改变伴奏；同音高独立分配、松键/踏板/清音按Part处理，LFO和Pitch EG参数隔离。
+  仍是总计32复音动态共享，主音量与效果器链共享；八个Pattern及快照断电不保存，SD格式未改。
+- GLIDE仍是单音连奏，重叠按键触发；增加线性频率滑行时长，连奏保留相位/包络。
+  新0x6A辅助编译参数写端口供BACKING上传及滑音倒数原子提交，不污染LIVE编辑接口。
+- 固件 **70,268/81,920 B**，text70216、data52、bss42004；静态区结束0x1001b690，余18,800 B供栈等使用。
+  firmware.hex与firmware_high.hex同次生成，两份顶层和IDE文件清单已核对。
+- 最终双屏位流 `impl/pnr/fm_138k_rgb_hdmi.fs`，生成时间2026-10-24 **23:18:01**（北京时间），42,234,791 B。
+  SHA256 `FE76300D4C7C2EFFB95896A8FEC316257533461B604FD34FD892CABBA02BB55C`。
+  构建日志 `tmp/build_parts.log`。四域setup/hold TNS=0；Fmax主域 **50.032**、RGB **38.150**、
+  HDMI pixel **34.795**、serial **180.091 MHz**。Logic **56298/138240（41%）**、FF **29323/139095（22%）**、
+  BSRAM **319/340（94%）**、DSP **70/298（24%）**。
+- 主域最紧路径是 ARP step_left 寄存器到 ordered 寄存器使能，slack **0.013 ns**，时序通过但余量很小。
+  下一轮扩展应继续关注控制路径与BSRAM，不能因单采样调度尚有空余就直接提升时钟或复音。
+- FM针对性回归：BACKING与冻结单音色参考逐样本一致；LIVE换预设后仍一致；混合发声时BACKING算子状态与输出仍一致。
+  覆盖同音独立声部、踏板/局部停止、ARP/SEQ标记；32满载432事件固定1024周期无漏采样；滑音端点/时长/原子提交通过。
+  日志 `tmp/check_parts_pcm_release.log`；其他矩阵已完成部分见 `tmp/check_parts_all.log`。
+  完整大回归在UI阶段被用户中断，不能宣称全矩阵完成；恢复后单独执行真实RV32I/I2C菜单回归，日志
+  `tmp/check_parts_ui_glide_time.log`、`tmp/check_parts_ui_arp.log`、`tmp/check_parts_ui_seq.log`、`tmp/check_parts_ui_performance.log`。
+- 已检查800×480实际固件写入日志生成的SETUP预览 `tmp/parts_setup.png`，新增GLIDE MS布局正常。
+  未自动烧录，听感、实际长时间播放及触屏操作仍待实机验证。
+- 修改前Git标签 `archive/pre_parts_20261024` 指向d8caac4；旧位流备份
+  `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-24_pre_parts.fs`。本轮代码另有独立Git提交。
+
+## 2026-10-24 长按提速与用户槽重命名（历史发布）
 
 - 用户要求加快ARP/SEQ长按增减，重复周期100→**50 ms**，约每秒20步；触发门槛仍450 ms，点按仍一步。
   普通编辑页与PLAY控制条不变。固件和真实I2C/RV32I触摸回归已同步更新。

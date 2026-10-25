@@ -1,7 +1,7 @@
 // Prevent one demo/human owner from releasing a note held by the other.
 // This is a ready/valid filter: suppressed events are still acknowledged and
 // reported to the practice engine. Untagged MIDI retains normal retriggering.
-module midi_note_owners(
+module midi_note_owners #(parameter INDEPENDENT_PARTS=0)(
     input wire clk,reset_n,
     input wire [31:0] data,input wire valid,input wire ready,
     output wire forward
@@ -16,7 +16,7 @@ module midi_note_owners(
     assign forward=!((on_event||off_event)&&other);
     always @(posedge clk or negedge reset_n)begin
         if(!reset_n)begin human<=0;demo<=0;mono<=0;end
-        else if(valid&&ready)begin
+        else if(valid&&ready&&!(INDEPENDENT_PARTS&&(data[30]||data[28])))begin
             if(on_event||off_event)begin
                 if(is_automatic)demo[note]<=on_event;else human[note]<=on_event;
             end else if(data[23:20]==4'hb&&(data[14:8]==120||data[14:8]==123))begin
@@ -33,7 +33,7 @@ endmodule
 
 // One elastic stage isolates the ownership lookup from the FM allocator's
 // event decoder. Suppressed inputs are acknowledged in-order as empty events.
-module midi_owner_queue(
+module midi_owner_queue #(parameter INDEPENDENT_PARTS=0)(
     input wire clk,reset_n,
     input wire [31:0] in_data,input wire [6:0] in_brightness,input wire in_valid,
     output wire in_ready,
@@ -44,13 +44,13 @@ module midi_owner_queue(
     wire forward;
     assign in_ready=!occupied||out_ready;
     assign out_valid=occupied&&pass;
-    midi_note_owners u_owners(.clk(clk),.reset_n(reset_n),.data(in_data),
+    midi_note_owners #(.INDEPENDENT_PARTS(INDEPENDENT_PARTS)) u_owners(.clk(clk),.reset_n(reset_n),.data(in_data),
         .valid(in_valid),.ready(in_ready),.forward(forward));
     always @(posedge clk or negedge reset_n)begin
         if(!reset_n)begin occupied<=0;pass<=0;out_data<=0;out_brightness<=0;end
         else if(in_ready)begin
             occupied<=in_valid;
-            if(in_valid)begin out_data<=in_data;out_brightness<=in_brightness;pass<=forward;end
+            if(in_valid)begin out_data<=in_data;out_brightness<=in_brightness;pass<=(INDEPENDENT_PARTS&&(in_data[30]||in_data[28]))?1'b1:forward;end
         end
     end
 endmodule

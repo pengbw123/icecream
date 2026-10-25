@@ -83,7 +83,7 @@ try {
             $poly32 = 'tmp/tb_fm_poly32.vvp'
             & $iverilog '-g2012' '-s' 'tb_fm_readback' '-Ptb_fm_readback.TEST_VOICES=32' '-o' $poly32 @($case.Sources)
             if ($LASTEXITCODE -ne 0) { throw '32-voice compile failed.' }
-            foreach ($scenario in @('+metrics','+poly32','+legato')) {
+            foreach ($scenario in @('+metrics','+poly32','+legato','+glide_time','+parts_dense')) {
                 & $vvp $poly32 $scenario
                 if ($LASTEXITCODE -ne 0) { throw ('32-voice regression failed: ' + $scenario) }
             }
@@ -92,10 +92,17 @@ try {
             if ($LASTEXITCODE -ne 0) { throw '16/32 PCM comparison compile failed.' }
             & $vvp $compare32 '+compare'
             if ($LASTEXITCODE -ne 0) { throw '16/32 PCM equivalence failed.' }
+            $parts32 = 'tmp/tb_fm_parts32.vvp'
+            & $iverilog '-g2012' '-s' 'tb_fm_readback' '-Ptb_fm_readback.TEST_VOICES=32' '-Ptb_fm_readback.TEST_COMPARE=2' '-o' $parts32 @($case.Sources)
+            if ($LASTEXITCODE -ne 0) { throw 'Dual part reference compile failed.' }
+            & $vvp $parts32 '+parts'
+            if ($LASTEXITCODE -ne 0) { throw 'Dual part PCM/ownership/isolation failed.' }
             & $vvp $outputFile '+legato'
             if ($LASTEXITCODE -ne 0) { throw 'Mono legato regression failed.' }
         }
         if ($case.Name -eq 'tb_touch_ui') {
+            & $vvp $outputFile '+glide_time'
+            if ($LASTEXITCODE -ne 0) { throw 'Glide duration UI regression failed.' }
             & $vvp $outputFile '+poly32'
             if ($LASTEXITCODE -ne 0) { throw '32-voice UI/register packing regression failed.' }
             & $vvp $outputFile '+metrics'

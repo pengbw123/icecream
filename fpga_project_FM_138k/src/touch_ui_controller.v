@@ -60,7 +60,8 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
     reg [127:0] seq_timing;
     reg [31:0] seq_control;
     reg [6:0] seq_read_address;
-    assign sequencer_active=seq_status[0]||seq_status[1]||seq_status[2];
+    // Editing/initializing RAM is not transport ownership.
+    assign sequencer_active=seq_status[0]||seq_status[1]||seq_status[3]||seq_valid;
     assign midi_event_data=fw_valid?fw_data:lesson_valid?lesson_midi:seq_midi;
     assign midi_event_valid=fw_valid||lesson_valid||seq_valid;
     reg [15:0] lesson_end;

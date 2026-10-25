@@ -19,7 +19,7 @@ module tb_step_sequencer;
         cycles=cycles+1;
         if(valid&&ready)begin
             if(midi[23:20]==9)begin
-                if(!midi[31]||midi[6:0]==0||sounding[midi[14:8]])$fatal(1,"Bad sequence Note On");
+                if(!midi[31]||!midi[28]||midi[6:0]==0||sounding[midi[14:8]])$fatal(1,"Bad sequence Note On / BACKING tag");
                 sounding[midi[14:8]]=1;pitch[ons]=midi[14:8];velocity[ons]=midi[6:0];on_at[ons]=cycles;ons=ons+1;
             end else if(midi[23:20]==8)begin
                 if(!sounding[midi[14:8]])$fatal(1,"Sequence unowned Note Off");
@@ -45,6 +45,7 @@ module tb_step_sequencer;
         repeat(5)@(negedge clk);reset_n=1;wait(!status[2]);
         select_step(0);if(edit_data!==32'h8000603c)$fatal(1,"Factory pattern init");
         select_step(16);if(edit_data!==0)$fatal(1,"Other factory bank must be empty");
+        ctrl(32'h3c0);#1;if(status[2])$fatal(1,"Idle timing refresh asserted cleanup / suspended ARP");
         ctrl(32'h3c1);wait(ons>=3);
         if(pitch[0]!=60||pitch[1]!=62||pitch[2]!=64||velocity[0]!=96)$fatal(1,"Factory playback");
         if(off_at[0]-on_at[0]<7000||off_at[0]-on_at[0]>7010)$fatal(1,"Sequence gate");
