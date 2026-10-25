@@ -37,6 +37,9 @@ module midi_arpeggiator #(
     reg [8:0] random_bits;
     reg [6:0] active_note;
     reg [31:0] step_left,gate_left,step_length,gate_length;
+    // Exact mirrors of the timer-zero predicates. Keep wide timer compares
+    // out of the MIDI ready / ordered-note write-enable path.
+    reg step_zero,gate_zero;
     reg [5:0] us_div;
     wire us_tick=us_div==CLOCKS_PER_US-1;
     wire note_on=in_data[23:20]==4'h9&&in_data[6:0]!=0;
@@ -44,8 +47,8 @@ module midi_arpeggiator #(
     wire cc=in_data[23:20]==4'hb;
     wire [6:0] note=in_data[14:8];
     wire change=enabled!=wanted||stop_seen!=cfg[15]||sync_restart;
-    wire gate_due=active&&gate_left==0;
-    wire step_due=running&&(external_sync?external_pending:step_left==0);
+    wire gate_due=active&&gate_zero;
+    wire step_due=running&&(external_sync?external_pending:step_zero);
     assign in_ready=state==IDLE&&!out_valid&&!change&&
         !(enabled&&((active&&(!running||gate_due||chord==0||step_due))||
             (step_due&&chord!=0)||hold_seen!=cfg[1]||(!running&&chord!=0)));
@@ -68,19 +71,21 @@ module midi_arpeggiator #(
             prune_read<=0;prune_write<=0;scan<=0;sequence_pos<=0;target<=0;
             total<=0;mode<=0;octaves<=0;descending<=0;odd<=0;random_bits<=9'h1ab;
             active_note<=0;step_left<=0;gate_left<=0;step_length<=1;gate_length<=1;
+            step_zero<=1;gate_zero<=1;
             us_div<=0;out_data<=0;out_brightness<=0;out_valid<=0;
         end else begin
             if(sync_step&&enabled)external_pending<=1;
             if(us_tick)us_div<=0;else us_div<=us_div+1'b1;
             if(us_tick&&running&&!out_valid)begin
-                if(step_left!=0)step_left<=step_left-1'b1;
-                if(gate_left!=0)gate_left<=gate_left-1'b1;
+                if(step_left!=0)begin step_left<=step_left-1'b1;step_zero<=step_left==1;end
+                if(gate_left!=0)begin gate_left<=gate_left-1'b1;gate_zero<=gate_left==1;end
             end
             if(out_valid&&out_ready)begin
                 out_valid<=0;
                 if(out_data[30]&&out_data[23:20]==4'h9)begin
                     active<=1;active_note<=out_data[14:8];
                     step_left<=step_length;gate_left<=gate_length;odd<=!odd;
+                    step_zero<=step_length==0;gate_zero<=gate_length==0;
                 end
                 if(out_data[30]&&out_data[23:20]==4'h8)active<=0;
             end
@@ -129,7 +134,7 @@ module midi_arpeggiator #(
                             end
                             else if(note_on)begin
                                 physical[note]<=1;velocity[note]<=in_data[6:0];
-                                if(chord==0)begin running<=1;step_left<=0;external_pending<=1;end
+                                if(chord==0)begin running<=1;step_left<=0;step_zero<=1;external_pending<=1;end
                                 if(physical==0&&(cfg[1]||pedal))begin
                                     chord<=128'd1<<note;ordered[0]<=note;count<=1;
                                 end else if(!chord[note])begin

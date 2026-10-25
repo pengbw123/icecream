@@ -152,8 +152,10 @@ module audio_fx (
 
     // Distortion lookup index: |x| * drive, mapped to z=0..8 over 512 entries.
     wire signed [16:0] dist_sx = {delay_q[15], delay_q};
-    wire [16:0] dist_mag = dist_sx[16] ? (17'd0 - dist_sx)
-                                       : dist_sx;
+    // Capture magnitude in the existing DSTART cycle, before the drive DSP.
+    // Separates signed absolute-value carry from the multiplier input path;
+    // no extra sample cycles and identical LUT index/fraction afterwards.
+    reg [16:0] dist_mag;
     wire [32:0] dist_scaled = dist_mag * ddrive;
     wire [32:0] dist_shift = dist_scaled >> 17;
     wire [8:0] dist_idx = (dist_shift >= 33'd511) ? 9'd511 : dist_shift[8:0];
@@ -174,6 +176,7 @@ module audio_fx (
         if (!reset_n) begin
             state <= S_IDLE;
             dry_q <= 16'sd0; delay_q <= 16'sd0;
+            dist_mag <= 17'd0;
             filt_out <= 16'sd0; dist_out <= 16'sd0;
             tone_state <= 16'sd0; dist_shaped <= 16'sd0;
             lp <= 24'sd0; bp <= 24'sd0; lp_tmp <= 24'sd0; hp_tmp <= 24'sd0;
@@ -257,6 +260,7 @@ module audio_fx (
                 end
                 // ---------------- DISTORTION (after delay) ------------------
                 S_DSTART: begin
+                    dist_mag <= dist_sx[16] ? (17'd0 - dist_sx) : dist_sx;
                     if (!dist_en) begin
                         dist_out <= delay_q;
                         state <= S_OUT;

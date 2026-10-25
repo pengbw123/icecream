@@ -1120,7 +1120,14 @@ module fm_poly_synth #(
     for(ct=1;ct<COUNT_LEAVES;ct=ct+1)begin:g_count_sum
         assign count_tree[ct]=count_tree[2*ct]+count_tree[2*ct+1];
     end endgenerate
-    assign active_voice_count=count_tree[1];
+    // Telemetry fans out to CPU MMIO, visualizers and peak meters. Terminate
+    // the population-count tree here instead of combining it with their
+    // decoders in one 50 MHz path. One clock of display latency only.
+    reg [7:0] active_count_q;
+    always @(posedge clk or negedge reset_n)
+        if(!reset_n) active_count_q<=0;
+        else active_count_q<=count_tree[1];
+    assign active_voice_count=active_count_q;
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin

@@ -11,6 +11,10 @@ module tb_midi_arpeggiator;
         .out_data(dout),.out_brightness(brightness),.out_valid(vout),.out_ready(ready),
         .status(status),.chord_notes(notes));
     integer ons=0,offs=0,ccs=0,cycles=0;
+    always @(negedge clk) if(reset_n) begin
+        if(dut.step_zero !== (dut.step_left==0) || dut.gate_zero !== (dut.gate_left==0))
+            $fatal(1,"registered timer-zero predicate drifted from timer");
+    end
     integer pitches[0:511],velocities[0:511],on_at[0:511],off_at[0:511];
     reg [127:0] sounding=0;
     always @(posedge clk)begin
