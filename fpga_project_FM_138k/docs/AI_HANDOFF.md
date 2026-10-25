@@ -24,12 +24,12 @@
 - FM针对性回归：BACKING与冻结单音色参考逐样本一致；LIVE换预设后仍一致；混合发声时BACKING算子状态与输出仍一致。
   覆盖同音独立声部、踏板/局部停止、ARP/SEQ标记；32满载432事件固定1024周期无漏采样；滑音端点/时长/原子提交通过。
   日志 `tmp/check_parts_pcm_release.log`；其他矩阵已完成部分见 `tmp/check_parts_all.log`。
-  完整大回归在UI阶段被用户中断，不能宣称全矩阵完成；恢复后单独执行真实RV32I/I2C菜单回归，日志
+  完整大回归在UI阶段被用户中断，不能宣称全矩阵完成；恢复后真实RV32I/I2C的GLIDE MS、ARP、SEQ、PERFORMANCE四项菜单回归全部通过，日志
   `tmp/check_parts_ui_glide_time.log`、`tmp/check_parts_ui_arp.log`、`tmp/check_parts_ui_seq.log`、`tmp/check_parts_ui_performance.log`。
 - 已检查800×480实际固件写入日志生成的SETUP预览 `tmp/parts_setup.png`，新增GLIDE MS布局正常。
   未自动烧录，听感、实际长时间播放及触屏操作仍待实机验证。
 - 修改前Git标签 `archive/pre_parts_20261024` 指向d8caac4；旧位流备份
-  `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-24_pre_parts.fs`。本轮代码另有独立Git提交。
+  `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-24_pre_parts.fs`。本轮代码Git提交 `56b06b7`，验证完成后另补文档记录。
 
 ## 2026-10-24 长按提速与用户槽重命名（历史发布）
 
