@@ -1,5 +1,39 @@
 # 给后续 AI 的工程交接说明
 
+## 2026-10-25 BSRAM与AI伴奏（开发中，尚未发布新位流）
+
+- 用户要求先释放BSRAM，再构建AI伴奏，并要求19:30前持续推进；不是19:30停止任务。
+- 开始前标签archive/pre_bram_ai_20261025；代码提交b51f3f2（矩形图+96KiB RAM）、a167590（训练INT8伴奏）、
+  0070da6（AI页键盘显示）、7f18fbe（图形比较门控）、22e955e（扫描线图形器）。
+- 96KiB单数组被Gowin按128KiB映射，已改显式64+32KiB，UI数据综合原语64→48；栈顶由链接器决定。
+- 初次并行矩形版PnR确认BSRAM319→287（减少32块、9.41个百分点），但Logic70587、FF39090，
+  Fmax48.849MHz，主域setup TNS=-41.682ns/202端点失败。最紧包括FM voice_age、ARP、XY峰值和FFT。
+  这不是可烧录发布。失败位流保存为impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-25_bram_FAILED_TIMING.fs。
+- 已将标准impl/pnr/fm_138k_rgb_hdmi.fs恢复为上次时序通过的FE76300D...旧版（2026-10-24 23:18:01）。
+  不要把该标准路径的旧位流说成含AI或BSRAM优化；只有新STA全部通过后再替换。
+- 为降低逻辑/布线压力，ui_algo_map改为一个36bit描述表BSRAM+双行寄存缓存，逐行提前渲染、每拍处理8像素。
+  接口仍index*8，0..3低字节先写，字节4提交36bit条目，0x7ff8/9提交条数；保持关闭图层、50us等待、上传、开启的协议。
+  C绘图缓冲变为256项矩形列表；全部32标准图+32反馈自编辑图与旧位图每像素一致。
+  扫描线RTL对应golden采样点通过，256重叠矩形压力行769/1056时钟内完成，输出仍两拍。
+- AI为实际训练的48→32→8 MLP，不是GRU。POP909固定提交的前48首中47首4/4，31/8/8歌曲级划分；
+  PIANO轨提取受限单音低声部标签。1792个INT8权重、40个INT32偏置；测试准确率83.29%，多数类79.61%，
+  各类平均召回34.12%，仅是小样本流行伴奏原型，不能宣传为通用编曲或专业乐手水平。
+- ai_bass_inference纯RTL串行MAC，162向量/1296分数全部与软件一致，固定3664时钟（73.28us，不含节拍等待）。
+  ai_bass_accompaniment观察LIVE副本，不对观察口反压；按十六分音符决策，独立寄存仲裁插入BACKING bit30事件。
+  STOP精确松开AI音符；全局panic锁存停机；改变速度不重启；和声切换避免保持无关旧音。
+- SETUP下部METERS / AI BASS；先选贝斯音色START抓取BACKING，再选LIVE音色即兴；BPM、KEY、DENSITY、VELOCITY、
+  I-vi-IV-V循环/静态大小三和弦；和声由用户给定。AI与ARP/SEQ/PRACTICE互斥，总32复音、共享FX/音量。
+  新0x6A地址3F0控制、3F1/2周期影子，UI[60]状态。两个顶层、CLI、IDE清单同步（62文件）。
+- 实际top/仲裁/所有权/FM32/I2S联合回归通过：30 LIVE声部+AI，非零PCM、LIVE换预设不污染BACKING、局部STOP不杀LIVE、无漏采样。
+  真实RV32I/I2C的AI菜单、SEQ、GLIDE MS以及96KiB后的普通菜单回归通过；分块RAM边界/字节写/独立指令回归通过。
+  预览tmp/ai_menu_preview.png、tmp/bram_algo_preview.png来自固件日志，未叠加纯RTL琴键；AI页琴键另有RGB像素回归。
+- 进度及日志索引见AI_ACCOMPANIMENT_PROGRESS.md、AI_BASS.md。数据manifest和许可证在assets/ai，原始曲库留tmp不入Git。
+  assets/ai/ai_bass_demo.mid为原创主奏+模型输出演示，不是FPGA实机录音；GM试听音色与板载DX7音色不同。
+- 当前最终候选构建：隔离快照tmp/ai_build_22e955e，源码与SHA256清单build_source_manifest.json，
+  日志tmp/build_ai_scanline.log；exec会话12082。必须等待实际PnR与四域STA，失败则继续修复，不能提前交付。
+  首次并行绘图失败日志tmp/build_bram_banked.log；中间a167590/7f18fbe隔离构建已中止，不能使用。
+  最终成功后需备份旧报告、复制候选impl生成物回标准路径，并核对位流哈希、资源、源文件一致性，更新此节与进度表。
+
 ## 2026-10-25 HOLD 调参、滑音时间与双 Part（最新发布）
 
 - 已完成用户要求的三项：HOLD 调参不中断、SETUP 增加 GLIDE MS（10..1000 ms，默认170 ms）、
