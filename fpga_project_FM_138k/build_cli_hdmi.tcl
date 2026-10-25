@@ -1,3 +1,4 @@
+add_file -type verilog "src/seg8_status.v"
 add_file -type verilog "src/ai_bass_inference.v"
 add_file -type verilog "src/ai_bass_accompaniment.v"
 add_file -type verilog "src/sd_spi_byte.v"

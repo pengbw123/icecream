@@ -5,6 +5,7 @@
     <Version>5</Version>
     <Device name="GW5AT-138B" pn="GW5AT-LV138PG484AC1/I0">gw5at138b-012</Device>
     <FileList>
+        <File path="src/seg8_status.v" type="file.verilog" enable="1"/>
         <File path="src/ai_bass_inference.v" type="file.verilog" enable="1"/>
         <File path="src/ai_bass_accompaniment.v" type="file.verilog" enable="1"/>
         <File path="src/sd_spi_byte.v" type="file.verilog" enable="1"/>

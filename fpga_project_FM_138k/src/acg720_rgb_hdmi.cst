@@ -1,6 +1,13 @@
 // ACG720 board J1 FPC40, TFT V3.0 800x480 RGB565.
 // GPIO0 bank VCCIO must be set to 3.3 V for external MIDI/audio/LED signals.
 IO_LOC "clk" Y18;
+// Onboard HC595, verified against ACG720 board pin assignment table.
+IO_LOC "seg7_dio" M18;
+IO_LOC "seg7_rclk" C2;
+IO_LOC "seg7_sclk" F4;
+IO_PORT "seg7_dio" IO_TYPE=LVCMOS33 DRIVE=4;
+IO_PORT "seg7_rclk" IO_TYPE=LVCMOS33 DRIVE=4;
+IO_PORT "seg7_sclk" IO_TYPE=LVCMOS33 DRIVE=4;
 IO_LOC "reset_button_n" B21;
 IO_LOC "uart_rx_pin" J21;
 IO_LOC "uart_tx_pin" M15;

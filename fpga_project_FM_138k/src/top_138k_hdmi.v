@@ -18,6 +18,7 @@ module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0) (
     output wire [5:0] lcd_g,
     inout wire tp_scl,tp_sda,tp_int,
     output wire tp_rst,
+    output wire seg7_dio,seg7_sclk,seg7_rclk,
     output wire [7:0] status_led,
     output wire hdmi_clk_p, hdmi_clk_n,
     output wire [2:0] hdmi_data_p, hdmi_data_n,
@@ -50,6 +51,9 @@ module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0) (
     wire [31:0] event_data;
     localparam integer AUDIO_VOICES=32;
     wire [7:0] voices;wire [4:0] algorithm;
+    seg8_audio_status u_seg8(.clk(clk),.reset_n(reset_n),
+        .sample_tick(tick),.audio_sample(pcm),.active_voices(voices),
+        .data(seg7_dio),.shift_clk(seg7_sclk),.latch_clk(seg7_rclk));
     wire [6:0] preset;
     wire [47:0] operator_eg;
     wire [31:0] ui_event;

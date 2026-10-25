@@ -9,6 +9,7 @@ try {
     & python tools/test_algo_rectangles.py
     if ($LASTEXITCODE -ne 0) { throw 'Algorithm rectangle reference/fixture generation failed.' }
     $cases = @(
+        @{ Name='tb_seg8_status'; Sources=@('sim/tb_seg8_status.sv','src/seg8_status.v') },
         @{ Name='tb_ui_memory96'; Sources=@('sim/tb_ui_memory96.sv','src/usb_midi/rtl/rv32i.v') },
         @{ Name='tb_ai_bass_inference'; Sources=@('sim/tb_ai_bass_inference.sv','src/ai_bass_inference.v') },
         @{ Name='tb_ai_bass_accompaniment'; Sources=@('sim/tb_ai_bass_accompaniment.sv','src/ai_bass_accompaniment.v','src/ai_bass_inference.v') },
