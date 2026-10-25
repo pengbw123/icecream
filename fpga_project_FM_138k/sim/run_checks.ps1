@@ -58,6 +58,8 @@ try {
         & $vvp $outputFile
         if ($LASTEXITCODE -ne 0) { throw ('Simulation failed: ' + $case.Name) }
         if ($case.Name -eq 'tb_rgb_visualizer') {
+            & $vvp $outputFile '+ai'
+            if ($LASTEXITCODE -ne 0) { throw 'AI page RGB keyboard regression failed.' }
             & $vvp $outputFile '+arp'
             if ($LASTEXITCODE -ne 0) { throw 'Arpeggiator RGB keyboard regression failed.' }
             & $vvp $outputFile '+seq'

@@ -45,6 +45,7 @@ def main():
     report={'architecture':[48,32,8],'weight_count':1792,'bias_count':40,'weight_format':'signed INT8 Q2.5',
             'seed':138,'epochs':args.epochs,'songs':songs,'labels':'lowest-note reduction of POP909 PIANO, constrained to bass action vocabulary',
             'limitations':'Prototype trained on a small pop subset; not a general musician or proof of subjective musical quality.',
+            'dataset_manifest_path':'assets/ai/POP909_subset_manifest.json',
             'dataset_manifest_sha256':hashlib.sha256((ROOT/'tmp/ai_pop909/manifest.json').read_bytes()).hexdigest()}
     for split,(x,y) in data.items():
         pred,_=fixed(x,q);report[split]={'samples':len(y),'accuracy':float(np.mean(pred==y)),

@@ -20,7 +20,7 @@ module tb_rgb_visualizer;
     integer quiet_case=0,max_display_height=0,current_height;
     integer messy_case=0;
     reg show_wave=0;
-    wire [3:0] test_page=$test$plusargs("arp")?4'd10:$test$plusargs("seq")?4'd11:4'd0;
+    wire [3:0] test_page=$test$plusargs("ai")?4'd13:$test$plusargs("arp")?4'd10:$test$plusargs("seq")?4'd11:4'd0;
     integer page_probes=0;
     reg spectrum_case=0,spectrum_write=0;
     reg [5:0] spectrum_address=0;
