@@ -41,9 +41,11 @@ module ui_algo_map #(parameter integer PANEL_X=144, PANEL_Y=160)(
         for(k=0;k<16;k=k+1)begin:rect_gen
             localparam integer N=g*16+k;
             wire [35:0] r=rectangles[N];
-            always @(posedge pclk)
-                hit[N]<=(N<count && x>=r[8:0] && x<=r[17:9] &&
+            always @(posedge pclk)begin
+                if(!en_sync||N>=count)hit[N]<=0;
+                else hit[N]<=(x>=r[8:0] && x<=r[17:9] &&
                          y>=r[25:18] && y<=r[33:26])?r[35:34]:2'd0;
+            end
         end
         integer j;reg [1:0] chosen;
         always @* begin
