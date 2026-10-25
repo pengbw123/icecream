@@ -1,5 +1,13 @@
 # 板载数码管：输出电平与复音数
 
+<!-- SEG8_BUILD_STATUS_START -->
+构建进度（2026-10-25）：数码管两项仿真通过；首轮 e6feb3e 整机主域仅49.243MHz，51个setup端点失败，未发布。
+失败结果保留在 `tmp/ai_build_e6feb3e`，不可烧录。
+随后锁存FM复音统计、ARP计时器零标志，并利用原有处理周期锁存失真绝对值，源码25427e5。
+新构建 `tmp/ai_build_25427e5` / `tmp/build_seg8_timing.log` 正在进行。
+标准 `impl/pnr/fm_138k_rgb_hdmi.fs` 仍为21:05通过时序的AI版，尚不含数码管。
+<!-- SEG8_BUILD_STATUS_END -->
+
 固定显示 `L xxP xx`，共 8 位。例：`L 50P 03` 表示窗口峰值约半满幅、3 个活动声部。
 `L` 是 level，`P` 是 polyphony。小数点关闭。
 
