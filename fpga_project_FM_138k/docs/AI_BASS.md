@@ -41,3 +41,29 @@ Panic需显式停止再启动恢复。丢失/忙时计数，不阻塞LIVE；不�
 tb_ai_bass_inference：162组特征含留出歌曲、随机、全0/127，全部1296分数与固定点软件一致，忙时写入隔离。
 tb_ai_bass_accompaniment：生成事件标签/音域/力度、单音松键、暂停/停止、panic、变速与背压，无调度遗漏。
 整机接入、菜单、最终PnR状态见AI_ACCOMPANIMENT_PROGRESS.md；单元通过不等于实机听感通过。
+
+## 当前RV32I软核的计算基线
+
+采用工程现有50MHz RV32I（没有M乘法扩展）和同一模型、同一定点算法，隔离运行标量C推理。
+C用-Oz，并专门加入8位移位乘法与跳过零激活，避免只挑通用32位软件乘法较慢的实现作对照。
+两组向量的全部16个输出分数与FPGA整数参考一致。
+
+| 输入 | 优化C时钟 | 按50MHz折算 | RTL时钟 / 时间 |
+|---|---:|---:|---:|
+| 留出测试集第一个真实特征向量 | 109248 | 2.18496ms | 3664 / 73.28us |
+| 所有输入为127的数值压力向量 | 413584 | 8.27168ms | 3664 / 73.28us |
+
+在这两组输入上，内核计算时钟之比分别约29.8:1、112.9:1。压力向量不代表正常MIDI特征分布；
+这不是桌面CPU、RV32IM或所有CPU实现的性能结论，也不是应用平均值或全系统延迟。
+测量来自周期仿真，含C调用开销，均不含特征生成、节拍等待、MIDI排队和模拟音频输出延迟。
+RTL的162向量回归还单独验证了固定周期数。常规32位软件乘法基线约17.02ms，仅保留日志供参考。
+
+复现（准备阶段会覆盖tmp中的独立benchmark.hex，不修改生产UI固件）：
+
+```
+python tools/ai_accompaniment/prepare_cpu_benchmark.py --optimized --zig PATH_TO_ZIG
+iverilog -g2012 -s tb_ai_cpu_benchmark -o tmp/tb_ai_cpu.vvp sim/tb_ai_cpu_benchmark.sv src/usb_midi/rtl/rv32i.v
+vvp tmp/tb_ai_cpu.vvp
+```
+
+日志：tmp/check_ai_cpu_optimized.log、tmp/check_ai_cpu_benchmark.log。

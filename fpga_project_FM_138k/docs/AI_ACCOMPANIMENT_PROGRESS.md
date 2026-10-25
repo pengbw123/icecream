@@ -45,3 +45,6 @@ AI菜单：SETUP底部左侧拆成METERS / AI BASS两个入口，原GLIDE MS保�
 数据存储独立回归覆盖64/96KiB边界、不别名、字节写、一拍读与指令独立性：tmp/check_ui_memory96.log。
 实际固件写入日志生成的800×480预览已检查：tmp/ai_menu_preview.png、tmp/bram_algo_preview.png。
 AI固件73876/81920B，text73820、data56、bss10792；静态区结束0x10014abc，96KiB内余13636B供栈等使用。
+
+补充计算基线：同模型优化标量C运行在现有RV32I无M扩展软核，真实特征向量109248时钟、全127数值压力向量413584时钟，
+RTL均3664时钟，输出分数完全一致。只限该软核/实现/输入，不是桌面CPU对比；详见AI_BASS.md。
