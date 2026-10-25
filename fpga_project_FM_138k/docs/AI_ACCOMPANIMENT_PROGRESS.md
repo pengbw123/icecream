@@ -1,5 +1,23 @@
 # BSRAM优化与AI伴奏进度
 
+## 2026-10-25 板载数码管（最新发布）
+
+- 数码管显示 `L xxP xx`：最终 PCM 的 40ms 窗口峰值 0–99，加活动复音数（含释放尾音/伴奏）。
+- 使用原有 50MHz 时钟使能，HC595 50kHz；DP 关闭、每轮快照一致。新增电路未使用 BSRAM/DSP。
+- RGB 与双屏顶层/CST/GPRJ 均接入，工程清单检查为 63 个 RTL 文件。
+- 两项针对性仿真通过（边界及默认生产参数/实际引脚解码）；未重跑全矩阵，未自动烧录，实机仍待验证。
+- 最终位流 `impl/pnr/fm_138k_rgb_hdmi.fs`，北京时间 2026-10-25 23:56:59，42234791 B。
+  SHA256 `5BF9AC841EC3303D47E779521F341ACB5CDFF360737C31D4690F01E3C1F9499A`。
+- 最终 Logic 61528、FF 33026、BSRAM 294/340、DSP 73.5/298。
+- 四个时钟域 setup/hold TNS=0；Fmax：clk_50m 50.145MHz, pixel_33m 33.651MHz, hdmi_pixel_25m 33.14MHz, hdmi_serial_125m 203.151MHz。
+- 生产源码 25427e5，隔离构建 `tmp/ai_build_25427e5`，日志 `tmp/build_seg8_timing.log`。
+- 首轮 e6feb3e 主域49.243MHz、51个setup端点失败，未发布；随后锁存FM复音统计、ARP计时器零标志，并在既有周期锁存失真绝对值。
+  ARP时序谓词逐周期断言及FX/32复音/滑音/双Part/AI联合回归通过；统计仅多1个时钟显示延迟，不增加音频处理周期。
+- 训练入门和源码导航见 `AI_BASS_BEGINNER_GUIDE.md`，原始训练日志已保存 `assets/ai/ai_bass_training.log`。
+- 详情见 `SEG8_STATUS.md`；发布机器记录 `docs/releases/2026-10-25_seg8.json`。
+
+以下保留前一版 BSRAM/AI 的阶段验收记录。
+
 用户授权日期：2026-10-25。开始前标签：archive/pre_bram_ai_20261025。
 
 | 阶段 | 产物 | 验收条件 | 状态 |
