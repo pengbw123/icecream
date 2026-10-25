@@ -6,6 +6,8 @@ try {
     $iverilog = if ($IverilogDirectory) { Join-Path $IverilogDirectory 'iverilog.exe' } else { 'iverilog' }
     $vvp = if ($IverilogDirectory) { Join-Path $IverilogDirectory 'vvp.exe' } else { 'vvp' }
     New-Item -ItemType Directory -Force -Path 'tmp' | Out-Null
+    & python tools/test_algo_rectangles.py
+    if ($LASTEXITCODE -ne 0) { throw 'Algorithm rectangle reference/fixture generation failed.' }
     $cases = @(
         @{ Name='tb_sd_spi_byte'; Sources=@('sim/tb_sd_spi_byte.sv','src/sd_spi_byte.v') },
         @{ Name='tb_ch376_units'; Sources=@('sim/tb_ch376_units.sv','src/ch376/usb_midi_config_parser.v','src/ch376/usb_midi_event_decode.v','src/ch376/midi_event_arbiter3.v') },

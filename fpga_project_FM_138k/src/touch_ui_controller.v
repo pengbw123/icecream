@@ -141,7 +141,7 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
     wire fx_select=address[31:8]==24'h250000;
     assign fx_write=fx_select&&write_en;assign fx_index=address[5:2];assign fx_value=write_data;
     RV32I #(.FIRMWARE_FILE("src/ui_firmware/firmware.hex"),
-        .FIRMWARE_HIGH_FILE("src/ui_firmware/firmware_high.hex")) u_cpu (
+        .FIRMWARE_HIGH_FILE("src/ui_firmware/firmware_high.hex"),.DATA_BYTES(98304)) u_cpu (
         .CLK(clk),.RST_X(reset_n),.w_mic_addr(address),.w_data(read_data),
         .w_mic_wdata(write_data),.w_mic_req(request),.w_mic_ctrl(),.w_stall(1'b0)
     );

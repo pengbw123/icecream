@@ -61,6 +61,10 @@ module tb_touch_ui;
         .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),.xy_delay_samples(xy_delay),.display_auto_gain(display_auto_gain),
         .command_ready(1'b1),.fx_read_value(32'd0),
         .menu_page(menu_page),.patch_read_data(pr_response),.patch_read_valid(pr_valid));
+    // Physical UI data RAM is 96KiB; catch stale stack/linker assumptions.
+    always @(posedge clk)if(reset_n && dut.u_cpu.w_mic_req<=2'b01 &&
+        dut.u_cpu.w_mic_addr[31:28]==4'h1 && dut.u_cpu.w_mic_addr>=32'h10018000)
+        $fatal(1,"UI accessed outside 96KiB RAM: %h",dut.u_cpu.w_mic_addr);
     wire [159:0] test_arp_config=dut.arp_config;
     wire [31:0] test_arp_status;
     wire [127:0] test_arp_notes;

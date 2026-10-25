@@ -60,10 +60,10 @@ if ($bytes.Length -gt 81920) {
     throw "Firmware load image is $($bytes.Length) bytes, larger than the 80 KiB instruction ROM window."
 }
 
-# Pad to the full 128 KiB data-memory image.  The soft core loads the same hex
-# into instruction_mem (first 16 384 words) and data_mem (all 32 768 words).
+# Pad to the full 96 KiB data-memory image.  The soft core loads the same hex
+# into instruction_mem (first 16 384 words) and data_mem (all 24 576 words).
 $lines = [System.Collections.Generic.List[string]]::new(4096)
-for ($offset = 0; $offset -lt 131072; $offset += 4) {
+for ($offset = 0; $offset -lt 98304; $offset += 4) {
     $word = [uint32]0
     for ($byteIndex = 0; $byteIndex -lt 4; $byteIndex++) {
         $index = $offset + $byteIndex

@@ -406,40 +406,33 @@ static void draw_header(void);
 
 
 
-/* ALGORITHM routing diagram: firmware rasterises a 512x256 2bpp canvas and
-   uploads it through UI[20]/UI[21]; RTL only displays the bitmap. */
-static u8 map_buf[32768];
-static u8 algo_map_dirty;
-static void map_clear(void){u32 i;for(i=0;i<32768u;i++)map_buf[i]=0;}
+/* Ordered rectangle list: RTL paints the graph without a pixel framebuffer. */
+static u32 map_lo[256];
+static u8 map_hi[256];
+static u16 map_count;
+static u8 map_overflow,algo_map_dirty;
+static void map_clear(void){map_count=0;map_overflow=0;}
+static void map_fill(u16 x0,u16 y0,u16 x1,u16 y1,u8 c){
+    u16 t,n;
+    if(x0>511u)x0=511u;if(x1>511u)x1=511u;
+    if(y0>255u)y0=255u;if(y1>255u)y1=255u;
+    if(x0>x1){t=x0;x0=x1;x1=t;}if(y0>y1){t=y0;y0=y1;y1=t;}
+    if(map_count>=256u){map_overflow=1;return;}n=map_count++;
+    map_lo[n]=(u32)x0|((u32)x1<<9)|((u32)y0<<18)|((u32)(y1&63u)<<26);
+    map_hi[n]=(u8)((y1>>6)|(c<<2));
+}
 static void map_px(u16 x,u16 y,u8 c){
-    u32 idx;u16 b;u8 sh;
-    if(x>=512u||y>=256u)return;
-    idx=(((u32)y)<<9)+x; b=(u16)(idx>>2); sh=(u8)((idx&3u)<<1);
-    map_buf[b]=(u8)((map_buf[b]&(u8)~(3u<<sh))|(u8)(c<<sh));
+    if(x<512u&&y<256u)map_fill(x,y,x,y,c);
 }
 static void map_hline(u16 x0,u16 x1,u16 y,u8 c){
-    u16 x;if(y>=256u)return;
-    if(x0>511u)x0=511u;if(x1>511u)x1=511u;
-    if(x0>x1){u16 t=x0;x0=x1;x1=t;}
-    for(x=x0;x<=x1;x++)map_px(x,y,c);
+    if(y<256u)map_fill(x0,y,x1,y,c);
 }
 static void map_vline(u16 x,u16 y0,u16 y1,u8 c){
-    u16 y;if(x>511u)return;
-    if(y0>255u)y0=255u;if(y1>255u)y1=255u;
-    if(y0>y1){u16 t=y0;y0=y1;y1=t;}
-    for(y=y0;y<=y1;y++)map_px(x,y,c);
+    if(x<512u)map_fill(x,y0,x,y1,c);
 }
 static void map_frame(u16 x0,u16 y0,u16 x1,u16 y1,u8 c){
     map_hline(x0,x1,y0,c);map_hline(x0,x1,y1,c);
     map_vline(x0,y0,y1,c);map_vline(x1,y0,y1,c);
-}
-static void map_fill(u16 x0,u16 y0,u16 x1,u16 y1,u8 c){
-    u16 x,y;
-    if(x0>511u)x0=511u;if(x1>511u)x1=511u;
-    if(y0>255u)y0=255u;if(y1>255u)y1=255u;
-    if(x0>x1){u16 t=x0;x0=x1;x1=t;}
-    if(y0>y1){u16 t=y0;y0=y1;y1=t;}
-    for(y=y0;y<=y1;y++)for(x=x0;x<=x1;x++)map_px(x,y,c);
 }
 static void map_arrow_r(u16 x,u16 y,u8 c){
     map_px(x,y,c);
@@ -464,8 +457,7 @@ static void map_digit(u16 cx,u16 cy,u8 n,u8 c){
     }
     for(r=0;r<5;r++)for(k=0;k<3;k++)if(pat[r]&(4u>>k)){
         u16 x=(u16)(cx-3u+k*2u),y=(u16)(cy-5u+r*2u);
-        map_px(x,y,c);map_px((u16)(x+1u),y,c);
-        map_px(x,(u16)(y+1u),c);map_px((u16)(x+1u),(u16)(y+1u),c);
+        map_fill(x,y,(u16)(x+1u),(u16)(y+1u),c);
     }
 }
 static u8 algo_carrier[6],algo_ncarrier;
@@ -552,14 +544,15 @@ static void build_algo_map(void){
      if(nc){map_hline(minx,maxx,238,3);algo_out_x=maxx;}}
 }
 static void upload_algo_map(void){
-    u32 i;
+    u16 i;
+    UI[22]=0u;delay_us(50); /* Drain pixel pipeline before bundled-data update. */
     UI[23]=0u;
-    for(i=0;i<8192u;i++){
-        u32 w=(u32)map_buf[i*4u]|((u32)map_buf[i*4u+1u]<<8)|
-              ((u32)map_buf[i*4u+2u]<<16)|((u32)map_buf[i*4u+3u]<<24);
-        UI[24]=w;
+    for(i=0;i<map_count;i++){
+        UI[24]=map_lo[i];UI[24]=(u32)map_hi[i];
     }
-    UI[22]=1u;
+    UI[20]=0x7ff8u;UI[21]=(u8)map_count;
+    UI[20]=0x7ff9u;UI[21]=(u8)(map_count>>8);
+    if(!map_overflow)UI[22]=1u;
 }
 /* ------------------------------------------------------------------ */
 /* FX page (phase 3).  Registers live in audio_fx.v; command 0x70 writes   */

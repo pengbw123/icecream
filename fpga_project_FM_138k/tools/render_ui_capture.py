@@ -36,12 +36,22 @@ def render(limit, page, prefix=''):
     image = Image.new('RGB', (800, 480), color(0))
     px = image.load()
     if page == 1:
-        for address, value in dict(capture('algo_map.txt')).items():
-            for k in range(4):
-                x, y = (address * 4 + k) % 512, (address * 4 + k) // 512
-                cls = (value >> (k * 2)) & 3
-                if cls and y < 256:
-                    px[272+x, 144+y] = color({1:14, 2:5, 3:1}[cls])
+        data = dict(capture('algo_map.txt'))
+        if 0x7ff8 in data:
+            count=data[0x7ff8] | ((data.get(0x7ff9,0)&1)<<8)
+            for n in range(min(count,256)):
+                val=sum(data.get(n*8+j,0)<<(8*j) for j in range(5))
+                x0,x1=val&511,(val>>9)&511
+                y0,y1,cls=(val>>18)&255,(val>>26)&255,(val>>34)&3
+                if cls:
+                    for y in range(y0,y1+1):
+                        for x in range(x0,x1+1):px[272+x,144+y]=color({1:14,2:5,3:1}[cls])
+        else:  # Historic bitmap captures remain readable.
+            for address, value in data.items():
+                for k in range(4):
+                    x, y = (address * 4 + k) % 512, (address * 4 + k) // 512
+                    cls = (value >> (k * 2)) & 3
+                    if cls and y < 256:px[272+x, 144+y] = color({1:14, 2:5, 3:1}[cls])
     if page == 3:
         levels = dict(capture('eg6_panels.txt'))
         for panel in range(6):

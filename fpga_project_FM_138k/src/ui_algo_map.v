@@ -1,70 +1,63 @@
-// 2bpp bitmap canvas for the ALGORITHM routing diagram.
-//
-// The firmware draws 512x256 pixels into a 32 KiB buffer (4 pixels per byte,
-// colour classes 0=transparent, 1=line/border, 2=box fill, 3=highlight) and
-// uploads it through UI[20]/UI[21]; UI[22] enables the layer.  The video side
-// only does a byte lookup per four pixels, so the diagram costs BSRAM but very
-// little logic and no per-pixel line math.
-module ui_algo_map #(
-    parameter integer PANEL_X=144,
-    parameter integer PANEL_Y=160
-) (
-    input  wire        pclk,
-    input  wire        video_reset_n,
-    input  wire [10:0] h,
-    input  wire [9:0]  v,
-    input  wire        enable,
-    input  wire        wclk,
-    input  wire        we,
-    input  wire [14:0] waddr,
-    input  wire [7:0]  wdata,
-    output wire        ink,
-    output wire [1:0]  cls
+// Ordered rectangle list, inclusive coordinates, later entries paint on top.
+// Byte format at index*8: x0[8:0],x1[8:0],y0[7:0],y1[7:0],class[1:0].
+// Count is at 0x7ff8/9. Firmware disables and drains the video pipeline
+// before modifying this bundled-data list; it enables after the count write.
+module ui_algo_map #(parameter integer PANEL_X=144, PANEL_Y=160)(
+    input wire pclk,input wire video_reset_n,
+    input wire [10:0] h,input wire [9:0] v,input wire enable,
+    input wire wclk,input wire we,input wire [14:0] waddr,
+    input wire [7:0] wdata,output wire ink,output wire [1:0] cls
 );
-    localparam [9:0] X0 = PANEL_X;
-    localparam [8:0] Y0 = PANEL_Y;
-    localparam integer MAP_W = 512;
-    localparam integer MAP_H = 256;
-
-    reg [7:0] map_mem [0:32767] /* synthesis syn_ramstyle = "block_ram" */;
-
-    always @(posedge wclk) begin
-        if (we) map_mem[waddr] <= wdata;
+    reg [35:0] rectangles[0:255] /* synthesis syn_ramstyle = "registers" */;
+    reg [8:0] count=0;
+    always @(posedge wclk) if(we)begin
+        if(waddr==15'h7ff8)count[7:0]<=wdata;
+        else if(waddr==15'h7ff9)count[8]<=wdata[0];
+        else if(waddr<2048)case(waddr[2:0])
+            0:rectangles[waddr[10:3]][7:0]<=wdata;
+            1:rectangles[waddr[10:3]][15:8]<=wdata;
+            2:rectangles[waddr[10:3]][23:16]<=wdata;
+            3:rectangles[waddr[10:3]][31:24]<=wdata;
+            4:rectangles[waddr[10:3]][35:32]<=wdata[3:0];
+        endcase
     end
-
-    wire in_x = (h >= {1'b0, X0}) && (h < (X0 + MAP_W));
-    wire in_y = (v >= {1'b0, Y0}) && (v < (Y0 + MAP_H));
-    wire [9:0] hx = h[9:0] - X0;
-    wire [8:0] vy = v[8:0] - Y0;
-    wire [16:0] pix = ({8'd0, vy} << 9) | {7'd0, hx};
-    wire [14:0] raddr = pix[16:2];
-
-    // Two pixel-clock stages so the bitmap lines up with the character layer
-    // (which also presents its result at hcount-2).
-    reg [14:0] raddr1;
-    reg [9:0]  hx1, hx2;
-    reg [8:0]  vy1, vy2;
-    reg        in1, in2;
-    reg [7:0]  byte2;
-
-    always @(posedge pclk) begin
-        byte2 <= map_mem[raddr1];
+    reg en_meta=0,en_sync=0;
+    always @(posedge pclk)begin
+        if(!video_reset_n)begin en_meta<=0;en_sync<=0;end
+        else begin en_meta<=enable;en_sync<=en_meta;end
     end
-
-    always @(posedge pclk) begin
-        if (!video_reset_n) begin
-            raddr1 <= 15'd0; hx1 <= 10'd0; hx2 <= 10'd0;
-            vy1 <= 9'd0; vy2 <= 9'd0; in1 <= 1'b0; in2 <= 1'b0;
-        end else begin
-            raddr1 <= raddr;
-            hx1 <= hx; vy1 <= vy;
-            in1 <= enable && in_x && in_y;
-            hx2 <= hx1; vy2 <= vy1; in2 <= in1;
+    wire inside_panel=(h>=PANEL_X)&&(h<PANEL_X+512)&&(v>=PANEL_Y)&&(v<PANEL_Y+256);
+    wire [8:0] x=h-PANEL_X;
+    wire [7:0] y=v-PANEL_Y;
+    reg [1:0] hit[0:255];
+    reg [1:0] groups[0:15];
+    reg valid1=0,valid2=0;
+    always @(posedge pclk)begin
+        valid1<=video_reset_n&&en_sync&&inside_panel;
+        valid2<=valid1&&video_reset_n&&en_sync;
+    end
+    genvar g,k;
+    generate for(g=0;g<16;g=g+1)begin:group_gen
+        for(k=0;k<16;k=k+1)begin:rect_gen
+            localparam integer N=g*16+k;
+            wire [35:0] r=rectangles[N];
+            always @(posedge pclk)
+                hit[N]<=(N<count && x>=r[8:0] && x<=r[17:9] &&
+                         y>=r[25:18] && y<=r[33:26])?r[35:34]:2'd0;
         end
+        integer j;reg [1:0] chosen;
+        always @* begin
+            chosen=0;
+            for(j=0;j<16;j=j+1)if(hit[g*16+j]!=0)chosen=hit[g*16+j];
+        end
+        always @(posedge pclk)groups[g]<=chosen;
+    end endgenerate
+    integer i;reg [1:0] chosen_group;
+    always @* begin
+        chosen_group=0;
+        for(i=0;i<16;i=i+1)if(groups[i]!=0)chosen_group=groups[i];
     end
-
-    wire [1:0] pix_sel = hx2[1:0];
-    wire [1:0] pix_val = byte2[pix_sel*2 + 1 -: 2];
-    assign cls = !in2 ? 2'd0 : pix_val;
-    assign ink = (cls != 2'd0);
+    // Two pixel clocks, matching the existing character/graph layers.
+    assign cls=valid2?chosen_group:2'd0;
+    assign ink=|cls;
 endmodule
