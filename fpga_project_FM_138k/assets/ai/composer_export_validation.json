@@ -1,0 +1,24 @@
+{
+  "reason": "Never-trained zero features must not retain random initialization; constant variation64 is folded exactly into bias.",
+  "zero_weight_input_rows": [
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    102,
+    123,
+    124
+  ],
+  "folded_constant": {
+    "input": 102,
+    "value": 64
+  },
+  "real_data_vectors_compared": 128,
+  "real_data_logit_difference": 0,
+  "old_weights_sha256": "7f3caeca139924c2608f426dd448fe1a7db54865e64f037fb6773a7800a1020c",
+  "new_weights_sha256": "b57564a340dd4a4e8c50e1016f2c0e36aad820c0d7f37c5bd950dcafed1bdbee"
+}

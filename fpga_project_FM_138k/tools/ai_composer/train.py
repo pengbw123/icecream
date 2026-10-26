@@ -61,6 +61,8 @@ def metrics(x,y,q):
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--epochs',type=int,default=35);args=ap.parse_args()
     data,songs=dataset()
+    for x,y in data.values():
+        assert np.all(x[:,RESERVED_ZERO]==0) and np.all(x[:,102]==64), 'Control training changed; revise exact export folding'
     for k,(x,y) in data.items():print(k,x.shape,flush=True)
     rng=np.random.RandomState(720138);params=[rng.normal(0,.09,(INPUTS,HIDDEN)),np.zeros(HIDDEN),rng.normal(0,.10,(HIDDEN,OUTPUTS)),np.zeros(OUTPUTS)]
     mom=[np.zeros_like(v) for v in params];var=[v.copy() for v in mom];iteration=0;best=-1;bestp=None
@@ -89,6 +91,7 @@ def main():
         'dataset':'POP909 pinned existing 128-song download, actual MELODY track, song-separated splits',
         'manifest_sha256':hashlib.sha256((ROOT/'assets/ai/POP909_subset_manifest.json').read_bytes()).hexdigest(),
         'conditioning':'given eight-note seed plus density, direction and form; density/direction labels derived from the given phrase',
+        'control_export':'Untrained rhythm bits76..83/contrast123/rhythmValid124 weights are zero; constant variation102=64 is folded into biases exactly. These controls act in RTL, not random untrained weights.',
         'limits':'Teacher-forced next-step metrics are not free-running quality. Phrase scheduling, seed repetition, scale and gesture constraints are explicit RTL rules.'}
     for k,(x,y) in data.items():report[k]=metrics(x,y,q)
     (dst/'training_report.json').write_text(json.dumps(report,indent=2))

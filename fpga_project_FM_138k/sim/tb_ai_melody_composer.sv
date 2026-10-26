@@ -9,6 +9,7 @@ module tb_ai_melody_composer;
     integer ons=0,offs=0,last_on=0,held=-1,case_id=0,cycles=0,fd;
     integer attacks[0:3],pitch_sum[0:3];reg [127:0] used=0;
     reg check_rhythm=0,stalled=0;reg [31:0] stalled_word;
+    reg [15:0] saved_phrase[0:63];integer changed=0;
     always @(posedge clk)if(reset_n)begin
         cycles=cycles+1;
         if(stalled&&(!out_valid||out_data!==stalled_word))$fatal(1,"Composer violated stalled output");
@@ -24,6 +25,7 @@ module tb_ai_melody_composer;
                 if(held%12==1||held%12==3||held%12==6||held%12==8||held%12==10)$fatal(1,"Out of C major scale %d",held);
                 if(case_id<4)begin attacks[case_id]=attacks[case_id]+1;pitch_sum[case_id]=pitch_sum[case_id]+held;end
                 if(check_rhythm&&!dut.rhythm_mask[dut.snap_step[4:0]])$fatal(1,"Attack outside user rhythm");
+                if(dut.locked&&dut.snap_replay&&(out_data[14:8]!==dut.replay_word[6:0]||out_data[6:0]!==dut.replay_word[13:7]))$fatal(1,"LOCK output differs from stored note/velocity");
             end else if(out_data[23:20]==8)begin
                 if(held!=out_data[14:8])$fatal(1,"Composer unmatched NoteOff");held=-1;offs=offs+1;
             end else $fatal(1,"Unexpected composer MIDI");
@@ -60,8 +62,13 @@ module tb_ai_melody_composer;
         if(dut.seed_count!=3||dut.seed[0]!=62||dut.seed[2]!=69)$fatal(1,"Theme input not stored");
         n=ons;cmd(2);wait(ons>n);if(last_on!=62)$fatal(1,"First lead did not use entered theme");
         cmd(8);wait(dut.locked);if(!dut.replaying)$fatal(1,"LOCK did not enter replay");
+        for(i=0;i<64;i=i+1)saved_phrase[i]=dut.phrase[{dut.play_bank,6'(i)}];
         repeat(STEP*10)@(negedge clk);cmd(4);cmd(8);wait(dut.locked);
-        for(i=0;i<64;i=i+1)if((^dut.phrase[{dut.play_bank,6'(i)}])===1'bx)$fatal(1,"VAR then LOCK incomplete slot %0d word %h bank%0d wb%0d step%0d",i,dut.phrase[{dut.play_bank,6'(i)}],dut.play_bank,dut.write_bank,dut.step_index);
+        for(i=0;i<64;i=i+1)begin
+            if((^dut.phrase[{dut.play_bank,6'(i)}])===1'bx)$fatal(1,"VAR then LOCK incomplete slot %0d word %h bank%0d wb%0d step%0d",i,dut.phrase[{dut.play_bank,6'(i)}],dut.play_bank,dut.write_bank,dut.step_index);
+            if(dut.phrase[{dut.play_bank,6'(i)}]!==saved_phrase[i])changed=changed+1;
+        end
+        if(changed==0)$fatal(1,"VARIATION did not change the phrase");
         repeat(STEP*130)@(negedge clk);if(!dut.locked||dut.misses)$fatal(1,"Locked replay failed");
         cmd(3);repeat(20000)@(negedge clk);cmd(2);repeat(STEP*5)@(negedge clk);
         if(!dut.locked||!dut.replaying)$fatal(1,"STOP/START lost locked phrase");

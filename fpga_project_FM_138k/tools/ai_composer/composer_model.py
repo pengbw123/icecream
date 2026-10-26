@@ -4,10 +4,19 @@ INPUTS,HIDDEN,OUTPUTS=128,48,36
 HEADS=[(0,3),(3,28),(28,32),(32,36)]
 GATES=np.array([1,2,4,8],dtype=np.int32)
 DYNAMICS=np.array([48,72,96,120],dtype=np.int32)
+# These first-stage controls are enforced by the scheduler, not learned from
+# unobserved examples. Do not expose random initialization to live gestures.
+RESERVED_ZERO=list(range(76,84))+[123,124]
+
+def neutralize_controls(q):
+    w1,b1,w2,b2=[a.copy() for a in q]
+    b1+=w1[102].astype(np.int32)*64
+    w1[102]=0;w1[RESERVED_ZERO]=0
+    return w1,b1,w2,b2
 
 def quantize(w1,b1,w2,b2):
-    return (np.clip(np.rint(w1*32),-127,127).astype(np.int8),np.rint(b1*4096).astype(np.int32),
-            np.clip(np.rint(w2*32),-127,127).astype(np.int8),np.rint(b2*4096).astype(np.int32))
+    return neutralize_controls((np.clip(np.rint(w1*32),-127,127).astype(np.int8),np.rint(b1*4096).astype(np.int32),
+            np.clip(np.rint(w2*32),-127,127).astype(np.int8),np.rint(b2*4096).astype(np.int32)))
 
 def fixed(x,q):
     w1,b1,w2,b2=q

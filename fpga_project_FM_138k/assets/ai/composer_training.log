@@ -213,3 +213,5 @@ epoch 35 {"articulation": {"samples": 41344, "accuracy": 0.6837267801857585}, "i
     "attack_f1": 0.7445133587786259
   }
 }
+
+POST-EXPORT AUDIT: unused control rows zeroed and variation64 folded into bias. 128 real-data vectors bit-exact unchanged; training metrics unchanged. See composer_export_validation.json.
