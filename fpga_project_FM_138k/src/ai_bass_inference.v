@@ -16,8 +16,8 @@ module ai_bass_inference #(
     reg [7:0] features[0:95],hidden[0:31];
     reg signed [31:0] scores[0:16];
     initial begin $readmemh(WEIGHTS,weights);$readmemh(BIASES,biases);end
-    assign score=score_index<17?scores[score_index]:32'sd0;
-    assign action=articulation==2?degree+3'd2:articulation==1?3'd1:3'd0;
+    assign score=score_index<17 ? scores[score_index]:32'sd0;
+    assign action=articulation==2 ? degree+3'd2:articulation==1 ? 3'd1:3'd0;
     localparam IDLE=0,INIT=1,LOAD=2,MAC=3,FINISH=4;
     reg [2:0] state;reg layer;reg [5:0] neuron;reg [6:0] term;
     reg [11:0] address;
@@ -34,15 +34,15 @@ module ai_bass_inference #(
             if(busy)cycles<=cycles+1'b1;
             case(state)
                 IDLE:if(start)begin busy<=1;cycles<=0;layer<=0;neuron<=0;address<=0;state<=INIT;end
-                INIT:begin accumulator<=biases[layer?32+neuron:neuron];term<=0;state<=LOAD;end
-                LOAD:begin weight<=weights[address];operand<=layer?hidden[term]:features[term];state<=MAC;end
+                INIT:begin accumulator<=biases[layer ? 32+neuron:neuron];term<=0;state<=LOAD;end
+                LOAD:begin weight<=weights[address];operand<=layer ? hidden[term]:features[term];state<=MAC;end
                 MAC:begin
                     accumulator<=accumulator+product;address<=address+1'b1;
-                    if(term==(layer?31:95))state<=FINISH;else begin term<=term+1'b1;state<=LOAD;end
+                    if(term==(layer ? 31:95))state<=FINISH;else begin term<=term+1'b1;state<=LOAD;end
                 end
                 FINISH:begin
                     if(!layer)begin
-                        hidden[neuron]<=accumulator<0?0:accumulator>=4064?127:accumulator[11:5];
+                        hidden[neuron]<=accumulator<0 ? 0:accumulator>=4064 ? 127:accumulator[11:5];
                         if(neuron==31)begin layer<=1;neuron<=0;end else neuron<=neuron+1'b1;
                         state<=INIT;
                     end else begin

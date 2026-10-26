@@ -32,9 +32,9 @@ module ai_bass_accompaniment #(parameter integer CLOCKS_PER_US=50)(
     reg [31:0] remaining,age_us;
     wire sub_tick=us_tick&&age_us==0;
     reg [3:0] phase;reg [1:0] chord_slot;
-    wire [4:0] root_sum={1'b0,config_word[7:4]}+(!config_word[2]?0:chord_slot==1?9:chord_slot==2?5:chord_slot==3?7:0);
-    wire [3:0] manual_root=root_sum>=12?root_sum-12:root_sum;
-    wire manual_minor=config_word[2]?(chord_slot==1):config_word[8];
+    wire [4:0] root_sum={1'b0,config_word[7:4]}+(!config_word[2] ? 0:chord_slot==1 ? 9:chord_slot==2 ? 5:chord_slot==3 ? 7:0);
+    wire [3:0] manual_root=root_sum>=12 ? root_sum-12:root_sum;
+    wire manual_minor=config_word[2] ? (chord_slot==1):config_word[8];
     wire [3:0] lh_root;wire lh_minor,lh_present,lh_ready;
     ai_harmony_tracker u_harmony(.clk(clk),.reset_n(reset_n),.enable(enabled&&follow_harmony),
         .held(held),.split(split),.changed(note_on||note_off||pedal_event),
@@ -42,8 +42,8 @@ module ai_bass_accompaniment #(parameter integer CLOCKS_PER_US=50)(
         .fallback_root(config_word[7:4]),.fallback_minor(config_word[8]),
         .root(lh_root),.minor(lh_minor),.present(lh_present),.ready(lh_ready));
     wire step_tick=play_active&&remaining==0&&(!follow_harmony||lh_ready);
-    wire [3:0] root=follow_harmony?lh_root:manual_root;
-    wire minor=follow_harmony?lh_minor:manual_minor;
+    wire [3:0] root=follow_harmony ? lh_root:manual_root;
+    wire minor=follow_harmony ? lh_minor:manual_minor;
     reg [6:0] hist[0:11],history[0:14],onsets,last_velocity,silence;
     reg [6:0] rec_note[0:7],rec_age[0:7],rec_duration[0:7],rec_ioi[0:7],rec_velocity[0:7];
     reg [7:0] rec_gate;
@@ -68,17 +68,17 @@ module ai_bass_accompaniment #(parameter integer CLOCKS_PER_US=50)(
     reg [15:0] misses;reg [31:0] decisions;
     wire beat_anchor=snapshot_phase[1:0]==0;
     wire recent_onset=snapshot[40]!=0;
-    wire allow_attack=config_word[1]?beat_anchor:snapshot_dense?!snapshot_phase[0]:
+    wire allow_attack=config_word[1] ? beat_anchor:snapshot_dense ? !snapshot_phase[0]:
                       (beat_anchor||(snapshot[46]!=0&&snapshot_phase[0]));
     // Explicit rhythm contract: quarter-note anchors; dense playing may answer
     // on eighths. The trained heads choose degree, articulation, gate/dynamics.
     wire anchor=beat_anchor&&(steps_since_attack>=4||snapshot_phase==0);
-    wire answer=recent_onset&&(snapshot_dense?!snapshot_phase[0]:beat_anchor);
+    wire answer=recent_onset&&(snapshot_dense ? !snapshot_phase[0]:beat_anchor);
     wire attack=snapshot_changed||anchor||answer||(articulation==2&&allow_attack);
-    wire [2:0] chosen_degree=(snapshot_changed||snapshot_phase==0)?0:
-        (degree==5&&snapshot_phase[1:0]!=3)?2:degree;
+    wire [2:0] chosen_degree=(snapshot_changed||snapshot_phase==0) ? 0:
+        (degree==5&&snapshot_phase[1:0]!=3) ? 2:degree;
     function [6:0] bass_note(input [2:0] d,input [3:0] r,input m);
-        begin case(d)1:bass_note=36+r+(m?3:4);2:bass_note=43+r;3:bass_note=48+r;
+        begin case(d)1:bass_note=36+r+(m ? 3:4);2:bass_note=43+r;3:bass_note=48+r;
             4:bass_note=31+r;5:bass_note=35+r;default:bass_note=36+r;endcase end
     endfunction
     reg [6:0] learned_gate,chosen_gate,learned_velocity;
@@ -93,9 +93,9 @@ module ai_bass_accompaniment #(parameter integer CLOCKS_PER_US=50)(
             else if(chosen_gate>4)chosen_gate=4;
         end
         velocity_mix=({2'b0,snapshot[44][6:0]}<<1)+snapshot[44][6:0]+learned_velocity;
-        velocity_product=(velocity_mix>>2)*(config_word[15:9]==0?7'd70:config_word[15:9]);
-        chosen_velocity=!adaptive?(config_word[15:9]==0?7'd70:config_word[15:9]):
-            velocity_product>=16'd8128?7'd127:velocity_product<64?7'd1:velocity_product[12:6];
+        velocity_product=(velocity_mix>>2)*(config_word[15:9]==0 ? 7'd70:config_word[15:9]);
+        chosen_velocity=!adaptive ? (config_word[15:9]==0 ? 7'd70:config_word[15:9]):
+            velocity_product>=16'd8128 ? 7'd127:velocity_product<64 ? 7'd1:velocity_product[12:6];
     end
     // V2 telemetry: version[15:13], pedal12, dense11, LH10, playing9,
     // minor8, actual root[7:4], legacy panic/busy/event/enabled[3:0].
@@ -127,10 +127,10 @@ module ai_bass_accompaniment #(parameter integer CLOCKS_PER_US=50)(
             if(cfg_write)case(cfg_address)
                 10'h3f1:period_shadow[15:0]<=cfg_value;
                 10'h3f2:period_shadow[31:16]<=cfg_value;
-                10'h3f3:settings_shadow<={(cfg_value[14:8]<36?7'd36:cfg_value[14:8]>84?7'd84:cfg_value[14:8]),cfg_value[7:0]};
+                10'h3f3:settings_shadow<={(cfg_value[14:8]<36 ? 7'd36:cfg_value[14:8]>84 ? 7'd84:cfg_value[14:8]),cfg_value[7:0]};
                 10'h3f0:begin
-                    config_word<={cfg_value[15:8],(cfg_value[7:4]>11?4'd11:cfg_value[7:4]),cfg_value[3:0]};
-                    step_us<=period_shadow<10000?10000:period_shadow>1000000?1000000:period_shadow;settings<=settings_shadow;
+                    config_word<={cfg_value[15:8],(cfg_value[7:4]>11 ? 4'd11:cfg_value[7:4]),cfg_value[3:0]};
+                    step_us<=period_shadow<10000 ? 10000:period_shadow>1000000 ? 1000000:period_shadow;settings<=settings_shadow;
                 end
             endcase
             if(!config_word[0])panic_latched<=0;else if(panic)panic_latched<=1;
@@ -161,14 +161,14 @@ module ai_bass_accompaniment #(parameter integer CLOCKS_PER_US=50)(
             end
             if(build_state==1)begin
                 if(held_scan[scan_index])begin
-                    rot=scan_pc>=snapshot_root?scan_pc-snapshot_root:scan_pc+12-snapshot_root;
+                    rot=scan_pc>=snapshot_root ? scan_pc-snapshot_root:scan_pc+12-snapshot_root;
                     snapshot[28+rot]<=127;
                     if((!scan_follow||scan_index>=scan_split)&&lead_count<8)lead_count<=lead_count+1'b1;
                 end
-                scan_pc<=scan_pc==11?0:scan_pc+1'b1;
+                scan_pc<=scan_pc==11 ? 0:scan_pc+1'b1;
                 if(scan_index==127)build_state<=2;else scan_index<=scan_index+1'b1;
             end else if(build_state==2)begin
-                snapshot[45]<=lead_count>=8?127:lead_count*16;build_index<=0;build_state<=3;
+                snapshot[45]<=lead_count>=8 ? 127:lead_count*16;build_index<=0;build_state<=3;
             end else if(build_state==3)begin
                 if(build_index==95)begin build_state<=0;infer_start<=1;end else build_index<=build_index+1'b1;
             end
@@ -191,22 +191,22 @@ module ai_bass_accompaniment #(parameter integer CLOCKS_PER_US=50)(
                     if(steps_since_attack!=15)steps_since_attack<=steps_since_attack+1'b1;
                     if(!infer_busy&&build_state==0&&!infer_start&&!on_pending&&!off_pending&&!out_valid)begin
                         for(i=0;i<96;i=i+1)snapshot[i]<=0;
-                        for(i=0;i<16;i=i+1)snapshot[i]<=phase==i?127:0;
+                        for(i=0;i<16;i=i+1)snapshot[i]<=phase==i ? 127:0;
                         for(i=0;i<12;i=i+1)begin rot=i+root;if(rot>=12)rot=rot-12;snapshot[16+i]<=hist[rot];end
                         // Training and runtime both represent the GIVEN triad,
                         // plus currently sounding performer pitch classes.
-                        snapshot[28]<=127;snapshot[28+(minor?3:4)]<=127;snapshot[35]<=127;
-                        snapshot[40]<=onsets>=6?127:onsets*24;
-                        for(i=0;i<3;i=i+1)snapshot[41+i]<=history[i]>=6?127:history[i]*24;
-                        for(i=0;i<12;i=i+1)snapshot[80+i]<=history[i+3]>=6?127:history[i+3]*24;
-                        snapshot[44]<=last_velocity;snapshot[46]<=onsets!=0?0:silence>=15?127:(silence+1)*8;
-                        snapshot[47]<=minor?127:0;
+                        snapshot[28]<=127;snapshot[28+(minor ? 3:4)]<=127;snapshot[35]<=127;
+                        snapshot[40]<=onsets>=6 ? 127:onsets*24;
+                        for(i=0;i<3;i=i+1)snapshot[41+i]<=history[i]>=6 ? 127:history[i]*24;
+                        for(i=0;i<12;i=i+1)snapshot[80+i]<=history[i+3]>=6 ? 127:history[i+3]*24;
+                        snapshot[44]<=last_velocity;snapshot[46]<=onsets!=0 ? 0:silence>=15 ? 127:(silence+1)*8;
+                        snapshot[47]<=minor ? 127:0;
                         for(i=0;i<8;i=i+1)begin
-                            snapshot[48+i]<=rec_note[i];snapshot[56+i]<=rec_gate[i]?rec_age[i]:rec_duration[i];
+                            snapshot[48+i]<=rec_note[i];snapshot[56+i]<=rec_gate[i] ? rec_age[i]:rec_duration[i];
                             snapshot[64+i]<=rec_ioi[i];snapshot[72+i]<=rec_velocity[i];
                         end
-                        snapshot[92]<=root!=previous_root||minor!=previous_minor?127:0;
-                        snapshot[93]<=config_word[1]?127:0;snapshot[94]<=root*11;snapshot[95]<=pedal?127:0;
+                        snapshot[92]<=root!=previous_root||minor!=previous_minor ? 127:0;
+                        snapshot[93]<=config_word[1] ? 127:0;snapshot[94]<=root*11;snapshot[95]<=pedal ? 127:0;
                         snapshot_root<=root;snapshot_minor<=minor;snapshot_phase<=phase;
                         snapshot_changed<=root!=previous_root||minor!=previous_minor;
                         previous_root<=root;previous_minor<=minor;snapshot_left<=follow_harmony&&lh_present;
@@ -214,21 +214,21 @@ module ai_bass_accompaniment #(parameter integer CLOCKS_PER_US=50)(
                         held_scan<=held;scan_index<=0;scan_pc<=0;scan_split<=split;scan_follow<=follow_harmony;lead_count<=0;build_state<=1;
                     end else if(misses!=65535)misses<=misses+1'b1;
                     for(i=14;i>0;i=i-1)history[i]<=history[i-1];history[0]<=onsets;onsets<=0;
-                    silence<=onsets!=0?0:silence==15?15:silence+1'b1;
+                    silence<=onsets!=0 ? 0:silence==15 ? 15:silence+1'b1;
                     for(i=0;i<12;i=i+1)hist[i]<=hist[i]>>1;
                 end
                 if(note_on)begin
                     physical[note]<=1;held[note]<=1;armed<=1;idle_age<=0;last_velocity<=observe_data[6:0];
                     if(lead_on)begin
-                        onsets<=step_tick?1:onsets>=15?15:onsets+1'b1;
-                        hist[note_pc]<=((step_tick?(hist[note_pc]>>1):hist[note_pc])>79)?127:
-                            (step_tick?(hist[note_pc]>>1):hist[note_pc])+48;
+                        onsets<=step_tick ? 1:onsets>=15 ? 15:onsets+1'b1;
+                        hist[note_pc]<=((step_tick ? (hist[note_pc]>>1):hist[note_pc])>79) ? 127:
+                            (step_tick ? (hist[note_pc]>>1):hist[note_pc])+48;
                         for(i=7;i>0;i=i-1)begin
                             rec_note[i]<=rec_note[i-1];rec_age[i]<=rec_age[i-1];rec_ioi[i]<=rec_ioi[i-1];rec_velocity[i]<=rec_velocity[i-1];
                             rec_gate[i]<=rec_gate[i-1]&&rec_note[i-1]!=note;
-                            rec_duration[i]<=rec_note[i-1]==note?rec_age[i-1]:rec_duration[i-1];
+                            rec_duration[i]<=rec_note[i-1]==note ? rec_age[i-1]:rec_duration[i-1];
                         end
-                        rec_note[0]<=note;rec_age[0]<=0;rec_duration[0]<=0;rec_ioi[0]<=seen_lead?onset_age:0;seen_lead<=1;
+                        rec_note[0]<=note;rec_age[0]<=0;rec_duration[0]<=0;rec_ioi[0]<=seen_lead ? onset_age:0;seen_lead<=1;
                         rec_velocity[0]<=observe_data[6:0];rec_gate[0]<=1;onset_age<=0;
                     end
                 end else if(note_off)begin
@@ -266,11 +266,11 @@ module ai_harmony_tracker(
     reg [3:0] pitch,lowest,count,old_fallback,picked_root;
     reg [11:0] mask;
     reg [4:0] candidate;reg [3:0] best;reg picked_minor;
-    wire [3:0] r=candidate>=12?candidate-12:candidate[3:0];
-    wire [4:0] third_sum={1'b0,r}+(candidate>=12?3:4),fifth_sum={1'b0,r}+7;
-    wire [3:0] third=third_sum>=12?third_sum-12:third_sum,fifth=fifth_sum>=12?fifth_sum-12:fifth_sum;
+    wire [3:0] r=candidate>=12 ? candidate-12:candidate[3:0];
+    wire [4:0] third_sum={1'b0,r}+(candidate>=12 ? 3:4),fifth_sum={1'b0,r}+7;
+    wire [3:0] third=third_sum>=12 ? third_sum-12:third_sum,fifth=fifth_sum>=12 ? fifth_sum-12:fifth_sum;
     wire match=mask[r]&&mask[third]&&mask[fifth];
-    wire [3:0] rank=1+(r==lowest?4:0)+(r==root?2:0);
+    wire [3:0] rank=1+(r==lowest ? 4:0)+(r==root ? 2:0);
     assign ready=state==0&&!dirty&&!changed&&old_split==split&&old_fallback==fallback_root&&old_minor==fallback_minor;
     always @(posedge clk)begin
         if(!reset_n)begin
@@ -294,7 +294,7 @@ module ai_harmony_tracker(
                         if(!any_key)lowest<=pitch;any_key<=1;mask[pitch]<=1;
                         if(!mask[pitch])count<=count+1'b1;
                     end
-                    pitch<=pitch==11?0:pitch+1'b1;
+                    pitch<=pitch==11 ? 0:pitch+1'b1;
                     if(index==127)state<=2;else index<=index+1'b1;
                 end
                 2:begin
@@ -335,7 +335,7 @@ module ai_midi_merge(
     always @(posedge clk)begin
         if(!reset_n)begin last_live<=0;out_valid<=0;out_data<=0;out_brightness<=0;end
         else if(available)begin
-            out_valid<=choose_ai?ai_valid:live_valid;
+            out_valid<=choose_ai ? ai_valid:live_valid;
             if(choose_ai)begin out_data<=ai_data;out_brightness<=ai_data[6:0];last_live<=0;end
             else if(live_valid)begin out_data<=live_data;out_brightness<=live_brightness;last_live<=1;end
         end
