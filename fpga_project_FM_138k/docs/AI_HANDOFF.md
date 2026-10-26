@@ -1,5 +1,16 @@
 # 给后续 AI 的工程交接说明
 
+<!-- AI_V2_PENDING_START -->
+## 2026-10-26 AI BASS V2（源码完成，物理验收进行中）
+
+- 用户授权更明显的演奏跟随。实现与使用见 `AI_BASS_V2.md`；生产源码提交 `05c7187`，后续仅文档/试听更新。
+- 当前源码五项针对性回归通过：网络逐项一致、事件、成对响应、真实FM/I2S音频、真实RV32I/I2C菜单。
+- 增量构建 `tmp/ai_build_05c7187` / `tmp/build_ai_v2_incremental.log`；对照常规构建 `tmp/ai_build_05c7187_full` / `tmp/build_ai_v2_full.log`。
+- 标准 `impl/pnr/fm_138k_rgb_hdmi.fs` 仍是下述2026-10-25数码管版，不包含V2。V2通过四域setup/hold后才能替换。
+- 旧位流备份 `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-26_pre_ai_follow.fs`；标签 `archive/pre_ai_follow_20261026`。
+- 未烧录。不要把综合成功、仿真通过或单纯产生FS当作物理时序验收。
+<!-- AI_V2_PENDING_END -->
+
 ## 2026-10-25 板载数码管（最新发布）
 
 - 数码管显示 `L xxP xx`：最终 PCM 的 40ms 窗口峰值 0–99，加活动复音数（含释放尾音/伴奏）。
