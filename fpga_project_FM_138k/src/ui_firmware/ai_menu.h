@@ -16,7 +16,7 @@ static void ai_stop(void){u32 t;
     while((UI[60]&7u)&&(u32)(now()-t)<20000u){}
     set_glide(ai_saved_glide);
 }
-static void ai_start(void){u8 saved=seq_is_active()?seq_saved_glide:arp_on?arp_saved_glide:(u8)(rd(0x00c)!=0);
+static void ai_start(void){u8 saved;composer_stop();saved=seq_is_active()?seq_saved_glide:arp_on?arp_saved_glide:(u8)(rd(0x00c)!=0);
     seq_stop();if(arp_on)arp_enable(0);release_all();
     ai_saved_glide=saved;set_glide(0);
     backing_capture(&ai_patch);backing_upload(&ai_patch);ai_on=1;ai_publish();
@@ -30,7 +30,8 @@ static void draw_ai_status(void){u32 st=UI[60];
 }
 static void draw_ai(void){
     button_box(2,5,18,3,ai_on?"STOP":"START",ai_on);
-    row_box(22,5,76,3,"BACKING",ai_patch.patch.magic==SLOT_MAGIC?ai_patch.patch.name:"LIVE AT START",0);
+    row_box(22,5,54,3,"BACKING",ai_patch.patch.magic==SLOT_MAGIC?ai_patch.patch.name:"LIVE AT START",0);
+    button_box(78,5,20,3,"COMPOSE >",0);
     arp_row(2,8,"BPM",u3d(ai_bpm));arp_row(52,8,"KEY",ai_keys[ai_key]);
     arp_row(2,11,"DENSITY",ai_sparse?"SPARSE":"NORMAL");arp_row(52,11,"DYN LEVEL",u3d(ai_velocity));
     arp_row(2,14,"HARMONY",ai_harmony==2?"LEFT HAND":ai_harmony==1?"I-vi-IV-V":"STATIC");arp_row(52,14,"STATIC TYPE",ai_minor?"MINOR":"MAJOR");

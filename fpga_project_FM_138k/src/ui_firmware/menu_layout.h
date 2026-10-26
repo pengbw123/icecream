@@ -42,7 +42,7 @@ static void row_box(u8 c,u8 r,u8 w,u8 h,const char *label,const char *value,int 
     pair_text((u8)(c+w-2-str_len(value)),(u8)(r+h/2),value,bg,0);
 }
 static void draw_tabs(void){u8 i;rect_cells(0,0,100,3,12);
-    for(i=0;i<8;i++)button_box((u8)(2+i*12),0,12,3,tab_names[i],page==i||((page==PAGE_METRICS||page==PAGE_AI)&&i==7)||((page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ)&&i==0));
+    for(i=0;i<8;i++)button_box((u8)(2+i*12),0,12,3,tab_names[i],page==i||((page==PAGE_METRICS||page==PAGE_AI||page==PAGE_COMPOSER)&&i==7)||((page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ)&&i==0));
 }
 static void draw_status(void){u8 i;u32 st=UI[4];u8 pr=status_preset(st);
     if(page==PAGE_LESSON){draw_lesson_status();return;}
@@ -64,7 +64,7 @@ static void draw_perf_controls(void){
         text(2,20,"50",2,0);text(16,20,"200",2,0);text(32,20,"1k",2,0);text(48,20,"5k",2,0);text(61,20,"20k",2,0);
         text(68,6,"0",2,0);text(68,10,"-24",2,0);text(68,15,"-48",2,0);text(68,19,"-72",2,0);
     }
-    text(76,5,ai_on?"AI BASS":arp_on?"ARP ON":"",2,0);
+    text(76,5,composer_session?"COMPOSER":ai_on?"AI BASS":arp_on?"ARP ON":"",2,0);
     text(76,6,"VOLUME",2,0);
     nb[0]=(char)('0'+vol_local/100);nb[1]=(char)('0'+(vol_local/10)%10);nb[2]=(char)('0'+vol_local%10);nb[3]=0;
     text_r(98,6,nb,1,0);
@@ -183,6 +183,7 @@ static void lesson_press(int x,int y){
 #include "seq_menu.h"
 #include "performance_menu.h"
 #include "ai_menu.h"
+#include "composer_menu.h"
 static const char *const setup_labels[11]={"BACKGROUND","ACCENT","DISPLAY","XY DELAY","AUTO RANGE","KEY VELOCITY","AUDIO OUTPUT","SPECTRUM","GLIDE MONO","PRACTICE","GLIDE MS"};
 static const char *setup_value(u8 n){if(n==0)return bg_labels[bg_pick];if(n==1)return ac_labels[accent_pick];
     if(n==2)return visual_mode==2?"SPECTRUM":visual_mode==1?"XY":"WAVE";if(n==3)return u2d(xy_delay);
@@ -200,7 +201,7 @@ static const char *selected_label(void){if(page==1){static const char *const a[4
     if(page==4)return lfo_labels[sel_row];if(page==5)return sel_row>=3?fx_p_names[fx_sel][sel_row-3]:"CONTROL";
     if(page==7)return setup_labels[sel_row];return "VALUE";}
 static void draw_bottom(void){int cur,lo,hi,cyc,norm;u8 c;
-    if(page==0||page==6||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_METRICS||page==PAGE_AI)return;
+    if(page==0||page==6||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_METRICS||page==PAGE_AI||page==PAGE_COMPOSER)return;
     rect_cells(0,26,100,4,12);
     button_box(2,27,28,3,page==5?((fx_regs[0]&1)?"FX MASTER ON":"FX MASTER OFF"):page==3?(eg_mode?"PITCH EG":"OPERATOR EG"):"PLAY",0);
     button_box(32,27,8,3,"-1",0);button_box(90,27,8,3,"+1",0);
@@ -230,7 +231,7 @@ static void draw_dialog(void){
         button_box(14,19,30,3,"CANCEL",0);button_box(54,19,30,3,(dialog==6||dialog==8)?"STORE":"LOAD",1);}
 }
 static void draw_page(void){draw_header();
-    if(page==PAGE_AI)draw_ai();else if(page==PAGE_METRICS)draw_metrics();else if(page==PAGE_SEQ)draw_seq();else if(page==PAGE_ARP)draw_arp();else if(page==PAGE_LESSON)draw_lesson_controls();else if(page==0)draw_perf_controls();else if(page==1)draw_algo();else if(page==2)draw_osc();
+    if(page==PAGE_COMPOSER)draw_composer();else if(page==PAGE_AI)draw_ai();else if(page==PAGE_METRICS)draw_metrics();else if(page==PAGE_SEQ)draw_seq();else if(page==PAGE_ARP)draw_arp();else if(page==PAGE_LESSON)draw_lesson_controls();else if(page==0)draw_perf_controls();else if(page==1)draw_algo();else if(page==2)draw_osc();
     else if(page==3)draw_eg();else if(page==4)draw_lfo();else if(page==5)draw_fx();else if(page==6)draw_name();else draw_theme();
     draw_bottom();if(dialog)draw_dialog();
 }
@@ -248,9 +249,10 @@ static void perf_control(int x,int y,u8 id){u8 k=0;u32 t=now();
 static void page_enter(u8 p){if(p==page&&p!=0)return;release_all();ctrl_hold=0;held_id=255;held_kind=0;
     if(page==PAGE_LESSON){UI[28]=0;octave=lesson_saved_octave;
         if(lesson_saved_glide)set_glide(1);}
-    if(p==PAGE_LESSON){ai_stop();seq_stop();lesson_saved_octave=octave;octave=0;
+    if(p==PAGE_LESSON){composer_stop();ai_stop();seq_stop();lesson_saved_octave=octave;octave=0;
         lesson_saved_glide=(u8)(rd(0x00c)!=0);if(lesson_saved_glide)set_glide(0);
         emit(0xb0,64,0);lesson_run=0;lesson_control(1);lesson_last_status=~0u;}
+    if(p==PAGE_COMPOSER)composer_enter();
     dialog=0;page=p;sel_row=0;last_adj=0;
     arp_publish();
     if(p==PAGE_METRICS){metrics_frozen=0;metrics_last_poll=now();metrics_read();}
@@ -270,7 +272,7 @@ static void adj_setup(u8 r,int d){int n;
     else if(r==4)display_auto_gain=!display_auto_gain;
     else if(r==5){n=touch_velocity+d;if(n<1)n=1;if(n>127)n=127;touch_velocity=(u8)n;}
     else if(r==6)headphone_select=!headphone_select;
-    else if(r==8){if(arp_on){arp_enable(0);glide_on=1;}else if(seq_run||seq_record){seq_stop();glide_on=1;}else glide_on=!glide_on;set_glide(glide_on);}
+    else if(r==8){if(composer_session){composer_stop();glide_on=1;}else if(arp_on){arp_enable(0);glide_on=1;}else if(seq_run||seq_record){seq_stop();glide_on=1;}else glide_on=!glide_on;set_glide(glide_on);}
     else if(r==10){n=(int)glide_ms+d;set_glide_time((u16)(n<10?10:n>1000?1000:n));}
     publish();draw_page();
 }
@@ -284,6 +286,8 @@ static int menu_press(int x,int y){int i,n;
             else if(x>=432&&x<672){u8 d=dialog;dialog=0;if(d==8||d==9){sd_bank_action(d==8);draw_page();}else if(d==5)load_selected_rom();else if(d==6)slot_save();else{slot_load();patch_dirty=0;draw_page();}}}return 1;
     }
     if(y<48){i=(x-16)/96;if(x>=16&&x<784)page_enter((u8)i);return 1;}
+    if(page==PAGE_COMPOSER){composer_press(x,y);return 1;}
+    if(page==PAGE_AI&&x>=624&&x<784&&y>=80&&y<128){page_enter(PAGE_COMPOSER);return 1;}
     if(page==PAGE_AI){ai_press(x,y);return 1;}
     if(page==7&&x>=208&&x<384&&y>=368&&y<416){page_enter(PAGE_AI);return 1;}
     if(page==PAGE_METRICS){metrics_press(x,y);return 1;}

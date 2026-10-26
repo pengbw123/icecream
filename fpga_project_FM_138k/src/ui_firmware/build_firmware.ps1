@@ -50,6 +50,9 @@ $hex = Join-Path $firmwareDir 'firmware.hex'
     -o $elf
 if ($LASTEXITCODE -ne 0) { throw 'Firmware link failed.' }
 
+& python (Join-Path $firmwareDir '../../tools/check_ui_layout.py') $elf
+if ($LASTEXITCODE -ne 0) { throw 'UI Harvard memory-layout verification failed.' }
+
 & $Zig objcopy -O binary $elf $binary
 if ($LASTEXITCODE -ne 0) { throw 'Firmware objcopy failed.' }
 
@@ -61,7 +64,8 @@ if ($bytes.Length -gt 81920) {
 }
 
 # Pad to the full 96 KiB data-memory image.  The soft core loads the same hex
-# into instruction_mem (first 16 384 words) and data_mem (all 24 576 words).
+# into instruction ROM and the two data banks. Startup clears BSS through
+# its 0x10020000 data alias; the independent instruction ROM is untouched.
 $lines = [System.Collections.Generic.List[string]]::new(4096)
 for ($offset = 0; $offset -lt 98304; $offset += 4) {
     $word = [uint32]0

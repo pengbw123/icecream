@@ -3,6 +3,10 @@ ENTRY(_start)
 MEMORY
 {
     RAM (rwx) : ORIGIN = 0x10000000, LENGTH = 96K
+    /* Data-port alias: address bits above bit16 are not decoded by local RAM.
+       BSS can reuse the DATA copy of instruction bytes without touching the
+       independently stored instruction ROM. Constants remain above it. */
+    BSS (rw) : ORIGIN = 0x10020000, LENGTH = 64K
 }
 
 SECTIONS
@@ -11,6 +15,12 @@ SECTIONS
     {
         KEEP(*(.text.start))
         *(.text*)
+        . = ALIGN(4);
+    } > RAM
+
+    .rodata :
+    {
+        _rodata_start = .;
         *(.rodata*)
     } > RAM
 
@@ -21,6 +31,8 @@ SECTIONS
         *(.sdata*)
     } > RAM
 
+    _image_end = .;
+
     .bss (NOLOAD) :
     {
         . = ALIGN(4);
@@ -30,14 +42,16 @@ SECTIONS
         *(COMMON)
         . = ALIGN(4);
         _ebss = .;
-    } > RAM
+    } > BSS
 
     _end = .;
     _stack_top = ORIGIN(RAM) + LENGTH(RAM);
     /* The UI fetch port has a 64 KiB base and a 16 KiB extension.  The build
        script emits both ROM images and enforces this same 80 KiB boundary.
        .bss resides only in the separate 96 KiB writable data memory. */
-    ASSERT(SIZEOF(.text) + SIZEOF(.data) <= 81920,
+    ASSERT(SIZEOF(.text) + SIZEOF(.rodata) + SIZEOF(.data) <= 81920,
            "Firmware image exceeds the 80 KiB instruction ROM")
-    ASSERT(_end + 12288 <= _stack_top, "UI needs at least 12 KiB stack headroom")
+    ASSERT(_image_end + 12288 <= _stack_top, "UI needs at least 12 KiB stack headroom")
+    ASSERT(SIZEOF(.bss) <= _rodata_start - ORIGIN(RAM),
+           "BSS data alias overlaps read-only constants")
 }

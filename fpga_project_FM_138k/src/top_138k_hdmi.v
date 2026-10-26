@@ -111,10 +111,10 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire [7:0] lesson_count;
     wire [6:0] lesson_address;
     wire sequencer_active;
-    wire [31:0] ai_status;wire [159:0] arp_config;wire [31:0] arp_status;wire [127:0] arp_notes;
+    wire [31:0] ai_status,composer_status,composer_detail;wire [159:0] arp_config;wire [31:0] arp_status;wire [127:0] arp_notes;
     touch_ui_controller #(.VOICE_CAPACITY(AUDIO_VOICES)) u_ui (
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),
-        .sequencer_active(sequencer_active),.arp_config(arp_config),.ai_status(ai_status),.arp_status(arp_status),.arp_notes(arp_notes),
+        .sequencer_active(sequencer_active),.arp_config(arp_config),.ai_status(ai_status),.composer_status(composer_status),.composer_detail(composer_detail),.arp_status(arp_status),.arp_notes(arp_notes),
         .lesson_state(lesson_state),.lesson_bank(lesson_bank),.lesson_count(lesson_count),
         .lesson_write(lesson_write),.lesson_address(lesson_address),.lesson_data(lesson_data),
 
@@ -137,7 +137,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     );
     top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1)) u_audio (
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),.perf_bridge_drop(bridge_drop),
-        .arp_config(arp_config),.arp_suspend(lesson_state[16]||sequencer_active),.sequence_active(sequencer_active),.ai_status(ai_status),.arp_status(arp_status),.arp_notes(arp_notes),
+        .arp_config(arp_config),.arp_suspend(lesson_state[16]||sequencer_active),.sequence_active(sequencer_active),.ai_status(ai_status),.composer_status(composer_status),.composer_detail(composer_detail),.arp_status(arp_status),.arp_notes(arp_notes),
         .clk(clk),.key_s2(~reset_n),.uart_rx_pin(uart_rx_pin),
         .headphone_select(headphone_select),.headphone_din(headphone_din),
         .ui_command_valid(ui_command_valid),.ui_command(ui_command),.ui_payload(ui_command_payload),

@@ -93,6 +93,11 @@ static void release_all(void){int i,j,n;for(i=0;i<16;i++)if(slot_note[i]>=0){
 #define PAGE_SEQ 11
 #define PAGE_METRICS 12
 #define PAGE_AI 13
+#define PAGE_COMPOSER 14
+static u8 composer_session;
+static void composer_stop(void);
+static void composer_adj(u8 row,int d);
+static void composer_poll(void);
 static u8 ai_on;
 static void ai_stop(void);
 static void ai_adj(u8 row,int d);
@@ -1133,6 +1138,7 @@ static void adj_fx(u8 row,int d){
 
 static void adj(u8 row,int d){
     if(page>=1&&page<=4)patch_dirty=1;
+    if(page==PAGE_COMPOSER){composer_adj(row,d);return;}
     if(page==PAGE_AI){ai_adj(row,d);return;}
     if(page==PAGE_SEQ){seq_adj(row,d);return;}
     if(page==PAGE_ARP){arp_adj(row,d);return;}
@@ -1148,9 +1154,9 @@ static void menu_repeat(void){
     if(page==PAGE_PERF||held_id==0xFF)return;
     if(held_kind==1||held_kind==2){
         u32 dt=(u32)(now()-held_t);
-        u32 start=(page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI)?450000u:1500000u;
+        u32 start=(page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER)?450000u:1500000u;
         if(dt>=start){
-            u32 period=(page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI)?50000u:150000u;
+            u32 period=(page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER)?50000u:150000u;
             u32 n=1u+(dt-start)/period;
             if(n>held_count){held_count=n;adj(held_row,held_kind==1?-1:1);}
         }
@@ -1181,7 +1187,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         else{x=(int)(raw_x*800/x_res);y=(int)(raw_y*480/y_res);}
         if(x>799)x=799;if(y>479)y=479;
         note=-1;
-        if((page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI)&&!dialog&&x>=0&&x<800&&y>=352&&y<480){
+        if((page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER)&&!dialog&&x>=0&&x<800&&y>=352&&y<480){
             static const u8 whites[15]={0,2,4,5,7,9,11,12,14,16,17,19,21,23,24};
             static const u8 edges[10]={1,2,4,5,6,8,9,11,12,13};
             static const u8 blacks[10]={1,3,6,8,10,13,15,18,20,22};
@@ -1191,7 +1197,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         }
         next[id]=note;px[id]=x;py[id]=y;
     }
-    if(page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI){
+    if(page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER){
         /* Compare note sets, not individual fingers: two fingers on the same
          * key share one Note On, and only the final finger sends Note Off. */
         for(id=0;id<16;id++){
@@ -1212,7 +1218,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         /* A redraw/upload can hide an entire release frame. Reused Goodix IDs
          * must not permanently latch a previous menu button. Include vertical
          * motion as well as horizontal motion; preserve deliberate slider drags. */
-        if((control_down&(1u<<id))&&!(held_id==(u8)id&&held_kind==3)&&
+        if((control_down&(1u<<id))&&!(held_id==(u8)id&&(held_kind==3||held_kind==4))&&
            (px[id]>control_x[id]+160||px[id]+160<control_x[id]||
             py[id]>control_y[id]+80||py[id]+80<control_y[id])){
             control_down&=(u16)~(1u<<id);held_id=0xFF;held_kind=0;ctrl_hold=0;
@@ -1221,7 +1227,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
             control_down|=(u16)(1u<<id);
             control_x[id]=px[id];control_y[id]=py[id];
             
-            if(page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI){
+            if(page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER){
                 if(next[id]<0){held_id=(u8)id;held_kind=0;held_x=px[id];menu_press(px[id],py[id]);}
             }else if(page==PAGE_PERF){
                 if(dialog||py[id]<48){menu_press(px[id],py[id]);}
@@ -1240,13 +1246,15 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
                     menu_press(px[id],py[id]);
                 }
             }
-        }else if(held_id==(u8)id&&held_kind!=0&&held_kind!=3&&
+        }else if(held_id==(u8)id&&held_kind!=0&&held_kind!=3&&held_kind!=4&&
                  (px[id]>held_x+160||px[id]+160<held_x)){
             /* A release frame can be missed while a page redraw is running.
                A large coordinate jump therefore means "new touch"; forget the
                latched row/button so the next frame is processed as a press. */
             held_id=0xFF;held_kind=0;control_down&=(u16)~(1u<<id);
-        }else if(page!=PAGE_PERF&&held_id==(u8)id&&held_kind==3){
+        }else if(page==PAGE_COMPOSER&&held_id==(u8)id&&held_kind==4){
+            composer_drag(px[id],py[id]);
+        }else if(page!=PAGE_PERF&&held_id==(u8)id&&(held_kind==3||held_kind==4)){
             /* Dragging the slider continuously updates the selected row. */
             slider_apply(px[id]);
             held_x=px[id];
@@ -1298,7 +1306,7 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
                 }
             }
         }
-        menu_repeat();perf_repeat();lesson_poll();arp_poll();seq_poll();metrics_poll();ai_poll();}
+        menu_repeat();perf_repeat();lesson_poll();arp_poll();seq_poll();metrics_poll();ai_poll();composer_poll();}
         else if((u32)(now()-retry)>500000u){retry=now();present=detect();publish();}
         delay_us(2000);
     }

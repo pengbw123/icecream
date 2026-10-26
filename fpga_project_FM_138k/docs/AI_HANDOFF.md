@@ -1,5 +1,16 @@
 # 给后续 AI 的工程交接说明
 
+<!-- COMPOSER_PENDING_START -->
+## AI COMPOSER第1阶段（实现完成，最终验收中）
+
+- 用户授权五阶段中的第1步：触屏旋律雕刻、主题录入、变奏/重复/对比/收尾/锁定、打击垫学习与两小节节奏输入。操作与后续进度见AI_COMPOSER.md。
+- 新主旋律模型128→48→36，7872权重、84偏置，实际POP909 MELODY轨84/20/20歌曲隔离，35轮。162向量/5832分数与RTL一致；控制器、1776音阶边界和实际FM音频联合仿真已通过。
+- 主旋律使用BACKING，保留LIVE与总32复音，和AI BASS/ARP/SEQ/PRACTICE互斥。保存/回听属于第2阶段，未提前实现。
+- UI保持80KiB指令ROM+96KiB数据RAM；BSS使用既有0x10020000数据别名，复用指令的数据副本低地址区，保留常量及至少12KiB栈。链接与ELF布局检查、实际RV32I菜单需共同验收。
+- 原位流已备份impl/pnr/backup/fm_138k_rgb_hdmi_pre_ai_composer.fs，开始标签archive/pre_ai_composer_20261026。
+- 标准位流目前仍是下述AI BASS V2，COMPOSER必须通过完整回归和四域setup/hold后才能替换。禁止使用旧版PR做增量发布基线（上一轮增量失败）。
+<!-- COMPOSER_PENDING_END -->
+
 ## 2026-10-26 AI BASS V2（最新发布）
 
 - 左手大小三和弦/转位/单根音跟随，分区默认 MIDI60（可调36～84）；右手力度、起音疏密、触键时长影响伴奏。

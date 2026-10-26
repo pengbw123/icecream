@@ -20,7 +20,7 @@ module tb_rgb_visualizer;
     integer quiet_case=0,max_display_height=0,current_height;
     integer messy_case=0;
     reg show_wave=0;
-    wire [3:0] test_page=$test$plusargs("ai")?4'd13:$test$plusargs("arp")?4'd10:$test$plusargs("seq")?4'd11:4'd0;
+    wire [3:0] test_page=$test$plusargs("composer")?4'd14:$test$plusargs("ai")?4'd13:$test$plusargs("arp")?4'd10:$test$plusargs("seq")?4'd11:4'd0;
     integer page_probes=0;
     reg spectrum_case=0,spectrum_write=0;
     reg [5:0] spectrum_address=0;
@@ -90,7 +90,7 @@ module tb_rgb_visualizer;
         note_on(48);note_on(52);note_on(55);
         repeat(2)begin wait(dut.frame_latch);@(posedge dut.pclk);wait(!dut.frame_latch);end
         wait(!de);@(posedge de);
-        file_handle=$fopen(test_page==10?"tmp/rgb_arp_preview.ppm":test_page==11?"tmp/rgb_seq_preview.ppm":spectrum_case?"tmp/rgb_spectrum_preview.ppm":messy_case?"tmp/rgb_messy_preview.ppm":show_wave?"tmp/rgb_wave_preview.ppm"
+        file_handle=$fopen(test_page==14?"tmp/rgb_composer_preview.ppm":test_page==10?"tmp/rgb_arp_preview.ppm":test_page==11?"tmp/rgb_seq_preview.ppm":spectrum_case?"tmp/rgb_spectrum_preview.ppm":messy_case?"tmp/rgb_messy_preview.ppm":show_wave?"tmp/rgb_wave_preview.ppm"
             :quiet_case?"tmp/rgb_quiet_preview.ppm":"tmp/rgb_preview.ppm","wb");
         $fwrite(file_handle,"P6\n800 480\n255\n");
         pixels=0;

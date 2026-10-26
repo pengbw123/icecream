@@ -1,0 +1,215 @@
+train (165376, 128)
+validation (41344, 128)
+test (40448, 128)
+epoch 1 {"articulation": {"samples": 41344, "accuracy": 0.6969330495356038}, "interval": {"samples": 13430, "accuracy": 0.37617274758004465}, "gate": {"samples": 13430, "accuracy": 0.5564408041697692}, "dynamics": {"samples": 13430, "accuracy": 0.5024571854058079}, "attack_f1": 0.6792930261089598}
+epoch 6 {"articulation": {"samples": 41344, "accuracy": 0.6982875386996904}, "interval": {"samples": 13430, "accuracy": 0.3629188384214445}, "gate": {"samples": 13430, "accuracy": 0.5615785554728221}, "dynamics": {"samples": 13430, "accuracy": 0.5803425167535369}, "attack_f1": 0.6992440013147804}
+epoch 11 {"articulation": {"samples": 41344, "accuracy": 0.6984568498452013}, "interval": {"samples": 13430, "accuracy": 0.3693968726731199}, "gate": {"samples": 13430, "accuracy": 0.5949367088607594}, "dynamics": {"samples": 13430, "accuracy": 0.6099776619508563}, "attack_f1": 0.6889010816742436}
+epoch 16 {"articulation": {"samples": 41344, "accuracy": 0.6974893575851393}, "interval": {"samples": 13430, "accuracy": 0.36232315711094565}, "gate": {"samples": 13430, "accuracy": 0.5903946388682055}, "dynamics": {"samples": 13430, "accuracy": 0.610349962769918}, "attack_f1": 0.6972768692826616}
+epoch 21 {"articulation": {"samples": 41344, "accuracy": 0.7017221362229102}, "interval": {"samples": 13430, "accuracy": 0.3547282204020849}, "gate": {"samples": 13430, "accuracy": 0.588830975428146}, "dynamics": {"samples": 13430, "accuracy": 0.6080416976917349}, "attack_f1": 0.6929243101587791}
+epoch 26 {"articulation": {"samples": 41344, "accuracy": 0.6993517801857585}, "interval": {"samples": 13430, "accuracy": 0.3380491437081162}, "gate": {"samples": 13430, "accuracy": 0.5703648548026806}, "dynamics": {"samples": 13430, "accuracy": 0.6128816083395383}, "attack_f1": 0.6975968683170829}
+epoch 31 {"articulation": {"samples": 41344, "accuracy": 0.7047455495356038}, "interval": {"samples": 13430, "accuracy": 0.35346239761727477}, "gate": {"samples": 13430, "accuracy": 0.5894266567386448}, "dynamics": {"samples": 13430, "accuracy": 0.6088607594936709}, "attack_f1": 0.6902506112469438}
+epoch 35 {"articulation": {"samples": 41344, "accuracy": 0.6837267801857585}, "interval": {"samples": 13430, "accuracy": 0.3564408041697692}, "gate": {"samples": 13430, "accuracy": 0.5854058078927774}, "dynamics": {"samples": 13430, "accuracy": 0.610126582278481}, "attack_f1": 0.6974932729075202}
+{
+  "architecture": [
+    128,
+    48,
+    36
+  ],
+  "weights": 7872,
+  "biases": 84,
+  "epochs": 35,
+  "seed": 720138,
+  "songs": {
+    "train": [
+      "001",
+      "002",
+      "003",
+      "004",
+      "007",
+      "008",
+      "009",
+      "010",
+      "013",
+      "014",
+      "015",
+      "016",
+      "019",
+      "020",
+      "021",
+      "022",
+      "025",
+      "026",
+      "027",
+      "028",
+      "031",
+      "032",
+      "033",
+      "037",
+      "038",
+      "039",
+      "040",
+      "043",
+      "044",
+      "045",
+      "046",
+      "049",
+      "050",
+      "051",
+      "052",
+      "055",
+      "056",
+      "057",
+      "058",
+      "061",
+      "063",
+      "064",
+      "067",
+      "068",
+      "069",
+      "070",
+      "073",
+      "074",
+      "075",
+      "076",
+      "079",
+      "080",
+      "081",
+      "082",
+      "085",
+      "086",
+      "087",
+      "088",
+      "091",
+      "092",
+      "093",
+      "094",
+      "097",
+      "098",
+      "099",
+      "100",
+      "103",
+      "104",
+      "105",
+      "106",
+      "109",
+      "110",
+      "111",
+      "112",
+      "115",
+      "116",
+      "117",
+      "118",
+      "121",
+      "122",
+      "123",
+      "124",
+      "127",
+      "128"
+    ],
+    "validation": [
+      "005",
+      "011",
+      "017",
+      "023",
+      "029",
+      "035",
+      "041",
+      "047",
+      "053",
+      "059",
+      "065",
+      "071",
+      "077",
+      "083",
+      "089",
+      "095",
+      "101",
+      "113",
+      "119",
+      "125"
+    ],
+    "test": [
+      "006",
+      "012",
+      "018",
+      "024",
+      "030",
+      "036",
+      "042",
+      "048",
+      "054",
+      "060",
+      "066",
+      "072",
+      "078",
+      "084",
+      "090",
+      "096",
+      "108",
+      "114",
+      "120",
+      "126"
+    ]
+  },
+  "dataset": "POP909 pinned existing 128-song download, actual MELODY track, song-separated splits",
+  "manifest_sha256": "c460d12205e216c20310f3e6860b74e8c03ff21920f32a854f537fb00d296b16",
+  "conditioning": "given eight-note seed plus density, direction and form; density/direction labels derived from the given phrase",
+  "limits": "Teacher-forced next-step metrics are not free-running quality. Phrase scheduling, seed repetition, scale and gesture constraints are explicit RTL rules.",
+  "train": {
+    "articulation": {
+      "samples": 165376,
+      "accuracy": 0.7400952979876161
+    },
+    "interval": {
+      "samples": 55616,
+      "accuracy": 0.4134062140391254
+    },
+    "gate": {
+      "samples": 55616,
+      "accuracy": 0.6331271576524741
+    },
+    "dynamics": {
+      "samples": 55616,
+      "accuracy": 0.6430523590333717
+    },
+    "attack_f1": 0.7595165137532719
+  },
+  "validation": {
+    "articulation": {
+      "samples": 41344,
+      "accuracy": 0.7039231811145511
+    },
+    "interval": {
+      "samples": 13430,
+      "accuracy": 0.3769918093819806
+    },
+    "gate": {
+      "samples": 13430,
+      "accuracy": 0.5940431868950111
+    },
+    "dynamics": {
+      "samples": 13430,
+      "accuracy": 0.6110945644080417
+    },
+    "attack_f1": 0.6999407582938388
+  },
+  "test": {
+    "articulation": {
+      "samples": 40448,
+      "accuracy": 0.7322240901898734
+    },
+    "interval": {
+      "samples": 12630,
+      "accuracy": 0.3721298495645289
+    },
+    "gate": {
+      "samples": 12630,
+      "accuracy": 0.6119556611243072
+    },
+    "dynamics": {
+      "samples": 12630,
+      "accuracy": 0.5925574030087094
+    },
+    "attack_f1": 0.7445133587786259
+  }
+}

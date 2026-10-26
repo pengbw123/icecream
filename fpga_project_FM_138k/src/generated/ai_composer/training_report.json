@@ -1,0 +1,204 @@
+{
+  "architecture": [
+    128,
+    48,
+    36
+  ],
+  "weights": 7872,
+  "biases": 84,
+  "epochs": 35,
+  "seed": 720138,
+  "songs": {
+    "train": [
+      "001",
+      "002",
+      "003",
+      "004",
+      "007",
+      "008",
+      "009",
+      "010",
+      "013",
+      "014",
+      "015",
+      "016",
+      "019",
+      "020",
+      "021",
+      "022",
+      "025",
+      "026",
+      "027",
+      "028",
+      "031",
+      "032",
+      "033",
+      "037",
+      "038",
+      "039",
+      "040",
+      "043",
+      "044",
+      "045",
+      "046",
+      "049",
+      "050",
+      "051",
+      "052",
+      "055",
+      "056",
+      "057",
+      "058",
+      "061",
+      "063",
+      "064",
+      "067",
+      "068",
+      "069",
+      "070",
+      "073",
+      "074",
+      "075",
+      "076",
+      "079",
+      "080",
+      "081",
+      "082",
+      "085",
+      "086",
+      "087",
+      "088",
+      "091",
+      "092",
+      "093",
+      "094",
+      "097",
+      "098",
+      "099",
+      "100",
+      "103",
+      "104",
+      "105",
+      "106",
+      "109",
+      "110",
+      "111",
+      "112",
+      "115",
+      "116",
+      "117",
+      "118",
+      "121",
+      "122",
+      "123",
+      "124",
+      "127",
+      "128"
+    ],
+    "validation": [
+      "005",
+      "011",
+      "017",
+      "023",
+      "029",
+      "035",
+      "041",
+      "047",
+      "053",
+      "059",
+      "065",
+      "071",
+      "077",
+      "083",
+      "089",
+      "095",
+      "101",
+      "113",
+      "119",
+      "125"
+    ],
+    "test": [
+      "006",
+      "012",
+      "018",
+      "024",
+      "030",
+      "036",
+      "042",
+      "048",
+      "054",
+      "060",
+      "066",
+      "072",
+      "078",
+      "084",
+      "090",
+      "096",
+      "108",
+      "114",
+      "120",
+      "126"
+    ]
+  },
+  "dataset": "POP909 pinned existing 128-song download, actual MELODY track, song-separated splits",
+  "manifest_sha256": "c460d12205e216c20310f3e6860b74e8c03ff21920f32a854f537fb00d296b16",
+  "conditioning": "given eight-note seed plus density, direction and form; density/direction labels derived from the given phrase",
+  "limits": "Teacher-forced next-step metrics are not free-running quality. Phrase scheduling, seed repetition, scale and gesture constraints are explicit RTL rules.",
+  "train": {
+    "articulation": {
+      "samples": 165376,
+      "accuracy": 0.7400952979876161
+    },
+    "interval": {
+      "samples": 55616,
+      "accuracy": 0.4134062140391254
+    },
+    "gate": {
+      "samples": 55616,
+      "accuracy": 0.6331271576524741
+    },
+    "dynamics": {
+      "samples": 55616,
+      "accuracy": 0.6430523590333717
+    },
+    "attack_f1": 0.7595165137532719
+  },
+  "validation": {
+    "articulation": {
+      "samples": 41344,
+      "accuracy": 0.7039231811145511
+    },
+    "interval": {
+      "samples": 13430,
+      "accuracy": 0.3769918093819806
+    },
+    "gate": {
+      "samples": 13430,
+      "accuracy": 0.5940431868950111
+    },
+    "dynamics": {
+      "samples": 13430,
+      "accuracy": 0.6110945644080417
+    },
+    "attack_f1": 0.6999407582938388
+  },
+  "test": {
+    "articulation": {
+      "samples": 40448,
+      "accuracy": 0.7322240901898734
+    },
+    "interval": {
+      "samples": 12630,
+      "accuracy": 0.3721298495645289
+    },
+    "gate": {
+      "samples": 12630,
+      "accuracy": 0.6119556611243072
+    },
+    "dynamics": {
+      "samples": 12630,
+      "accuracy": 0.5925574030087094
+    },
+    "attack_f1": 0.7445133587786259
+  }
+}

@@ -365,6 +365,8 @@ module RV32I #(
                                 (w_mic_ctrl[1:0]==1)                            ? w_we_sh : w_we_sb;
 
     // BRAM local memory
+    // UI BSS deliberately uses the 0x10020000 data alias of the low bank.
+    // Instruction ROM is independent; only low17 address bits reach RAM.
     m_lm_mc #(.FIRMWARE_FILE(FIRMWARE_FILE),.FIRMWARE_HIGH_FILE(FIRMWARE_HIGH_FILE),.DATA_BYTES(DATA_BYTES)) lm_mc
     (
         CLK, 

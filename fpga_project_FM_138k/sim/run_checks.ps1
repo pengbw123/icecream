@@ -9,12 +9,16 @@ try {
     & python tools/test_algo_rectangles.py
     if ($LASTEXITCODE -ne 0) { throw 'Algorithm rectangle reference/fixture generation failed.' }
     $cases = @(
+        @{ Name='tb_ai_melody_inference'; Sources=@('sim/tb_ai_melody_inference.sv','src/ai_melody_inference.v') },
+        @{ Name='tb_ai_melody_composer'; Sources=@('sim/tb_ai_melody_composer.sv','src/ai_melody_composer.v','src/ai_melody_inference.v') },
+        @{ Name='tb_ai_melody_scale'; Sources=@('sim/tb_ai_melody_scale.sv','src/ai_melody_composer.v','src/ai_melody_inference.v') },
         @{ Name='tb_seg8_status'; Sources=@('sim/tb_seg8_status.sv','src/seg8_status.v') },
         @{ Name='tb_seg8_realtime'; Sources=@('sim/tb_seg8_realtime.sv','src/seg8_status.v') },
         @{ Name='tb_ui_memory96'; Sources=@('sim/tb_ui_memory96.sv','src/usb_midi/rtl/rv32i.v') },
         @{ Name='tb_ai_bass_inference'; Sources=@('sim/tb_ai_bass_inference.sv','src/ai_bass_inference.v') },
         @{ Name='tb_ai_bass_accompaniment'; Sources=@('sim/tb_ai_bass_accompaniment.sv','src/ai_bass_accompaniment.v','src/ai_bass_inference.v') },
         @{ Name='tb_ai_bass_responsiveness'; Sources=@('sim/tb_ai_bass_responsiveness.sv','src/ai_bass_accompaniment.v','src/ai_bass_inference.v') },
+        @{ Name='tb_ai_melody_audio'; Sources=@('sim/tb_ai_melody_audio.sv','src/top.v','src/ai_bass_accompaniment.v','src/ai_bass_inference.v','src/midi_arpeggiator.v','src/midi_note_owners.v','src/midi_performance_control.v','src/fm_uart_control.v','src/fm_poly_synth.v','src/uart_rx.v','src/i2s_tx.v','src/audio_performance_monitor.v') },
         @{ Name='tb_ai_bass_audio'; Sources=@('sim/tb_ai_bass_audio.sv','src/top.v','src/ai_bass_accompaniment.v','src/ai_bass_inference.v','src/midi_arpeggiator.v','src/midi_note_owners.v','src/midi_performance_control.v','src/fm_uart_control.v','src/fm_poly_synth.v','src/uart_rx.v','src/i2s_tx.v','src/audio_performance_monitor.v') },
         @{ Name='tb_sd_spi_byte'; Sources=@('sim/tb_sd_spi_byte.sv','src/sd_spi_byte.v') },
         @{ Name='tb_ch376_units'; Sources=@('sim/tb_ch376_units.sv','src/ch376/usb_midi_config_parser.v','src/ch376/usb_midi_event_decode.v','src/ch376/midi_event_arbiter3.v') },
@@ -52,6 +56,7 @@ try {
         @{ Name='tb_rgb_visualizer'; Sources=@('sim/tb_rgb_visualizer.sv','src/lesson_view.v','src/lesson_score_memory.v','src/rgb_visualizer.v','src/audio_spectrum_snapshot.v','src/audio_xy_scope.v','src/audio_wave_scope.v','src/rtl_performance_text.v','src/rtl_char_display.v','src/ui_eg_curve.v','src/ui_algo_map.v','src/ui_eg_multi.v') }
     )
     foreach ($case in $cases) {
+        if (($case.Sources -contains 'src/top.v') -or ($case.Sources -contains 'src/touch_ui_controller.v')) { $case.Sources += @('src/ai_melody_composer.v','src/ai_melody_inference.v') }
         if ($case.Name -eq 'tb_touch_ui') { $case.Sources += @('src/ai_bass_accompaniment.v','src/ai_bass_inference.v') }
         if ($case.Sources -contains 'src/touch_ui_controller.v') { $case.Sources += 'src/sd_spi_byte.v' }
         $outputFile = 'tmp/' + $case.Name + '.vvp'
@@ -61,6 +66,8 @@ try {
         & $vvp $outputFile
         if ($LASTEXITCODE -ne 0) { throw ('Simulation failed: ' + $case.Name) }
         if ($case.Name -eq 'tb_rgb_visualizer') {
+            & $vvp $outputFile '+composer'
+            if ($LASTEXITCODE -ne 0) { throw 'Composer RGB keyboard regression failed.' }
             & $vvp $outputFile '+ai'
             if ($LASTEXITCODE -ne 0) { throw 'AI page RGB keyboard regression failed.' }
             & $vvp $outputFile '+arp'
@@ -113,6 +120,8 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Mono legato regression failed.' }
         }
         if ($case.Name -eq 'tb_touch_ui') {
+            & $vvp $outputFile '+composer'
+            if ($LASTEXITCODE -ne 0) { throw 'Composer real firmware regression failed.' }
             & $vvp $outputFile '+ai'
             if ($LASTEXITCODE -ne 0) { throw 'AI backing/menu/mutual-exclusion regression failed.' }
             & $vvp $outputFile '+glide_time'

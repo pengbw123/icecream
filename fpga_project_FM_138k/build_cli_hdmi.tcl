@@ -1,3 +1,5 @@
+add_file -type verilog "src/ai_melody_inference.v"
+add_file -type verilog "src/ai_melody_composer.v"
 add_file -type verilog "src/seg8_status.v"
 add_file -type verilog "src/ai_bass_inference.v"
 add_file -type verilog "src/ai_bass_accompaniment.v"
