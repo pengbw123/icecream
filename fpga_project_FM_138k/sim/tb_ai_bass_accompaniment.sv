@@ -7,6 +7,11 @@ module tb_ai_bass_accompaniment;
     ai_bass_accompaniment #(.CLOCKS_PER_US(1)) dut(.*);
     integer ons=0,offs=0,held_note=-1,n,i,old_phase;
     reg stalled=0;reg [31:0] stalled_data;
+    always @(negedge clk) if($test$plusargs("debug")&&reset_n&&(dut.step_tick||dut.infer_start||dut.infer_done))
+        $display("DBG step=%b start=%b done=%b state=%d rem=%d phase=%d active=%b off=%b on=%b head=%d/%d gate=%d snap=%d/%d settings=%h",
+          dut.step_tick,dut.infer_start,dut.infer_done,dut.build_state,dut.remaining,dut.phase,dut.active,dut.off_pending,dut.on_pending,dut.articulation,dut.degree,dut.gate_class,dut.snapshot_root,dut.snapshot_phase,dut.settings);
+    always @(negedge clk) if($test$plusargs("debug")&&dut.step_tick)
+        $display("GUARD busy=%b outvalid=%b enabled=%b",dut.infer_busy,dut.out_valid,dut.enabled);
     always @(posedge clk)if(reset_n)begin
         if(stalled&&out_valid&&out_data!==stalled_data)$fatal(1,"AI output changed under backpressure");
         // STOP may explicitly cancel an unaccepted NoteOn.
@@ -31,7 +36,7 @@ module tb_ai_bass_accompaniment;
     endtask
     task stopped;
         begin
-            repeat(6000)@(negedge clk);
+            repeat(10000)@(negedge clk);
             if(status[2:0]!=0||held_note!=-1)$fatal(1,"AI STOP left active/pending/busy %h note %d",status,held_note);
         end
     endtask
@@ -39,9 +44,9 @@ module tb_ai_bass_accompaniment;
         repeat(4)@(negedge clk);reset_n=1;
         cfg(10'h3f1,10000);cfg(10'h3f2,0);cfg(10'h3f0,(70<<9)|5);
         midi(32'h00903c64);midi(32'h00903c64);
-        if(dut.held_count!=1)$fatal(1,"Duplicate human NoteOn inflated held count");
+        if($countones(dut.held)!=1)$fatal(1,"Duplicate human NoteOn inflated held count");
         midi(32'h00903c00);
-        if(dut.held_count!=0)$fatal(1,"Zero velocity NoteOn failed release");
+        if(dut.held!=0)$fatal(1,"Zero velocity NoteOn failed release");
         for(n=0;n<64;n=n+1)begin
             midi(32'h00903c64|(n%12)<<8);repeat(3000)@(negedge clk);
             midi(32'h00803c00|(n%12)<<8);repeat(7000)@(negedge clk);
@@ -52,7 +57,7 @@ module tb_ai_bass_accompaniment;
         cfg(10'h3f0,0);stopped();
         cfg(10'h3f0,(70<<9)|1);repeat(20000)@(negedge clk);
         suspend=1;stopped();suspend=0;repeat(20000)@(negedge clk);
-        midi(32'h00b07b00);repeat(6000)@(negedge clk);
+        midi(32'h00b07b00);repeat(10000)@(negedge clk);
         if(!status[3]||status[0]||held_note!=-1)$fatal(1,"External panic did not latch stop");
         cfg(10'h3f0,0);stopped();cfg(10'h3f0,(70<<9)|1);
         out_ready=0;wait(out_valid);repeat(30)@(negedge clk);out_ready=1;

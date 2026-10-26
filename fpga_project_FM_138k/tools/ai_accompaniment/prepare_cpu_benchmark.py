@@ -3,6 +3,7 @@ Measures kernel+call overhead, excludes feature construction, UI and MIDI I/O.
 This is not a comparison with a desktop CPU or a CPU with a multiply unit.
 """
 import argparse
+from model import INPUTS,OUTPUTS
 import os
 import subprocess
 from pathlib import Path
@@ -13,6 +14,8 @@ def main():
     ap=argparse.ArgumentParser();ap.add_argument('--zig',default=os.environ.get('ZIG_EXE'))
     ap.add_argument('--optimized',action='store_true',help='Byte multiply and zero-activation skipping')
     args=ap.parse_args()
+    if INPUTS!=48 or OUTPUTS!=8:
+        ap.error('This historical V1 CPU baseline is not valid for the V2 96x32x17 network. See current RTL cycle tests; do not reuse V1 speedup claims.')
     if not args.zig:ap.error('Pass --zig or set ZIG_EXE')
     dst=ROOT/'tmp/ai_cpu_benchmark';dst.mkdir(exist_ok=True)
     model=ROOT/'src/generated/ai_bass'

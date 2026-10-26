@@ -267,6 +267,9 @@ module tb_touch_ui;
             if(frame_kind==105)begin px=360;py=152;end
             if(frame_kind==106)begin px=750;py=152;end
             if(frame_kind==107)begin px=200;py=200;end
+            if(frame_kind==108)begin px=360;py=296;end
+            if(frame_kind==109)begin px=750;py=296;end
+            if(frame_kind==110)begin px=360;py=248;end
             case(addr)
                 16'h8140:goodix_read="9";16'h8141:goodix_read="1";16'h8142:goodix_read="1";
                 16'h8146:goodix_read=8'h20;16'h8147:goodix_read=8'h03;
@@ -374,6 +377,7 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=103;wait(menu_page==13);#10000000;
             touch_kind=0;#8000000;touch_kind=104;wait(ai_status[0]);#5000000;
             if(aux_words[1023]!==1||aux_words[0]!==16'h0021)$fatal(1,"AI did not snapshot BACKING");
+            if(!test_ai.config_word[3]||test_ai.settings!==16'h3c03)$fatal(1,"V2 follow/split/adaptive defaults not committed");
             if($test$plusargs("ai_preview"))begin
                 #30000000;
                 $display("PASS AI menu capture from real RV32I firmware");$finish;
@@ -388,6 +392,9 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=105;wait(test_ai.step_us<125000);#5000000;
             touch_kind=0;#8000000;touch_kind=106;wait(test_ai.config_word[7:4]==1);#5000000;
             touch_kind=0;#8000000;touch_kind=107;wait(test_ai.config_word[1]);#5000000;
+            touch_kind=0;#8000000;touch_kind=108;wait(!test_ai.settings[0]);#5000000;
+            touch_kind=0;#8000000;touch_kind=109;wait(test_ai.settings[14:8]==61);#5000000;
+            touch_kind=0;#8000000;touch_kind=110;wait(!test_ai.config_word[3]&&!test_ai.config_word[2]);#5000000;
             if(!ai_status[0])$fatal(1,"AI parameter edit stopped transport");
             touch_kind=0;#8000000;touch_kind=104;wait(ai_status[2:0]==0);#5000000;
             touch_kind=0;#8000000;touch_kind=104;wait(ai_status[0]);#5000000;

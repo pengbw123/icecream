@@ -77,5 +77,12 @@ set_option -use_cpu_as_gpio 1
 set_option -place_option 3
 set_option -route_option 2
 set_option -timing_driven 1
+# Optional verified placement/routing baseline, copied into the source snapshot.
+# No timing constraints are relaxed; the same post-PnR checker remains mandatory.
+if {[info exists ::env(FM_PNR_BASELINE)] && $::env(FM_PNR_BASELINE) ne ""} {
+    if {![file exists $::env(FM_PNR_BASELINE)]} {error "Incremental baseline missing"}
+    set_option -inc_pnr $::env(FM_PNR_BASELINE)
+    puts "Incremental PnR baseline: $::env(FM_PNR_BASELINE)"
+}
 run all
 puts [exec python tools/check_timing.py fm_138k_rgb_hdmi]

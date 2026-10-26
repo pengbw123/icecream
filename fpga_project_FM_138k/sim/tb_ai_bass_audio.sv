@@ -57,7 +57,8 @@ module tb_ai_bass_audio;
         backing_gain=dut.u_fm_poly_synth.back_patch_op_gain[5];
         for(i=0;i<6;i=i+1)backing_flags[i*8+:8]=dut.u_fm_poly_synth.back_patch_algorithm_flags[i];
         for(i=0;i<30;i=i+1)midi(8'h90,48+i,95);
-        aux(10'h3f1,10000);aux(10'h3f2,0);aux(10'h3f0,(70<<9)|5);
+        aux(10'h3f1,12000);aux(10'h3f2,0);aux(10'h3f3,(60<<8)|3);aux(10'h3f0,(70<<9)|9);
+        midi(8'h90,79,80);
         repeat(180000)@(negedge clk);
         if(ai_ons<1||nonzero<1)$fatal(1,"No AI / PCM %d %d",ai_ons,nonzero);
         // A real ROM preset load commits LIVE only; BACKING remains untouched.

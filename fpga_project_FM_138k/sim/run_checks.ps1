@@ -14,6 +14,7 @@ try {
         @{ Name='tb_ui_memory96'; Sources=@('sim/tb_ui_memory96.sv','src/usb_midi/rtl/rv32i.v') },
         @{ Name='tb_ai_bass_inference'; Sources=@('sim/tb_ai_bass_inference.sv','src/ai_bass_inference.v') },
         @{ Name='tb_ai_bass_accompaniment'; Sources=@('sim/tb_ai_bass_accompaniment.sv','src/ai_bass_accompaniment.v','src/ai_bass_inference.v') },
+        @{ Name='tb_ai_bass_responsiveness'; Sources=@('sim/tb_ai_bass_responsiveness.sv','src/ai_bass_accompaniment.v','src/ai_bass_inference.v') },
         @{ Name='tb_ai_bass_audio'; Sources=@('sim/tb_ai_bass_audio.sv','src/top.v','src/ai_bass_accompaniment.v','src/ai_bass_inference.v','src/midi_arpeggiator.v','src/midi_note_owners.v','src/midi_performance_control.v','src/fm_uart_control.v','src/fm_poly_synth.v','src/uart_rx.v','src/i2s_tx.v','src/audio_performance_monitor.v') },
         @{ Name='tb_sd_spi_byte'; Sources=@('sim/tb_sd_spi_byte.sv','src/sd_spi_byte.v') },
         @{ Name='tb_ch376_units'; Sources=@('sim/tb_ch376_units.sv','src/ch376/usb_midi_config_parser.v','src/ch376/usb_midi_event_decode.v','src/ch376/midi_event_arbiter3.v') },

@@ -1,3 +1,7 @@
+# AI BASS
+
+当前为V2演奏跟随版：见 [AI_BASS_V2.md](AI_BASS_V2.md)。以下保留V1历史设计与基线，相关参数、ROM和CPU加速比不能套用到V2。
+
 # AI BASS 原型
 
 目标：用户正常弹奏LIVE音色，小型神经网络根据已发生的MIDI与已知和声条件，逐十六分音符产生单轨BACKING低音。
