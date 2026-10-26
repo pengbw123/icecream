@@ -9,18 +9,18 @@ L 是最终声音信号的电平，范围 0–99；不是菜单中的主音量�
 
 AI 是在哪里训练、源码怎么看、如何重新训练，见 [AI 伴奏入门说明](AI_BASS_BEGINNER_GUIDE.md)。
 
-## 2026-10-25 AI BASS 原型
+## 2026-10-26 AI BASS V2 演奏跟随
 
-SETUP下方原PERFORMANCE入口拆为METERS（性能监测）和AI BASS。连接图外观保留，内部改为RTL按矩形/线段绘制。
+1. 先在PATCH选贝斯音色，进入SETUP → AI BASS按START，当前音色保存为BACKING。返回PATCH另选主奏音色。
+2. 默认HARMONY=LEFT HAND、PLAY MODE=FOLLOW、SPLIT MIDI=60：60以下按左手和弦，60及以上弹右手旋律。分区点可调36～84。
+3. 左手支持大小三和弦、转位和单根音；CHORD显示实际识别结果。松键保留上次和弦，KEY/STATIC TYPE提供后备和声。
+4. FOLLOW等待弹奏才开始；全部松键并释放延音踏板后约一拍收尾。CONTINUE可持续背景伴奏。
+5. 右手弹得密集时，伴奏可增加八分音符响应；轻/重、短/长触键分别改变力度和门控。BPM仍手动设定，不自动追拍。
+6. DENSITY选SPARSE/NORMAL，DYN LEVEL调整动态输出强度。修改参数或离开AI页不中断播放。
+7. HARMONY也可选I-vi-IV-V（每小节一和弦）或STATIC。STOP停止；更换伴奏音色需STOP、选音色、再START。
 
-1. 先在PATCH选一个贝斯音色，进入SETUP → AI BASS，按START，当前音色成为伴奏音色。
-2. 返回PATCH选电钢琴等LIVE音色，再通过MIDI键盘或触屏弹奏。AI根据近期演奏与指定和声产生单轨低音。
-3. BPM调速，KEY选择根音；HARMONY为I-vi-IV-V时每小节一个和弦，为STATIC时持续一个和弦，STATIC TYPE选大小调。
-4. DENSITY选SPARSE/NORMAL，VELOCITY调伴奏力度。修改参数不中断播放；离开AI页也继续。
-5. STOP停止伴奏；启动ARP、SEQ或PRACTICE会停止AI。需要换伴奏音色时，先STOP、选择新音色、再START。
-
-总计仍32复音，主音量和效果器共享。模型目前是小样本流行伴奏原型，和声由设置给定；未实现听旋律猜任意和弦或通用多风格编曲。
-出现全局panic后需STOP再START。MISSED STEPS正常应为0。模型、数据和验证细节见AI_BASS.md，发布状态见AI_ACCOMPANIMENT_PROGRESS.md。
+总计32复音，LIVE/BACKING共用主音量和FX，与ARP/SEQ/PRACTICE互斥。模型是受和声约束的单轨低音原型，显式节奏/表情规则与四头神经网络共同工作，不是通用多风格自动编曲。
+全局panic后需STOP再START，MISSED STEPS正常应为0。完整使用、训练来源和限制见[AI BASS V2](AI_BASS_V2.md)；实机听感仍需验收。
 
 ## 双 Part 与可调滑音时间
 
