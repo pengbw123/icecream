@@ -200,5 +200,6 @@
       "accuracy": 0.5925574030087094
     },
     "attack_f1": 0.7445133587786259
-  }
+  },
+  "control_export": "Untrained rhythm bits76..83/contrast123/rhythmValid124 weights zero; variation102 constant64 folded into biases. 128 real vectors bit-exact unchanged; control-invariance checked."
 }
