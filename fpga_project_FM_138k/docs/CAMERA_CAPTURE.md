@@ -32,6 +32,6 @@
 - `tb_ov5640_capture`：字节顺序、抽取坐标、预热、失步、五种坏帧及半像素复位。
 - `tb_camera_recovery`：独立HDMI域不会把自动重配的toggle归零误算为新错误；PCLK停止时仍可异步清状态，重启同步释放且不暴露旧缓冲。
 - `tb_camera_pipeline`：生产尺寸、异步快写慢读、逐像素比对、无撕裂、整帧丢弃、超时撤图和PLL恢复；PLL与ODDR仅为行为时钟模型，不代替电气实测。
-- 原AI旋律的上次最差路径为variation→音程→轮廓→加法→限幅（19.9ns）。本次在音程与音高计算间加寄存级，增加20ns控制延迟；推理网络、权重和音乐规则不变，须通过旋律/音频回归。
+- 原AI旋律的上次最差路径为variation→音程→轮廓→加法→限幅（19.9ns）。本次在音程与音高计算间加寄存级，增加20ns控制延迟；推理网络、权重和音乐规则不变，已通过旋律/音频回归及三组164事件等价检查。
 
-当前状态：所有模块集中实现，仿真验收后进行一次完整综合布线。最终资源与五个时钟域结果待物理报告；尚未自动烧录或验证实机画面。原标准位流备份`impl/pnr/backup/fm_138k_rgb_hdmi_pre_camera.fs`，标签`archive/pre_camera_capture_20261027`。
+当前状态：集中实现、针对性仿真与完整综合布线验收完成，五域setup/hold TNS=0。BSRAM 323/340、Logic 65454、DSP 80/298。尚未自动烧录或验证实机画面，发布记录`docs/releases/2026-10-27_camera_capture.json`。原标准位流备份`impl/pnr/backup/fm_138k_rgb_hdmi_pre_camera.fs`，标签`archive/pre_camera_capture_20261027`。

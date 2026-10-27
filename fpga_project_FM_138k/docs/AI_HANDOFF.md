@@ -1,6 +1,21 @@
 # 给后续 AI 的工程交接说明
 
-## 2026-10-27 AI COMPOSER第1阶段（最新发布）
+## 2026-10-27 OV5640采集/HDMI预览（最新发布）
+
+- 摄像头接P4；HDMI1/J6临时改为摄像头彩色预览，RGB菜单、32复音音频及演奏功能保留，未加入手势识别。
+- 25MHz XCLK复用原HDMI PLL；320×240 RGB565采集，160×120 RGB332双缓冲（38400B），放大为640×480，约59.52Hz HDMI。
+- 芯片ID/252项写入/六项配置回读、故障重试、四帧预热、逐行逐帧完整性、整帧丢弃、消隐切换、停流及PLL恢复；状态条和帧/错误/丢帧计数。
+- SCCB引脚级异常/恢复、DVP边界、停PCLK复位、整链1484800像素/无撕裂、RGB琴键及实际FM32/I2S/MIDI回归通过，未重跑全部矩阵。
+- 上轮AI旋律19.9ns最差路径增加有符号音程寄存级，仅增加20ns延迟；三组164个MIDI事件音高/力度/顺序一致，网络及规则不变。
+- 固件未改、未增加软核ROM/RAM；工程清单71个RTL文件。
+- Logic 65454、FF 35314、BSRAM 323/340（较上版+19）、DSP 80/298。
+- 五域setup/hold TNS=0；Fmax：clk_50m 50.127MHz, camera_pclk_50m 88.054MHz, pixel_33m 36.769MHz, hdmi_pixel_25m 81.896MHz, hdmi_serial_125m 470.684MHz。
+- 标准位流`impl/pnr/fm_138k_rgb_hdmi.fs`，北京时间2026-10-27 17:43:38，42340871B；SHA256 `4053136259170173349B0E5FB1D94CD8DBBAF3EAAB11DF6ADCE901CFF2F8A5F3`。
+- 生产提交194c61e，完整构建`tmp/camera_build_194c61e`，日志`tmp/build_camera_194c61e.log`。首个33a3b0f实现因诊断复位计数问题在最终布线前取消，不是发布物。
+- 备份`impl/pnr/backup/fm_138k_rgb_hdmi_pre_camera.fs`，发布记录`docs/releases/2026-10-27_camera_capture.json`，使用说明CAMERA_CAPTURE.md。
+- 未自动烧录，摄像头实拍、电气时序及长期音频稳定性待板上验收。资料中的手册接口编号与V5原理图相反，接线按实际3.3V/GND丝印和P4对应。
+
+## 2026-10-27 AI COMPOSER第1阶段（历史发布）
 
 - 新增互动主旋律：SETUP → AI BASS → COMPOSE >。进入时抓取AI音色，LIVE仍可独立即兴；共用32复音和FX，与其他自动演奏模式互斥。
 - 触屏高低/疏密、1～8音主题、变奏/重复/对比/收尾、四小节锁定复播与停止后继续；打击垫学习、预备拍与两小节节奏输入。
