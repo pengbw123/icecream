@@ -1,5 +1,10 @@
 # FM 合成器触摸屏使用说明（零基础版）
 
+## AI COMPOSER：互动主旋律
+
+先选AI音色，SETUP → AI BASS → COMPOSE >，START开始。触屏向上/下改变后续旋律走向，向右/左改变疏密。THEME可录1～8音，REC RHYTHM录两小节；LOCK保留当前乐句，END在句末收尾。SETTINGS可学习8个打击垫。
+数据目前断电不保存；详见[AI COMPOSER说明](AI_COMPOSER.md)。
+
 ## 板载数码管
 
 显示 `L xxP xx`，例如 `L 50P 03` 为输出峰值约半满幅、当前 3 复音。
