@@ -76,7 +76,7 @@ python tools/ai_composer/demo.py
 | 3C1/3C2 | 十六分音符微秒周期低/高16位 |
 | 3C3 | KEY[3:0]、minor4、form[6:5] |
 | 3C4 | density[6:0]、direction[14:8]，中心64 |
-| 3C5 | 一次性动作：1切换播放、2开始、3停止、4变奏、5重复、6对比、7收尾、8锁定、9主题录入、10录节奏、11清节奏、12学习垫、13默认主题、14重新生成 |
+| 3C5 | 一次性动作：1切换播放、2开始、3停止、4变奏、5重复、6对比、7收尾、8锁定、9主题录入、10录节奏、11清节奏、12学习垫、13默认主题、14重新生成、15屏幕TAP（仅录节奏时有效） |
 | 3C6 | variation[6:0]、strength[14:8] |
 
 UI[61]：session0、running1、活动/待发MIDI2、网络/构建busy3、themeREC4、rhythmREC5、padLEARN6、locked7、lockPending8、ending9、rhythmValid10、panic11、seedCount[15:12]、step[21:16]（录节奏时为预备/录入拍点）、note[28:22]、learnIndex[31:29]。

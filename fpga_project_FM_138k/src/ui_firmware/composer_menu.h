@@ -101,7 +101,7 @@ static void composer_press(int x,int y){int row,local,d=0;u8 action=0;
         if(x>=16&&x<536&&y>=144&&y<288){composer_drag(x,y);held_kind=4;return;}
         if(y>=144&&y<192){if(x>=552&&x<664)action=4;else if(x>=672&&x<784)action=5;}
         else if(y>=192&&y<240&&x>=552&&x<784)action=6;
-        else if(y>=240&&y<288){if(x>=552&&x<664){emit(0x99,36,100);emit(0x89,36,0);return;}else if(x>=672&&x<784)action=14;}
+        else if(y>=240&&y<288){if(x>=552&&x<664)action=15;else if(x>=672&&x<784)action=14;}
     }
     if(action){composer_command(action);composer_last_status=~0u;}
 }

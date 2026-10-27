@@ -304,6 +304,9 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50)(
                 11:begin rhythm_mask<=0;rhythm_valid<=0;record_mode<=0;end
                 12:begin learning<=1;learn_index<=0;pad_valid<=0;running<=0;record_mode<=0;theme_recording<=0;on_pending<=0;epoch<=epoch+1'b1;end
                 13:begin seed_count<=4;seed_key<=0;seed[0]<=60;seed[1]<=64;seed[2]<=67;seed[3]<=64;theme_recording<=0;end
+                // Screen TAP is independent of the user-learned pad map and
+                // never injects a synthetic key/pad event into LIVE or LEARN.
+                15:begin if(record_mode==2)rhythm_mask[record_step[4:0]]<=1;end
                 default:begin end
             endcase
             if(!session||suspend||panic)begin

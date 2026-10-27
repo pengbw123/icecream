@@ -75,13 +75,16 @@ module tb_ai_melody_composer;
         cmd(7);wait(!dut.running);repeat(100)@(negedge clk);
         if(held!=-1||last_on!=60)$fatal(1,"END failed to cadence and release");
         cmd(12);
+        cmd(15);if(dut.learn_index!=0||!dut.learning)$fatal(1,"Screen TAP changed pad learning");
         for(i=0;i<8;i=i+1)midi('h91,60+i,90);
         if(dut.learning||dut.pad_valid!=255||dut.pad_note[7]!=67||dut.pad_channel[7]!=1)$fatal(1,"Pad learning failed");
         saved_rng=dut.rng;midi('h91,61,90);if(dut.rng==saved_rng)$fatal(1,"Learned pad VAR did nothing");
         midi('h91,60,90);wait(dut.running);midi('h91,60,90);wait(!dut.running);repeat(20000)@(negedge clk);
         cmd(10);wait(dut.record_mode==2);mask=0;
         for(i=0;i<32;i=i+1)begin
-            if(i==0||i==4||i==10||i==16||i==20||i==28)begin mask[i]=1;midi('h91,61,100);end
+            if(i==0||i==4||i==10||i==16||i==20||i==28)begin
+                mask[i]=1;if(i==0||i==16)cmd(15);else midi('h91,61,100);
+            end
             while(dut.record_mode==2&&dut.record_step==i)@(negedge clk);
         end
         wait(dut.record_mode==0);if(!dut.rhythm_valid||dut.rhythm_mask!==mask)$fatal(1,"Two-bar rhythm mismatch %h/%h",dut.rhythm_mask,mask);
