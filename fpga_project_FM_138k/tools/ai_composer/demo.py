@@ -13,9 +13,11 @@ def main():
         tr.append(mido.MetaMessage('track_name',name='RTL '+name));tr.append(mido.MetaMessage('set_tempo',tempo=500000))
         tr.append(mido.Message('program_change',program=4,channel=0));previous=0
         for r in events:
-            tick=round((int(r['cycle'])-base)*120/40000)
+            # Restore the deliberate 16th-note grid. Scaling every simulated
+            # clock would incorrectly magnify the 318us NN delay to ~50ms.
+            tick=round((int(r['cycle'])-base)/40000)*120
             tr.append(mido.Message('note_on' if int(r['status'],16)==0x90 else 'note_off',channel=0,note=int(r['note']),velocity=int(r['velocity']),time=tick-previous));previous=tick
         mf.save(str(dest/(name+'.mid')))
-    (dest/'README.md').write_text('# Interactive lead RTL auditions\n\nOriginal C-E-G-E seed, actual trained RTL events, 120 BPM.\nSparse, dense, then rising control. General MIDI EP playback is not FPGA timbre.\nReproduce: tb_ai_melody_composer then tools/ai_composer/demo.py.\n')
+    (dest/'README.md').write_text('# Interactive lead RTL auditions\n\nOriginal C-E-G-E seed, actual trained RTL note choices and velocities, 120 BPM.\nSparse, dense, then rising control. Restore the 16th grid; do not magnify accelerated-test inference latency.\nGeneral MIDI EP playback is not FPGA timbre.\nReproduce: tb_ai_melody_composer then tools/ai_composer/demo.py.\n')
     print('Exported three actual RTL lead auditions to',dest)
 if __name__=='__main__':main()

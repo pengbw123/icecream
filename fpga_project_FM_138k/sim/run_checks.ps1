@@ -18,6 +18,7 @@ try {
         @{ Name='tb_ai_bass_inference'; Sources=@('sim/tb_ai_bass_inference.sv','src/ai_bass_inference.v') },
         @{ Name='tb_ai_bass_accompaniment'; Sources=@('sim/tb_ai_bass_accompaniment.sv','src/ai_bass_accompaniment.v','src/ai_bass_inference.v') },
         @{ Name='tb_ai_bass_responsiveness'; Sources=@('sim/tb_ai_bass_responsiveness.sv','src/ai_bass_accompaniment.v','src/ai_bass_inference.v') },
+        @{ Name='tb_midi_ingress'; Sources=@('sim/tb_midi_ingress.sv','src/top.v','src/ai_bass_accompaniment.v','src/ai_bass_inference.v','src/midi_arpeggiator.v','src/midi_note_owners.v','src/midi_performance_control.v','src/fm_uart_control.v','src/fm_poly_synth.v','src/uart_rx.v','src/i2s_tx.v','src/audio_performance_monitor.v') },
         @{ Name='tb_ai_melody_audio'; Sources=@('sim/tb_ai_melody_audio.sv','src/top.v','src/ai_bass_accompaniment.v','src/ai_bass_inference.v','src/midi_arpeggiator.v','src/midi_note_owners.v','src/midi_performance_control.v','src/fm_uart_control.v','src/fm_poly_synth.v','src/uart_rx.v','src/i2s_tx.v','src/audio_performance_monitor.v') },
         @{ Name='tb_ai_bass_audio'; Sources=@('sim/tb_ai_bass_audio.sv','src/top.v','src/ai_bass_accompaniment.v','src/ai_bass_inference.v','src/midi_arpeggiator.v','src/midi_note_owners.v','src/midi_performance_control.v','src/fm_uart_control.v','src/fm_poly_synth.v','src/uart_rx.v','src/i2s_tx.v','src/audio_performance_monitor.v') },
         @{ Name='tb_sd_spi_byte'; Sources=@('sim/tb_sd_spi_byte.sv','src/sd_spi_byte.v') },

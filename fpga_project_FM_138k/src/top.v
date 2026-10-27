@@ -188,8 +188,12 @@ module top #(
             midi_event_valid <= 1'b0;
         end else begin
             midi_request_sync <= {midi_request_sync[0], usb_midi_event_toggle};
-            midi_event_valid <= 1'b0;
-            if ((midi_request_sync[1] != midi_event_ack_toggle) && raw_midi_event_ready) begin
+            // Acknowledging the asynchronous mailbox transfers ownership to
+            // this slot. Keep its payload valid until the arbiter accepts it.
+            if (midi_event_valid && raw_midi_event_ready)
+                midi_event_valid <= 1'b0;
+            if ((!midi_event_valid || raw_midi_event_ready) &&
+                (midi_request_sync[1] != midi_event_ack_toggle)) begin
                 midi_event_latched <= usb_midi_event_calibrated;
                 midi_event_valid <= 1'b1;
                 midi_event_ack_toggle <= midi_request_sync[1];
@@ -329,18 +333,34 @@ module top #(
     );
 
     wire sample_tick;
-    // FM build keeps the event path deterministic: physical USB-MIDI gets
-    // priority for the one cycle in which it is presented, while queued UART
-    // notes remain pending until accepted.  The separate additive branch
-    // retains the experimental chord/strum scheduler.
-    wire [31:0] selected_midi_data = midi_event_valid
+    // Registered elastic input: isolate FIFO-pointer/source arbitration from
+    // pad classification and the ARP/SEQ observe fanout. Producers hold valid
+    // until accepted, with USB mailbox > external queue > UART priority.
+    wire [31:0] ingress_mux_data = midi_event_valid
         ? midi_event_latched : external_midi_event_valid
         ? external_midi_event_data : uart_midi_event_data;
-    wire selected_midi_valid=midi_event_valid|external_midi_event_valid|uart_midi_event_valid;
+    wire ingress_mux_valid=midi_event_valid|external_midi_event_valid|uart_midi_event_valid;
     wire ingress_ready;
-    wire [6:0] selected_brightness = midi_event_valid
+    wire [6:0] ingress_mux_brightness = midi_event_valid
         ? midi_event_latched[6:0] : external_midi_event_valid
         ? external_midi_event_data[6:0] : uart_midi_event_brightness;
+    reg [31:0] selected_midi_data;
+    reg [6:0] selected_brightness;
+    reg selected_midi_valid;
+    wire ingress_buffer_ready = !selected_midi_valid || ingress_ready;
+    always @(posedge clk or negedge audio_reset_n) begin
+        if (!audio_reset_n) begin
+            selected_midi_data <= 32'd0;
+            selected_brightness <= 7'd0;
+            selected_midi_valid <= 1'b0;
+        end else if (ingress_buffer_ready) begin
+            selected_midi_valid <= ingress_mux_valid;
+            if (ingress_mux_valid) begin
+                selected_midi_data <= ingress_mux_data;
+                selected_brightness <= ingress_mux_brightness;
+            end
+        end
+    end
     wire [6:0] synth_midi_event_brightness;
     wire [31:0] arp_midi_data;
     wire [6:0] arp_brightness;
@@ -382,10 +402,9 @@ module top #(
         .in_data(merged_midi_data),.in_brightness(merged_brightness),.in_valid(merged_midi_valid),.in_ready(merged_midi_ready),
         .out_data(synth_midi_event_data),.out_brightness(synth_midi_event_brightness),
         .out_valid(synth_midi_event_valid),.out_ready(synth_midi_event_ready));
-    assign raw_midi_event_ready = ingress_ready &
-        ~external_midi_event_valid & ~uart_midi_event_valid;
-    assign external_midi_event_ready = ingress_ready & ~midi_event_valid;
-    assign uart_midi_event_ready = ingress_ready &
+    assign raw_midi_event_ready = ingress_buffer_ready;
+    assign external_midi_event_ready = ingress_buffer_ready & ~midi_event_valid;
+    assign uart_midi_event_ready = ingress_buffer_ready &
         ~midi_event_valid & ~external_midi_event_valid;
 
     wire signed [15:0] synth_sample;
