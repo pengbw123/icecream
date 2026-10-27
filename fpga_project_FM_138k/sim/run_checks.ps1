@@ -9,6 +9,9 @@ try {
     & python tools/test_algo_rectangles.py
     if ($LASTEXITCODE -ne 0) { throw 'Algorithm rectangle reference/fixture generation failed.' }
     $cases = @(
+        @{ Name='tb_ov5640_config'; Sources=@('sim/tb_ov5640_config.sv','sim/ov5640_sccb_model.sv','src/camera/ov5640_config.v','src/camera/camera_sccb.v') },
+        @{ Name='tb_ov5640_capture'; Sources=@('sim/tb_ov5640_capture.sv','src/camera/ov5640_capture.v') },
+        @{ Name='tb_camera_pipeline'; Sources=@('sim/tb_camera_pipeline.sv','sim/ov5640_sccb_model.sv','src/camera/camera_sccb.v','src/camera/ov5640_config.v','src/camera/ov5640_capture.v','src/camera/camera_framebuffer.v','src/camera/camera_hdmi_video.v','src/camera/camera_hdmi_tx.v','src/tmds_encoder.v') },
         @{ Name='tb_ai_melody_inference'; Sources=@('sim/tb_ai_melody_inference.sv','src/ai_melody_inference.v') },
         @{ Name='tb_ai_melody_composer'; Sources=@('sim/tb_ai_melody_composer.sv','src/ai_melody_composer.v','src/ai_melody_inference.v') },
         @{ Name='tb_ai_melody_scale'; Sources=@('sim/tb_ai_melody_scale.sv','src/ai_melody_composer.v','src/ai_melody_inference.v') },

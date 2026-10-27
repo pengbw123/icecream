@@ -95,6 +95,7 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50)(
     reg [3:0] gate_left,pending_gate;
     reg [1:0] decision_action,decision_gate;
     reg [6:0] decision_velocity,raw_note,final_note;
+    reg signed [6:0] interval_delta;
     reg [3:0] raw_pc;
     reg decision_cadence;
     reg [15:0] decision_word;
@@ -126,7 +127,10 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50)(
         if(snap_contrast)begin if(delta>=0)delta=delta+3;else delta=delta-3;end
         if(snap_direction>=85)begin if(delta<0)delta=-delta;if(delta==0)delta=1;end
         else if(snap_direction<=42)begin if(delta>0)delta=-delta;if(delta==0)delta=-1;end
-        candidate=motif_anchor ? snap_seed+snap_key-snap_seed_key : snap_last+delta;
+        candidate=$signed({1'b0,snap_last})+$signed(interval_delta);
+        // Keep the unsigned theme arithmetic outside this signed expression;
+        // a mixed-sign ternary would zero-extend negative 7-bit intervals.
+        if(motif_anchor)candidate=snap_seed+snap_key-snap_seed_key;
         // Gesture contour also moves theme anchors, but never alters held audio.
         if(motif_anchor&&snap_step!=0)begin if(snap_direction>=85)candidate=candidate+5;else if(snap_direction<=42)candidate=candidate-5;end
         if(candidate<48)candidate=48;if(candidate>84)candidate=84;
@@ -160,7 +164,7 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50)(
             snap_count<=4;snap_seed_key<=0;snap_density<=64;snap_direction<=64;snap_variation<=64;snap_strength<=100;
             snap_last<=60;snap_velocity<=96;snap_seed<=60;snap_same<=0;snap_contrast<=0;snap_ending<=0;snap_replay<=0;snap_write_bank<=0;replay_word<=0;
             active<=0;off_pending<=0;on_pending<=0;active_note<=0;wanted_note<=0;wanted_velocity<=96;gate_left<=0;pending_gate<=1;
-            out_data<=0;out_valid<=0;decision_action<=0;decision_gate<=0;decision_velocity<=96;raw_note<=60;raw_pc<=0;final_note<=60;decision_cadence<=0;
+            out_data<=0;out_valid<=0;decision_action<=0;decision_gate<=0;decision_velocity<=96;raw_note<=60;raw_pc<=0;final_note<=60;decision_cadence<=0;interval_delta<=0;
             status<=0;detail<=0;
         end else begin
             infer_start<=0;
@@ -195,12 +199,18 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50)(
             end else if(work==2&&infer_done)begin
                 if(snap_epoch!=epoch||!running)work<=0;
                 else begin
-                    raw_note<=candidate[6:0];decision_action<=attack ? 2 : articulation==1&&active ? 1 : 0;
+                    // Previous STA: variation selection through contour/add/
+                    // clamp was the 19.9ns critical path. Split it here; all
+                    // snapshots remain immutable, adding only 20ns latency.
+                    interval_delta<=delta[6:0];decision_action<=attack ? 2 : articulation==1&&active ? 1 : 0;
                     decision_gate<=gate_value>=8 ? 3 : gate_value>=4 ? 2 : gate_value>=2 ? 1 : 0;
                     decision_velocity<=vel_value[6:0];decision_cadence<=0;
-                    if(snap_ending&&snap_step==60)begin raw_note<=60+snap_key;decision_action<=2;decision_gate<=2;decision_cadence<=1;end
-                    work<=3;
+                    work<=6;
                 end
+            end else if(work==6)begin
+                raw_note<=candidate[6:0];
+                if(snap_ending&&snap_step==60)begin raw_note<=60+snap_key;decision_action<=2;decision_gate<=2;decision_cadence<=1;end
+                work<=3;
             end else if(work==3)begin
                 raw_pc<=pitch_class(raw_note>=snap_key ? raw_note-snap_key : raw_note+12-snap_key);work<=4;
             end else if(work==4)begin
