@@ -6,9 +6,12 @@ try {
     $iverilog = if ($IverilogDirectory) { Join-Path $IverilogDirectory 'iverilog.exe' } else { 'iverilog' }
     $vvp = if ($IverilogDirectory) { Join-Path $IverilogDirectory 'vvp.exe' } else { 'vvp' }
     New-Item -ItemType Directory -Force -Path 'tmp' | Out-Null
+    & python tools/check_camera_pinout.py
+    if ($LASTEXITCODE -ne 0) { throw 'Camera board pin fixture mismatch.' }
     & python tools/test_algo_rectangles.py
     if ($LASTEXITCODE -ne 0) { throw 'Algorithm rectangle reference/fixture generation failed.' }
     $cases = @(
+        @{ Name='tb_camera_diagnostics'; Sources=@('sim/tb_camera_diagnostics.sv','src/camera/camera_diagnostics.v') },
         @{ Name='tb_ov5640_config'; Sources=@('sim/tb_ov5640_config.sv','sim/ov5640_sccb_model.sv','src/camera/ov5640_config.v','src/camera/camera_sccb.v') },
         @{ Name='tb_ov5640_capture'; Sources=@('sim/tb_ov5640_capture.sv','src/camera/ov5640_capture.v') },
         @{ Name='tb_camera_recovery'; Sources=@('sim/tb_camera_recovery.sv','src/camera/camera_hdmi_video.v','src/camera/camera_framebuffer.v') },
@@ -61,6 +64,7 @@ try {
         @{ Name='tb_rgb_visualizer'; Sources=@('sim/tb_rgb_visualizer.sv','src/lesson_view.v','src/lesson_score_memory.v','src/rgb_visualizer.v','src/audio_spectrum_snapshot.v','src/audio_xy_scope.v','src/audio_wave_scope.v','src/rtl_performance_text.v','src/rtl_char_display.v','src/ui_eg_curve.v','src/ui_algo_map.v','src/ui_eg_multi.v') }
     )
     foreach ($case in $cases) {
+        if ($case.Sources -contains 'src/camera/camera_hdmi_video.v') { $case.Sources += 'src/camera/camera_diagnostics.v' }
         if (($case.Sources -contains 'src/top.v') -or ($case.Sources -contains 'src/touch_ui_controller.v')) { $case.Sources += @('src/ai_melody_composer.v','src/ai_melody_inference.v') }
         if ($case.Name -eq 'tb_touch_ui') { $case.Sources += @('src/ai_bass_accompaniment.v','src/ai_bass_inference.v') }
         if ($case.Sources -contains 'src/touch_ui_controller.v') { $case.Sources += 'src/sd_spi_byte.v' }

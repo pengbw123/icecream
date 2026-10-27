@@ -4,6 +4,7 @@ module tb_ov5640_capture;
     reg reset_n=0,href=0,vsync=0;reg [7:0] data=0;
     wire pixel_write,frame_start,frame_good,frame_bad,frame_toggle,bad_toggle;
     wire [14:0] pixel_address;wire [7:0] pixel_data;
+    wire debug_request;wire debug_ack=debug_request;wire [71:0] debug_packet;
     ov5640_capture #(.WIDTH(8),.HEIGHT(6),.WARMUP_FRAMES(2)) dut(.*);
     integer good=0,bad=0,n=0;reg verify=0;
     always @(posedge pclk)begin
@@ -46,6 +47,7 @@ module tb_ov5640_capture;
         if(bad!=5||good!=1)$fatal(1,"Malformed frame accepted bad%d good%d",bad,good);
         verify=1;image(6,8,0);image(6,8,0);image(6,8,0);
         if(good!=2)$fatal(1,"Warmup did not recover after errors");
+        if(debug_packet!=={8'd0,16'd16,16'd16,16'd6,16'd12})$fatal(1,"DVP geometry telemetry mismatch %h",debug_packet);
         @(negedge pclk);href=1;repeat(3)@(negedge pclk);reset_n=0;
         repeat(3)@(negedge pclk);if(pixel_write||frame_good||dut.seen_sync)$fatal(1,"Mid-pixel reset failed");
         $display("PASS DVP capture: RGB565 byte order, all decimated coordinates, warmup, unsynchronized input, short/long rows and frames, odd bytes and mid-pixel reset");$finish;

@@ -2,7 +2,7 @@
 module camera_hdmi_tx(
     input wire clk,reset_n,input wire camera_pclk,camera_href,camera_vsync,
     input wire [7:0] camera_data,inout wire camera_scl,camera_sda,
-    output wire camera_xclk,camera_reset_n,
+    output wire camera_xclk,camera_reset_n,camera_pwdn,
     output wire hdmi_clk_p,hdmi_clk_n,output wire [2:0] hdmi_data_p,hdmi_data_n,
     output wire hdmi_oe,pll_locked,config_ready,stream_stale,
     output wire [2:0] config_fault
@@ -12,6 +12,7 @@ module camera_hdmi_tx(
         .clkin(clk),.pixel_clk(pixel_clk),.serial_clk(serial_clk),.lock(pll_locked));
     // Reuse 25MHz rather than allocating another PLL for the camera.
     assign camera_xclk=pixel_clk;
+    assign camera_pwdn=1'b0; // Explicitly wake the sensor, as in the board ch59.
     reg [2:0] sys_reset_sync,video_reset_sync,cam_reset_sync;
     wire common_reset_n=reset_n&&pll_locked;
     always @(posedge clk or negedge common_reset_n)
@@ -24,6 +25,7 @@ module camera_hdmi_tx(
     wire frame_start,frame_good,frame_bad,pixel_write,frame_toggle,bad_toggle;
     wire [14:0] pixel_address,read_address;wire [7:0] pixel_data,read_data;
     wire [15:0] chip_id;
+    wire debug_request,debug_ack;wire [71:0] debug_packet;
     ov5640_config u_config(.clk(clk),.reset_n(sys_reset_sync[2]),.frame_toggle(frame_toggle),
         .camera_reset_n(camera_reset_n),.scl(camera_scl),.sda(camera_sda),
         .ready(config_ready),.fault(config_fault),.chip_id(chip_id));
@@ -31,7 +33,8 @@ module camera_hdmi_tx(
         .data(camera_data),.href(camera_href),.vsync(camera_vsync),
         .pixel_write(pixel_write),.pixel_address(pixel_address),.pixel_data(pixel_data),
         .frame_start(frame_start),.frame_good(frame_good),.frame_bad(frame_bad),
-        .frame_toggle(frame_toggle),.bad_toggle(bad_toggle));
+        .frame_toggle(frame_toggle),.bad_toggle(bad_toggle),
+        .debug_request(debug_request),.debug_packet(debug_packet),.debug_ack(debug_ack));
     wire buffer_valid,present_pulse,frame_latch,drop_toggle;
     camera_framebuffer u_buffer(.pclk(camera_pclk),.pixel_clk(pixel_clk),.reset_n(capture_common_n),
         .frame_start(frame_start),.frame_good(frame_good),.pixel_write(pixel_write),
@@ -42,6 +45,8 @@ module camera_hdmi_tx(
     camera_hdmi_video u_video(.pixel_clk(pixel_clk),.reset_n(video_reset_sync[2]),
         .config_ready(config_ready),.config_fault(config_fault),.buffer_valid(buffer_valid),
         .present_pulse(present_pulse),.pixel_data(read_data),.bad_toggle(bad_toggle),.drop_toggle(drop_toggle),
+        .camera_pclk(camera_pclk),.camera_href(camera_href),.camera_vsync(camera_vsync),.chip_id(chip_id),
+        .debug_request(debug_request),.debug_packet(debug_packet),.debug_ack(debug_ack),
         .frame_latch(frame_latch),.read_address(read_address),.red(red),.green(green),.blue(blue),
         .de(de),.hsync(hsync),.vsync(vsync),.stream_stale(stream_stale));
     assign hdmi_oe=video_reset_sync[2];

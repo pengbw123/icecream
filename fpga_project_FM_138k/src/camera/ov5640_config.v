@@ -28,7 +28,8 @@ module ov5640_config #(parameter integer QUARTER_CLOCKS=125,
         case(n)
             0:check_register=24'h380801;1:check_register=24'h380940;
             2:check_register=24'h380a00;3:check_register=24'h380bf0;
-            4:check_register=24'h430061;default:check_register=24'h501f01;
+            4:check_register=24'h430061;5:check_register=24'h501f01;
+            6:check_register=24'h300802;default:check_register=24'h474020;
         endcase
     endfunction
     wire [23:0] check_word=check_register(check_index);
@@ -69,8 +70,8 @@ module ov5640_config #(parameter integer QUARTER_CLOCKS=125,
                 8:begin address<=check_word[23:8];read_request<=1;start<=1;state<=9;end
                 9:if(done)begin
                     if(failed)begin fault<=1;state<=14;end
-                    else if(read_data!=check_word[7:0])begin fault<=3;state<=14;end
-                    else if(check_index==5)begin ready<=1;fault<=0;watchdog<=0;state<=10;end
+                    else if(check_index==6 ? ((read_data&8'hc0)!=0) : (read_data!=check_word[7:0]))begin fault<=3;state<=14;end
+                    else if(check_index==7)begin ready<=1;fault<=0;watchdog<=0;state<=10;end
                     else begin check_index<=check_index+1'b1;state<=8;end
                 end
                 10:if(frame_sync[1]!=frame_prev)watchdog<=0;

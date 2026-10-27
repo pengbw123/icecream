@@ -1,22 +1,24 @@
 // ACG720 board J1 FPC40, TFT V3.0 800x480 RGB565.
 // GPIO0 bank VCCIO must be set to 3.3 V for external MIDI/audio/LED signals.
 IO_LOC "clk" Y18;
-// P4 OV5640, schematic sheets 1/2/11. PWDN is already pulled low on board.
+// P4 OV5640, pinout from the supplied GW5AT138K ch59 board reference.
+// The generic PDF differs on D0/D1/D3/D6 and omits the FPGA PWDN net.
 IO_LOC "camera_pclk" B1;
 IO_LOC "camera_href" A1;
 IO_LOC "camera_vsync" B2;
-IO_LOC "camera_data[0]" J5;
-IO_LOC "camera_data[1]" H2;
+IO_LOC "camera_data[0]" J2;
+IO_LOC "camera_data[1]" J1;
 IO_LOC "camera_data[2]" G1;
-IO_LOC "camera_data[3]" J2;
+IO_LOC "camera_data[3]" H2;
 IO_LOC "camera_data[4]" F1;
 IO_LOC "camera_data[5]" G2;
-IO_LOC "camera_data[6]" E2;
+IO_LOC "camera_data[6]" D1;
 IO_LOC "camera_data[7]" E1;
 IO_LOC "camera_scl" M20;
 IO_LOC "camera_sda" L18;
 IO_LOC "camera_xclk" M17;
 IO_LOC "camera_reset_n" N20;
+IO_LOC "camera_pwdn" L1;
 IO_PORT "camera_pclk" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
 IO_PORT "camera_href" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
 IO_PORT "camera_vsync" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
@@ -32,6 +34,7 @@ IO_PORT "camera_scl" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=4;
 IO_PORT "camera_sda" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=4;
 IO_PORT "camera_xclk" IO_TYPE=LVCMOS33 DRIVE=8;
 IO_PORT "camera_reset_n" IO_TYPE=LVCMOS33 DRIVE=4;
+IO_PORT "camera_pwdn" IO_TYPE=LVCMOS33 DRIVE=4;
 // Onboard HC595, verified against ACG720 board pin assignment table.
 IO_LOC "seg7_dio" M18;
 IO_LOC "seg7_rclk" C2;

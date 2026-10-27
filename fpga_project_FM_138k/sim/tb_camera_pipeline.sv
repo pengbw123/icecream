@@ -11,11 +11,11 @@ endmodule
 module tb_camera_pipeline;
     reg clk=0,pclk=0;always #10 clk=~clk;always #13 pclk=~pclk;
     reg reset_n=0,href=0,vsync=0;reg [7:0] data=0;
-    tri1 scl,sda;wire stretch,ready,stale,cam_reset_n,oe,lock,cx;
+    tri1 scl,sda;wire stretch,ready,stale,cam_reset_n,oe,lock,cx,pwdn;
     wire [2:0] fault,dp,dn;wire cp,cn;
     assign scl=stretch?1'b0:1'bz;
     camera_hdmi_tx dut(.clk(clk),.reset_n(reset_n),.camera_pclk(pclk),.camera_href(href),.camera_vsync(vsync),
-        .camera_data(data),.camera_scl(scl),.camera_sda(sda),.camera_xclk(cx),.camera_reset_n(cam_reset_n),
+        .camera_data(data),.camera_scl(scl),.camera_sda(sda),.camera_xclk(cx),.camera_reset_n(cam_reset_n),.camera_pwdn(pwdn),
         .hdmi_clk_p(cp),.hdmi_clk_n(cn),.hdmi_data_p(dp),.hdmi_data_n(dn),.hdmi_oe(oe),.pll_locked(lock),
         .config_ready(ready),.stream_stale(stale),.config_fault(fault));
     defparam dut.u_config.QUARTER_CLOCKS=4;
@@ -62,7 +62,8 @@ module tb_camera_pipeline;
         end
         #1;
         if(oe&&(^({dut.de,dut.hsync,dut.vsync,dut.red,dut.green,dut.blue})===1'bx))$fatal(1,"Unknown HDMI output");
-        if(ready&&!stale&&dut.de&&py>=8&&py<472)begin
+        if(pwdn!==1'b0)$fatal(1,"PWDN must be explicitly driven low");
+        if(ready&&!stale&&dut.de&&py>=8&&py<352)begin
             sx=px/2;sy=py/2;sample={display_tag,sx[7:5],sy[6:5]};
             expected={{sample[7:5],sample[7:5],sample[7:6]},
                 {sample[4:2],sample[4:2],sample[4:3]},{4{sample[1:0]}}};

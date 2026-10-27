@@ -5,6 +5,7 @@
     <Version>5</Version>
     <Device name="GW5AT-138B" pn="GW5AT-LV138PG484AC1/I0">gw5at138b-012</Device>
     <FileList>
+        <File path="src/camera/camera_diagnostics.v" type="file.verilog" enable="1"/>
         <File path="src/camera/camera_sccb.v" type="file.verilog" enable="1"/>
         <File path="src/camera/ov5640_config.v" type="file.verilog" enable="1"/>
         <File path="src/camera/ov5640_capture.v" type="file.verilog" enable="1"/>

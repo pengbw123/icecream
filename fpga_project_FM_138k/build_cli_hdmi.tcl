@@ -1,3 +1,4 @@
+add_file -type verilog "src/camera/camera_diagnostics.v"
 add_file -type verilog "src/camera/camera_sccb.v"
 add_file -type verilog "src/camera/ov5640_config.v"
 add_file -type verilog "src/camera/ov5640_capture.v"

@@ -4,6 +4,9 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60)(
     input wire pixel_clk,reset_n,config_ready,input wire [2:0] config_fault,
     input wire buffer_valid,present_pulse,input wire [7:0] pixel_data,
     input wire bad_toggle,drop_toggle,
+    input wire camera_pclk,camera_href,camera_vsync,
+    input wire [15:0] chip_id,input wire debug_request,
+    input wire [71:0] debug_packet,output wire debug_ack,
     output wire frame_latch,output wire [14:0] read_address,
     output reg [7:0] red,green,blue,output reg de,hsync,vsync,
     output wire stream_stale
@@ -18,6 +21,14 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60)(
     wire [14:0] row_address=({8'd0,vcount[8:2]}<<7)+({8'd0,vcount[8:2]}<<5);
     assign read_address=active?row_address+{7'd0,hcount[9:2]}:15'd0;
     assign stream_stale=!buffer_valid||silent_frames>=STALE_FRAMES;
+    wire diagnostic_area,diagnostic_ink;
+    camera_diagnostics u_diagnostics(.pixel_clk(pixel_clk),.reset_n(reset_n),
+        .camera_pclk(camera_pclk),.camera_href(camera_href),.camera_vsync(camera_vsync),
+        .config_ready(config_ready),.config_fault(config_fault),.chip_id(chip_id),
+        .frame_count(frames),.error_count(errors),.drop_count(drops),
+        .debug_request(debug_request),.debug_packet(debug_packet),.debug_ack(debug_ack),
+        .frame_latch(frame_latch),.prefetch_x(hcount),.prefetch_y(vcount),.x(x1),.y(y1),
+        .area(diagnostic_area),.ink(diagnostic_ink));
     wire [7:0] r332={pixel_data[7:5],pixel_data[7:5],pixel_data[7:6]};
     wire [7:0] g332={pixel_data[4:2],pixel_data[4:2],pixel_data[4:3]};
     wire [7:0] b332={4{pixel_data[1:0]}};
@@ -38,6 +49,7 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60)(
             else if(x1<256)color=errors[bit_sel]?24'hd02020:24'h180808;
             else if(x1<384)color=drops[bit_sel]?24'hd09010:24'h181008;
         end
+        if(diagnostic_area)color=diagnostic_ink?24'he0f0ff:24'h081018;
         if(x1>=640||y1>=480)color=0;
     end
     always @(posedge pixel_clk or negedge reset_n)begin

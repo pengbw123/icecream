@@ -26,7 +26,7 @@ module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0) (
     input wire camera_pclk,camera_href,camera_vsync,
     input wire [7:0] camera_data,
     inout wire camera_scl,camera_sda,
-    output wire camera_xclk,camera_reset_n
+    output wire camera_xclk,camera_reset_n,camera_pwdn
 );
     // S4 is active low. Hold startup reset for 1.31 ms and release on clk.
     reg [15:0] startup_count = 0;
@@ -201,7 +201,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .clk(clk), .reset_n(reset_n),
         .camera_pclk(camera_pclk),.camera_href(camera_href),.camera_vsync(camera_vsync),
         .camera_data(camera_data),.camera_scl(camera_scl),.camera_sda(camera_sda),
-        .camera_xclk(camera_xclk),.camera_reset_n(camera_reset_n),
+        .camera_xclk(camera_xclk),.camera_reset_n(camera_reset_n),.camera_pwdn(camera_pwdn),
         .config_ready(camera_ready),.config_fault(camera_fault),.stream_stale(camera_stale),
         .hdmi_clk_p(hdmi_clk_p),
         .hdmi_clk_n(hdmi_clk_n), .hdmi_data_p(hdmi_data_p),
