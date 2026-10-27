@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-27",
+  "timezone": "Asia/Shanghai",
+  "bitstream_time": "23:00:57",
+  "production_commit": "abaa0d69e8a50a20def3715dead619cb700e7c6d",
+  "bitstream": "impl/pnr/fm_138k_rgb_hdmi.fs",
+  "bytes": 42340871,
+  "sha256": "D1491687FD1979D5A3309A66F4BF6C0AEEFC3E67A7E9335BD14E9472FCE87747",
+  "resources": {
+    "logic": 65855,
+    "logic_total": 138240,
+    "ff": 35828,
+    "ff_total": 139095,
+    "bsram": 324,
+    "bsram_total": 340,
+    "dsp": 80,
+    "dsp_total": 298
+  },
+  "fmax_mhz": {
+    "clk_50m": 50.02,
+    "camera_pclk_50m": 68.808,
+    "pixel_33m": 34.798,
+    "hdmi_pixel_25m": 71.894,
+    "hdmi_serial_125m": 409.626
+  },
+  "all_setup_hold_tns_zero": true,
+  "feature": "QVGA ISP scaling and manual PCLK enable; low-speed bring-up and overflow-safe capture diagnostics",
+  "hardware_observation": {
+    "id": "5640",
+    "fault": 0,
+    "ready": 1,
+    "pclk_old_hex": "3880",
+    "href_hex": "926E",
+    "vsync_hex": "0006",
+    "rows": 0,
+    "pixels": 0,
+    "displayed": 0,
+    "flags": 0
+  },
+  "reference": "User-provided local GW5AT138K chapter47 ov5640_ddr3_hdmi; OV5640 register definitions 5001[5],460C[1]",
+  "mode": {
+    "xclk_mhz": 25,
+    "sensor_size": [
+      320,
+      240
+    ],
+    "format": "RGB565",
+    "5001": "A3",
+    "460C": "22",
+    "3824": "04",
+    "3035": "41",
+    "3036": "60",
+    "readbacks": 13
+  },
+  "pclk_measurement": {
+    "counter_bits": 20,
+    "display_hex_digits": 5,
+    "unit": "kHz",
+    "old_80mhz_alias_hex": "3880",
+    "80mhz_tested": true,
+    "actual_hardware_rate_confirmed": false
+  },
+  "capture_status_bits": {
+    "7": "capture reset released",
+    "6": "seen VSYNC",
+    "5:2": "warmup valid frames",
+    "1:0": "raw VSYNC/HREF"
+  },
+  "targeted_tests_pass": {
+    "check_camera_rate_config.log": "9227158eb2c13bff475833f617550856bcc580bae98817ba44d77d07f1968c14",
+    "check_camera_rate_capture.log": "3264aae41f5a836838f278670618c5e36d5e79db57ea9cc40c63b5827a8b2808",
+    "check_camera_rate_recovery.log": "7e77ae727550e6e5abf0db34efebcbaf1b2776222cd9fa25a3ce0dbdb63a6b9a",
+    "check_camera_rate_diag.log": "6e605822b587bdecc61227175d8cc077af5351df6ead07ddb58bc6ac4cc0ae73",
+    "check_camera_rate_pipeline.log": "183174d7dcf9c349ea1a5f6f6d5b240ae791fb3131e50bd27dd94d97e7e98bb0"
+  },
+  "pipeline_pixels_compared": 1100800,
+  "full_regression_matrix_rerun": false,
+  "audio_functional_sources_changed": false,
+  "ui_firmware_changed": false,
+  "audio_tests_rerun": false,
+  "build_log": "tmp/build_camera_abaa0d6.log",
+  "build_log_sha256": "a5cb6c53079e5785eb6357d0cbd2eeb0b57a65d56842bb169ff4a1afd03ba304",
+  "isolated_snapshot": "tmp/camera_build_abaa0d6",
+  "incremental_pnr": false,
+  "previous_release": "docs/releases/2026-10-27_camera_hwfix.json",
+  "previous_bitstream": "impl/pnr/backup/fm_138k_rgb_hdmi_camera_hwfix.fs",
+  "hardware_programmed": false,
+  "hardware_fix_confirmed": false,
+  "root_cause_fully_confirmed": false
+}
