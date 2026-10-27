@@ -52,4 +52,4 @@ F标志bit0=行格式异常，bit1=残留半字节对，bit2=行数不符，bit3
 - `tb_camera_pipeline`：生产尺寸、异步快写慢读、逐像素比对、无撕裂、整帧丢弃、超时撤图和PLL恢复；PLL与ODDR仅为行为时钟模型，不代替电气实测。
 - 原AI旋律的上次最差路径为variation→音程→轮廓→加法→限幅（19.9ns）。本次在音程与音高计算间加寄存级，增加20ns控制延迟；推理网络、权重和音乐规则不变，已通过旋律/音频回归及三组164事件等价检查。
 
-当前状态：首版已完成综合布线，但实机无摄像头图像，记录`docs/releases/2026-10-27_camera_capture.json`。本次引脚/PWDN修正与可读诊断已通过针对性仿真，最终物理验收待完成；不能将首版仿真通过等同实机采集成功。原合成器位流备份`impl/pnr/backup/fm_138k_rgb_hdmi_pre_camera.fs`，首个摄像头版本备份`impl/pnr/backup/fm_138k_rgb_hdmi_camera_first.fs`。
+当前状态：首版已完成综合布线，但实机无摄像头图像，记录`docs/releases/2026-10-27_camera_capture.json`。本次引脚/PWDN修正与可读诊断已通过针对性仿真及五域时序，发布记录`docs/releases/2026-10-27_camera_hwfix.json`。新版实机验证待完成，不能将仿真通过等同实机采集成功。原合成器位流备份`impl/pnr/backup/fm_138k_rgb_hdmi_pre_camera.fs`，首个摄像头版本备份`impl/pnr/backup/fm_138k_rgb_hdmi_camera_first.fs`。

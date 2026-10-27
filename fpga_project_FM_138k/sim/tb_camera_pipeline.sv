@@ -49,6 +49,10 @@ module tb_camera_pipeline;
     integer good=0,bad=0,presentations=0,drops=0,checked=0,hs=0,vs=0,active=0,full_frames=0;
     integer px,py,tag=0,sx,sy;reg [7:0] sample;reg [23:0] expected;
     reg checking=0;reg [2:0] display_tag;
+    integer dump_fd=0,dump_pixels=0;reg dumping=0,dump_done=0;
+    initial if($test$plusargs("dump"))begin
+        dump_fd=$fopen("tmp/camera_hwfix_debug.ppm","w");$fwrite(dump_fd,"P3\n640 480\n255\n");
+    end
     always @(posedge pclk)if(dut.cam_reset_sync[2])begin
         if(dut.frame_good)good=good+1;if(dut.frame_bad)bad=bad+1;
         if(dut.u_buffer.write_allowed&&dut.u_buffer.valid&&dut.u_buffer.write_bank==dut.u_buffer.read_bank)
@@ -61,6 +65,13 @@ module tb_camera_pipeline;
             display_tag=dut.u_buffer.read_bank?dut.u_buffer.bank1[0][7:5]:dut.u_buffer.bank0[0][7:5];
         end
         #1;
+        if(dump_fd&&!dump_done&&presentations>0&&dut.de)begin
+            if(px==0&&py==0)dumping=1;
+            if(dumping)begin
+                $fwrite(dump_fd,"%0d %0d %0d\n",dut.red,dut.green,dut.blue);dump_pixels=dump_pixels+1;
+                if(dump_pixels==640*480)begin $fclose(dump_fd);dump_done=1;dumping=0;end
+            end
+        end
         if(oe&&(^({dut.de,dut.hsync,dut.vsync,dut.red,dut.green,dut.blue})===1'bx))$fatal(1,"Unknown HDMI output");
         if(pwdn!==1'b0)$fatal(1,"PWDN must be explicitly driven low");
         if(ready&&!stale&&dut.de&&py>=8&&py<352)begin
