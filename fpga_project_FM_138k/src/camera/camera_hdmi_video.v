@@ -49,8 +49,12 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60)(
             ready_sync<={ready_sync[0],config_ready};fault_meta<=config_fault;fault_sync<=fault_meta;
             bad_sync<={bad_sync[0],bad_toggle};drop_sync<={drop_sync[0],drop_toggle};
             bad_prev<=bad_sync[1];drop_prev<=drop_sync[1];
-            if(bad_prev!=bad_sync[1]&&errors!=255)errors<=errors+1'b1;
-            if(drop_prev!=drop_sync[1]&&drops!=255)drops<=drops+1'b1;
+            // Capture toggles return to zero during automatic reconfiguration.
+            // That reset edge is not an additional malformed/dropped frame.
+            if(ready_sync[1])begin
+                if(bad_prev!=bad_sync[1]&&errors!=255)errors<=errors+1'b1;
+                if(drop_prev!=drop_sync[1]&&drops!=255)drops<=drops+1'b1;
+            end
             if(present_pulse)begin silent_frames<=0;frames<=frames+1'b1;end
             else if(frame_latch&&silent_frames<STALE_FRAMES)silent_frames<=silent_frames+1'b1;
             x1<=hcount;y1<=vcount;
