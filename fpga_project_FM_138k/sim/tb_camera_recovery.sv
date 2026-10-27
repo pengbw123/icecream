@@ -8,7 +8,7 @@ module tb_camera_recovery;
     camera_hdmi_video video(.pixel_clk(pixel_clk),.reset_n(reset_n),.config_ready(config_ready),
         .config_fault(3'd0),.buffer_valid(1'b0),.present_pulse(1'b0),.pixel_data(8'hxx),
         .bad_toggle(bad_toggle),.drop_toggle(drop_toggle),.stream_stale(stale),
-        .camera_pclk(pclk),.camera_href(1'b0),.camera_vsync(1'b0),.chip_id(16'h5640),.debug_request(1'b0),.debug_packet(72'd0),
+        .camera_pclk(pclk),.camera_href(1'b0),.camera_vsync(1'b0),.chip_id(16'h5640),.debug_request(1'b0),.debug_packet(72'd0),.capture_status(8'd0),
         .red(red),.green(green),.blue(blue));
     camera_framebuffer #(.PIXELS(8)) fb(.pclk(pclk),.pixel_clk(pixel_clk),.reset_n(buffer_reset_n),
         .frame_start(1'b0),.frame_good(1'b0),.pixel_write(1'b0),.pixel_address(15'd0),

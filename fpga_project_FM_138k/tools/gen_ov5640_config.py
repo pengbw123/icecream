@@ -39,11 +39,15 @@ BASE = [
     0x382404,0x500183,0x350300,0x474020,
  ]
 # Retain the vendor ISP/AWB/gamma/lens table; change only mode/timing fields.
-PATCH = {209:0x303660, 218:0x380304, 221:0x380607, 222:0x38079b,
-         223:0x380801,224:0x380940,225:0x380a00,226:0x380bf0}
+PATCH = {208:0x303541,209:0x303660, 218:0x380304, 221:0x380607, 222:0x38079b,
+         223:0x380801,224:0x380940,225:0x380a00,226:0x380bf0,246:0x460c22,248:0x382404,249:0x5001a3}
 def main():
     words=[PATCH.get(i,v) for i,v in enumerate(BASE)]
     assert len(words)==252 and words[1]==0x300882 and words[-1]==0x474020
+    registers={w>>8:w&255 for w in words}
+    assert registers[0x5001]&0x20, 'QVGA scaling disabled'
+    assert registers[0x460c]&2 and registers[0x3824]==4, 'Manual PCLK divider disabled'
+    assert registers[0x3035]==0x41 and registers[0x3036]==0x60
     path=Path(__file__).resolve().parents[1]/'src/generated/ov5640_qvga.mem'
     path.write_text(''.join('%06x\n'%v for v in words),encoding='ascii')
     print('Generated',len(words),'OV5640 register writes:',path)

@@ -6,7 +6,7 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60)(
     input wire bad_toggle,drop_toggle,
     input wire camera_pclk,camera_href,camera_vsync,
     input wire [15:0] chip_id,input wire debug_request,
-    input wire [71:0] debug_packet,output wire debug_ack,
+    input wire [71:0] debug_packet,output wire debug_ack,input wire [7:0] capture_status,
     output wire frame_latch,output wire [14:0] read_address,
     output reg [7:0] red,green,blue,output reg de,hsync,vsync,
     output wire stream_stale
@@ -26,7 +26,7 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60)(
         .camera_pclk(camera_pclk),.camera_href(camera_href),.camera_vsync(camera_vsync),
         .config_ready(config_ready),.config_fault(config_fault),.chip_id(chip_id),
         .frame_count(frames),.error_count(errors),.drop_count(drops),
-        .debug_request(debug_request),.debug_packet(debug_packet),.debug_ack(debug_ack),
+        .debug_request(debug_request),.debug_packet(debug_packet),.debug_ack(debug_ack),.capture_status(capture_status),
         .frame_latch(frame_latch),.prefetch_x(hcount),.prefetch_y(vcount),.x(x1),.y(y1),
         .area(diagnostic_area),.ink(diagnostic_ink));
     wire [7:0] r332={pixel_data[7:5],pixel_data[7:5],pixel_data[7:6]};

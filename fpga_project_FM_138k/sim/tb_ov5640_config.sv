@@ -20,14 +20,14 @@ module tb_ov5640_config;
     end endtask
     initial begin
         reset;wait(fault==1);success;
-        if(model.writes!=252||model.reads!=10)$fatal(1,"Incomplete configuration writes=%d reads=%d",model.writes,model.reads);
+        if(model.writes!=252||model.reads!=15||model.registers[16'h5001]!==8'ha3||model.registers[16'h460c]!==8'h22||model.registers[16'h3035]!==8'h41)$fatal(1,"Incomplete QVGA configuration writes=%d reads=%d",model.writes,model.reads);
         heartbeat=0;wait(fault==4);if(ready)$fatal(1,"Stream watchdog kept ready asserted");heartbeat=1;success;
         wrong_id=1;reset;wait(fault==2);if(ready)$fatal(1,"Wrong ID accepted");wrong_id=0;success;
         corrupt=1;reset;wait(fault==3);if(ready)$fatal(1,"Wrong mode readback accepted");corrupt=0;success;
         present=0;reset;wait(fault==1);if(ready)$fatal(1,"Absent camera accepted");present=1;success;
         hold_scl=1;reset;wait(fault==1);if(!dut.u_bus.failed)$fatal(1,"Stuck SCL timeout missing");hold_scl=0;success;
         hold_sda=1;reset;wait(fault==1);hold_sda=0;success;
-        $display("PASS OV5640 physical SCCB: repeated START/IDs, 252 writes, eight mode/wake/polarity readbacks, master NACK, retry, stretch, wrong ID/mode, absent/stuck bus and stream watchdog recovery");$finish;
+        $display("PASS OV5640 physical SCCB: repeated START/IDs, 252 writes, 13 mode/wake/scaler/manual-PCLK/PLL readbacks, master NACK, retry, stretch, wrong ID/mode, absent/stuck bus and stream watchdog recovery");$finish;
     end
     initial begin #80000000;$fatal(1,"Config timeout state=%d bus=%d fault=%d writes=%d reads=%d",dut.state,dut.u_bus.state,fault,model.writes,model.reads);end
 endmodule

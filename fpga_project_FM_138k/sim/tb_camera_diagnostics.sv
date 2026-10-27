@@ -1,13 +1,15 @@
 `timescale 1ns/1ps
 module tb_camera_diagnostics;
     reg pixel_clk=0,camera_pclk=0,clock_on=1;
-    always #20 pixel_clk=~pixel_clk;always #13 if(clock_on)camera_pclk=~camera_pclk;
+    realtime half_period=13;
+    always #20 pixel_clk=~pixel_clk;always begin #(half_period);if(clock_on)camera_pclk=~camera_pclk;end
     reg reset_n=0,camera_href=0,camera_vsync=0,config_ready=0,debug_request=0,frame_latch=0;
     reg [2:0] config_fault=0;reg [15:0] chip_id=16'h5640;
     reg [71:0] debug_packet=0;
     reg [9:0] prefetch_x=0,prefetch_y=352,x=0,y=352;
     wire debug_ack,area,ink;
     wire [7:0] frame_count=8'h12,error_count=8'h34,drop_count=8'h56;
+    wire [7:0] capture_status=8'hd0;
     camera_diagnostics dut(.*);
     task cycles(input integer n);begin repeat(n)@(negedge pixel_clk);end endtask
     task latch;begin cycles(2);frame_latch=1;cycles(1);frame_latch=0;cycles(1);end endtask
@@ -31,6 +33,9 @@ module tb_camera_diagnostics;
         if(dut.href_count!=1||dut.vsync_count!=1)$fatal(1,"Raw sync edges missing");
         cycles(51000);latch;
         if(dut.display_clock<38450||dut.display_clock>38475)$fatal(1,"PCLK measurement %d",dut.display_clock);
+        half_period=6.25;cycles(51000);latch;
+        if(dut.display_clock<79995||dut.display_clock>80005)$fatal(1,"80MHz PCLK overflowed %d",dut.display_clock);
+        char_check(2,1,"1");char_check(3,1,"3");char_check(4,1,"8");char_check(14,3,"D");
         clock_on=0;cycles(51000);latch;if(dut.display_clock!=0)$fatal(1,"Stopped PCLK not detected");
         config_ready=0;debug_request=0;debug_packet=0;config_fault=4;cycles(10);latch;
         if(dut.display_packet!==saved||dut.display_fault!=4||dut.display_ready)$fatal(1,"Recovery erased the last failing frame");

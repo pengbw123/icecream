@@ -5,7 +5,7 @@ module ov5640_capture #(parameter integer WIDTH=320,HEIGHT=240,WARMUP_FRAMES=4)(
     output reg pixel_write,output reg [14:0] pixel_address,
     output reg [7:0] pixel_data,output reg frame_start,frame_good,frame_bad,
     output reg frame_toggle,bad_toggle,
-    input wire debug_ack,output reg debug_request,output reg [71:0] debug_packet
+    input wire debug_ack,output reg debug_request,output reg [71:0] debug_packet,output wire [7:0] capture_status
 );
     reg [7:0] data_q,high_byte;reg href_q,vsync_q,href_prev,vsync_prev;
     reg seen_sync,phase,bad;
@@ -13,6 +13,7 @@ module ov5640_capture #(parameter integer WIDTH=320,HEIGHT=240,WARMUP_FRAMES=4)(
     reg [14:0] pixels;reg [3:0] warmup;
     reg [10:0] min_bytes,max_bytes;
     reg [1:0] debug_ack_sync;
+    assign capture_status={reset_n,seen_sync,warmup,2'b00};
     wire [15:0] rgb565={high_byte,data_q};
     always @(posedge pclk or negedge reset_n)begin
         if(!reset_n)begin

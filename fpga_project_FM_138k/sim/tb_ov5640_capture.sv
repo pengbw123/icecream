@@ -5,6 +5,7 @@ module tb_ov5640_capture;
     wire pixel_write,frame_start,frame_good,frame_bad,frame_toggle,bad_toggle;
     wire [14:0] pixel_address;wire [7:0] pixel_data;
     wire debug_request;wire debug_ack=debug_request;wire [71:0] debug_packet;
+    wire [7:0] capture_status;
     ov5640_capture #(.WIDTH(8),.HEIGHT(6),.WARMUP_FRAMES(2)) dut(.*);
     integer good=0,bad=0,n=0;reg verify=0;
     always @(posedge pclk)begin

@@ -19,17 +19,20 @@ module ov5640_config #(parameter integer QUARTER_CLOCKS=125,
         .address(address),.write_data(write_data),.scl(scl),.sda(sda),
         .done(done),.failed(failed),.read_data(read_data));
     reg [3:0] state;reg [31:0] wait_count,watchdog;
-    reg [2:0] check_index;
+    reg [3:0] check_index;
     reg [1:0] frame_sync;reg frame_prev;
     always @(posedge clk or negedge reset_n)
         if(!reset_n)begin frame_sync<=0;frame_prev<=0;end
         else begin frame_sync<={frame_sync[0],frame_toggle};frame_prev<=frame_sync[1];end
-    function [23:0] check_register(input [2:0] n);
+    function [23:0] check_register(input [3:0] n);
         case(n)
             0:check_register=24'h380801;1:check_register=24'h380940;
             2:check_register=24'h380a00;3:check_register=24'h380bf0;
             4:check_register=24'h430061;5:check_register=24'h501f01;
-            6:check_register=24'h300802;default:check_register=24'h474020;
+            6:check_register=24'h300802;7:check_register=24'h474020;
+            8:check_register=24'h5001a3;9:check_register=24'h460c22;
+            10:check_register=24'h382404;11:check_register=24'h303541;
+            default:check_register=24'h303660;
         endcase
     endfunction
     wire [23:0] check_word=check_register(check_index);
@@ -71,7 +74,7 @@ module ov5640_config #(parameter integer QUARTER_CLOCKS=125,
                 9:if(done)begin
                     if(failed)begin fault<=1;state<=14;end
                     else if(check_index==6 ? ((read_data&8'hc0)!=0) : (read_data!=check_word[7:0]))begin fault<=3;state<=14;end
-                    else if(check_index==7)begin ready<=1;fault<=0;watchdog<=0;state<=10;end
+                    else if(check_index==12)begin ready<=1;fault<=0;watchdog<=0;state<=10;end
                     else begin check_index<=check_index+1'b1;state<=8;end
                 end
                 10:if(frame_sync[1]!=frame_prev)watchdog<=0;
