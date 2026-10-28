@@ -1,0 +1,2 @@
+PASS DVP capture: RGB565 byte order, all decimated coordinates, warmup, unsynchronized input, short/long rows and frames, odd bytes and mid-pixel reset
+sim/tb_ov5640_capture.sv:54: $finish called at 43082000 (1ps)

@@ -1,0 +1,2 @@
+FATAL: sim/tb_ov5640_config.sv:27: Startup reset before sensor/warmup could settle
+       Time: 4284820000  Scope: tb_ov5640_config

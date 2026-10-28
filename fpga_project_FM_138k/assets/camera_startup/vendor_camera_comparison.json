@@ -1,0 +1,74 @@
+{
+  "comparison": "Local ch45 TFT versus ch47 HDMI, active camera path only",
+  "files": {
+    "camera_init/camera_init.v": {
+      "tft_sha256": "f67549489a29185e8c302be2e2a27f70b677a29c3dd9dcf981ac3807aec218ae",
+      "hdmi_sha256": "0ea507a00c0d25b65f951ba55fef578835a0774522db5e691195a402eaf52229",
+      "byte_identical": false,
+      "functional_text_identical": false
+    },
+    "camera_init/ov5640_init_table_rgb.v": {
+      "tft_sha256": "31e7abc88f5cf47917161e3b7333e73db72ae2bee3dc19ac7d3efebcaf12a96d",
+      "hdmi_sha256": "9627310aeddbad7a09d5e786806bd3a039721db4b40fcc577f7a65821f6030aa",
+      "byte_identical": false,
+      "functional_text_identical": false
+    },
+    "camera_init/i2c_control/i2c_control.v": {
+      "tft_sha256": "7d8106cd3e377afbfe03e1a959903a6ae409c061cd06da4d1c1650f550bad829",
+      "hdmi_sha256": "7d8106cd3e377afbfe03e1a959903a6ae409c061cd06da4d1c1650f550bad829",
+      "byte_identical": true,
+      "functional_text_identical": true
+    },
+    "camera_init/i2c_control/i2c_bit_shift.v": {
+      "tft_sha256": "00ffafdc833bda4ea094bcff65ec74ac25c0cd4215559457482e29119540338a",
+      "hdmi_sha256": "00ffafdc833bda4ea094bcff65ec74ac25c0cd4215559457482e29119540338a",
+      "byte_identical": true,
+      "functional_text_identical": true
+    },
+    "DVP_Capture/DVP_Capture.v": {
+      "tft_sha256": "ce7d03426cc0a6fb1fc1ed87bb8c1328772d312bc0b093dcad2b7bbfe99a51e8",
+      "hdmi_sha256": "ce7d03426cc0a6fb1fc1ed87bb8c1328772d312bc0b093dcad2b7bbfe99a51e8",
+      "byte_identical": true,
+      "functional_text_identical": true
+    },
+    "ddr3_ctrl_2port/fifo_ddr3_adapter.v": {
+      "tft_sha256": "4c2da92ac85bfdaa4d2a7772bd2af55fb9a6cf80936771a8f3abba7c573a677f",
+      "hdmi_sha256": "3e730095dded11168711705d05576b8e1a860c1ad05a1a879412d016fafa3387",
+      "byte_identical": false,
+      "functional_text_identical": false
+    }
+  },
+  "first_252_rom_expressions_identical": true,
+  "hdmi_extra_register": "24'h503D_00",
+  "camera_pins_identical": {
+    "camera_pwdn": "L1",
+    "camera_rst_n": "N20",
+    "camera_xclk": "M17",
+    "camera_sclk": "M20",
+    "camera_sdat": "L18",
+    "camera_data[7]": "E1",
+    "camera_data[6]": "D1",
+    "camera_data[5]": "G2",
+    "camera_data[4]": "F1",
+    "camera_data[3]": "H2",
+    "camera_data[2]": "G1",
+    "camera_data[1]": "J1",
+    "camera_data[0]": "J2",
+    "camera_pclk": "B1",
+    "camera_href": "A1",
+    "camera_vsync": "B2"
+  },
+  "tft_dimensions": [
+    800,
+    480
+  ],
+  "hdmi_dimensions": [
+    1280,
+    720
+  ],
+  "tft_init_reset": "~g_rst_p = DDR PLL locked",
+  "hdmi_init_reset": "external reset_n",
+  "tft_active_camera_xclk_source": "Gowin_PLL CLKOUT1: 50MHz * 16 / 33 = 24.242424MHz by source parameters",
+  "hdmi_active_camera_xclk_source": "camera_pll CLKOUT1: 50MHz * 30 / 60 = 25MHz, also listed in supplied report",
+  "note": "The camera_pll.v listed in TFT files is not instantiated by its top; its stale device parameters are not the active TFT XCLK configuration."
+}

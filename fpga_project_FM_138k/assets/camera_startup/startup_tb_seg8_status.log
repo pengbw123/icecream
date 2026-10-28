@@ -1,0 +1,2 @@
+PASS seg8: PCM sweep, signed full scale, boundary sample, silence timeout, decimal voices, serial ordering, coherent frames and DP off (298 latches)
+sim/tb_seg8_status.sv:76: $finish called at 209340000 (1ps)
