@@ -15,12 +15,14 @@ module tb_ov5640_config;
     always @(negedge clk)if(heartbeat)begin beat_count=beat_count+1;if(beat_count==100)begin frame_toggle=~frame_toggle;beat_count=0;end end
     task reset;begin @(negedge clk);reset_n=0;repeat(5)@(negedge clk);reset_n=1;end endtask
     task success;begin wait(ready);#1;
-        if(fault||chip_id!==16'h5640||model.registers[16'h3809]!==8'h40||model.registers[16'h380b]!==8'hf0||
+        if(fault||chip_id!==16'h5640||model.registers[16'h3808]!==8'h03||model.registers[16'h3809]!==8'h20||
+           model.registers[16'h380a]!==8'h01||model.registers[16'h380b]!==8'he0||
            model.registers[16'h4300]!==8'h61||!model.stretched)$fatal(1,"Mode/ID/config verification failed");
     end endtask
     initial begin
         reset;wait(fault==1);success;
-        if(model.writes!=252||model.reads!=15||model.registers[16'h5001]!==8'ha3||model.registers[16'h460c]!==8'h22||model.registers[16'h3035]!==8'h41)$fatal(1,"Incomplete QVGA configuration writes=%d reads=%d",model.writes,model.reads);
+        if(model.writes!=252||model.reads!=15||model.registers[16'h5001]!==8'h83||model.registers[16'h460c]!==8'h20||
+           model.registers[16'h3035]!==8'h21||model.registers[16'h3036]!==8'h69)$fatal(1,"Incomplete TFT configuration writes=%d reads=%d",model.writes,model.reads);
         // A first stable stream delayed beyond the ordinary running timeout
         // must get its startup grace, but startup must still be bounded.
         repeat(50000)@(negedge clk);

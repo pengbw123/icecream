@@ -1,7 +1,7 @@
-// Hardware reset, ID check, QVGA RGB565 table, readback and automatic recovery.
-// The 25 MHz XCLK stays running throughout reset and SCCB configuration.
-module ov5640_config #(parameter integer QUARTER_CLOCKS=125,
-    parameter integer RESET_CLOCKS=250000,BOOT_CLOCKS=1000000,
+// Ch45 TFT-verified 800x480 RGB565 table, ID/readback and bounded recovery.
+// The dedicated 24.242 MHz XCLK runs throughout reset and configuration.
+module ov5640_config #(parameter integer QUARTER_CLOCKS=31,
+    parameter integer RESET_CLOCKS=50000,BOOT_CLOCKS=1000000,
     parameter integer SOFT_RESET_CLOCKS=250000,RETRY_CLOCKS=50000000,
     parameter integer WATCHDOG_CLOCKS=100000000,
     parameter integer STARTUP_WATCHDOG_CLOCKS=WATCHDOG_CLOCKS*5)(
@@ -10,7 +10,7 @@ module ov5640_config #(parameter integer QUARTER_CLOCKS=125,
     output reg ready,output reg [2:0] fault,output reg [15:0] chip_id
 );
     reg [23:0] table_mem[0:251] /* synthesis syn_ramstyle="block_ram" */;
-    initial $readmemh("src/generated/ov5640_qvga.mem",table_mem);
+    initial $readmemh("src/generated/ov5640_tft_800x480.mem",table_mem);
     reg [7:0] index;reg [23:0] entry;
     always @(posedge clk)entry<=table_mem[index];
     reg start,read_request;reg [15:0] address;reg [7:0] write_data;
@@ -30,13 +30,13 @@ module ov5640_config #(parameter integer QUARTER_CLOCKS=125,
         else begin frame_sync<={frame_sync[0],frame_toggle};frame_prev<=frame_sync[1];end
     function [23:0] check_register(input [3:0] n);
         case(n)
-            0:check_register=24'h380801;1:check_register=24'h380940;
-            2:check_register=24'h380a00;3:check_register=24'h380bf0;
+            0:check_register=24'h380803;1:check_register=24'h380920;
+            2:check_register=24'h380a01;3:check_register=24'h380be0;
             4:check_register=24'h430061;5:check_register=24'h501f01;
             6:check_register=24'h300802;7:check_register=24'h474020;
-            8:check_register=24'h5001a3;9:check_register=24'h460c22;
-            10:check_register=24'h382404;11:check_register=24'h303541;
-            default:check_register=24'h303660;
+            8:check_register=24'h500183;9:check_register=24'h460c20;
+            10:check_register=24'h382404;11:check_register=24'h303521;
+            default:check_register=24'h303669;
         endcase
     endfunction
     wire [23:0] check_word=check_register(check_index);

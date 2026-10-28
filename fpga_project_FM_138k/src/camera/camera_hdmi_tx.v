@@ -14,16 +14,17 @@ module camera_hdmi_tx #(parameter integer GESTURE_ENABLED=0)(
     wire pixel_clk,serial_clk;
     video_pll #(.PIXEL_DIV(40),.ENABLE_SERIAL(1)) u_video_pll(
         .clkin(clk),.pixel_clk(pixel_clk),.serial_clk(serial_clk),.lock(pll_locked));
-    // Reuse 25MHz rather than allocating another PLL for the camera.
-    assign camera_xclk=pixel_clk;
+    wire camera_ref_locked;
+    camera_reference_pll u_camera_pll(.clkin(clk),.reset_n(reset_n),.clkout(camera_xclk),.lock(camera_ref_locked));
     assign camera_pwdn=1'b0; // Explicitly wake the sensor, as in the board ch59.
     reg [2:0] sys_reset_sync,video_reset_sync,cam_reset_sync;
     wire common_reset_n=reset_n&&pll_locked;
-    always @(posedge clk or negedge common_reset_n)
-        if(!common_reset_n)sys_reset_sync<=0;else sys_reset_sync<={sys_reset_sync[1:0],1'b1};
+    wire camera_common_n=reset_n&&camera_ref_locked;
+    always @(posedge clk or negedge camera_common_n)
+        if(!camera_common_n)sys_reset_sync<=0;else sys_reset_sync<={sys_reset_sync[1:0],1'b1};
     always @(posedge pixel_clk or negedge common_reset_n)
         if(!common_reset_n)video_reset_sync<=0;else video_reset_sync<={video_reset_sync[1:0],1'b1};
-    wire capture_common_n=common_reset_n&&config_ready;
+    wire capture_common_n=camera_common_n&&config_ready;
     always @(posedge camera_pclk or negedge capture_common_n)
         if(!capture_common_n)cam_reset_sync<=0;else cam_reset_sync<={cam_reset_sync[1:0],1'b1};
     wire frame_start,frame_good,frame_bad,pixel_write,frame_toggle,bad_toggle;
@@ -33,14 +34,16 @@ module camera_hdmi_tx #(parameter integer GESTURE_ENABLED=0)(
     ov5640_config u_config(.clk(clk),.reset_n(sys_reset_sync[2]),.frame_toggle(frame_toggle),
         .camera_reset_n(camera_reset_n),.scl(camera_scl),.sda(camera_sda),
         .ready(config_ready),.fault(config_fault),.chip_id(chip_id));
-    ov5640_capture u_capture(.pclk(camera_pclk),.reset_n(cam_reset_sync[2]),
+    ov5640_capture #(.WIDTH(800),.HEIGHT(480),.WARMUP_FRAMES(10),
+        .CROP_X(80),.CROP_WIDTH(640),.SAMPLE_X(4),.SAMPLE_Y(4)) u_capture(
+        .pclk(camera_pclk),.reset_n(cam_reset_sync[2]),
         .data(camera_data),.href(camera_href),.vsync(camera_vsync),
         .pixel_write(pixel_write),.pixel_address(pixel_address),.pixel_data(pixel_data),
         .frame_start(frame_start),.frame_good(frame_good),.frame_bad(frame_bad),
         .frame_toggle(frame_toggle),.bad_toggle(bad_toggle),
         .debug_request(debug_request),.debug_packet(debug_packet),.debug_ack(debug_ack),.capture_status(capture_status));
     wire buffer_valid,present_pulse,frame_latch,drop_toggle;
-    camera_framebuffer u_buffer(.pclk(camera_pclk),.pixel_clk(pixel_clk),.reset_n(capture_common_n),
+    camera_framebuffer u_buffer(.pclk(camera_pclk),.pixel_clk(pixel_clk),.reset_n(capture_common_n&&pll_locked),
         .frame_start(frame_start),.frame_good(frame_good),.pixel_write(pixel_write),
         .pixel_address(pixel_address),.pixel_data(pixel_data),.frame_latch(frame_latch),
         .read_address(read_address),.read_data(read_data),.valid(buffer_valid),

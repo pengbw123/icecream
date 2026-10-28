@@ -1,0 +1,29 @@
+{
+  "vendor_source": "D:\\a_files\\\u5c0f\u6885\u54e5ACG720\u56fd\u4ea7\u9ad8\u4e91FPGA\u6559\u5b66\u5f00\u53d1\u677f\u8d44\u6599\\02_\u4f8b\u7a0b\u6e90\u7801\\GW5AT138K\\\u7b2c45\u7ae0 OV5640\u57fa\u4e8eFPGA\u7684\u7f16\u7a0b\u5b9e\u6218\\ch45_ov5640_ddr3_tft\\src\\camera_init\\ov5640_init_table_rgb.v",
+  "vendor_sha256": "31e7abc88f5cf47917161e3b7333e73db72ae2bee3dc19ac7d3efebcaf12a96d",
+  "vendor_top_sha256": "c478329e34cd5cc174f56949343aa44f39c46fb6a8ea8130f7e720c5ca25e85a",
+  "vendor_active_pll_sha256": "41c3fe5111296fdc73818cdf800d5422c808c5ec31822b1ab790762ca2a3f15e",
+  "camera_reference_rtl_sha256": "a375a7c28163c276355dfacfea5100b754dfb5f3183f0ee9dbc5a636140c6501",
+  "generated_sha256": "3111ea5596295103ff7300dad9626c4c1622205b2eb5be51d96f7de22632d65f",
+  "writes": 252,
+  "sensor_dimensions": [
+    800,
+    480
+  ],
+  "camera_xclk_mhz": 24.242424242424242,
+  "crop": [
+    80,
+    0,
+    640,
+    480
+  ],
+  "decimation": [
+    4,
+    4
+  ],
+  "preview_dimensions": [
+    160,
+    120
+  ],
+  "all_writes_match_vendor": true
+}

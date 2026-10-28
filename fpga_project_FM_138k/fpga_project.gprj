@@ -22,7 +22,8 @@
         <File path="src/camera/camera_framebuffer.v" type="file.verilog" enable="1"/>
         <File path="src/camera/camera_hdmi_video.v" type="file.verilog" enable="1"/>
         <File path="src/camera/camera_hdmi_tx.v" type="file.verilog" enable="1"/>
-        <File path="src/generated/ov5640_qvga.mem" type="file.other" enable="1"/>
+        <File path="src/camera/camera_reference_pll.v" type="file.verilog" enable="1"/>
+        <File path="src/generated/ov5640_tft_800x480.mem" type="file.other" enable="1"/>
         <File path="src/ai_melody_inference.v" type="file.verilog" enable="1"/>
         <File path="src/ai_melody_composer.v" type="file.verilog" enable="1"/>
         <File path="src/seg8_status.v" type="file.verilog" enable="1"/>
