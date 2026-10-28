@@ -2,6 +2,9 @@
 
 ## 2026-10-28 手势识别集成（构建验收中）
 
+- 本轮恢复后，最终固件的真实RV32I/I2C手势页及原COMPOSER长场景均通过，证据已提交`assets/ai/gesture/gesture_real_ui_final.log`与`gesture_real_ui_composer.log`；原COMPOSER主题/实时编辑/节奏/收尾无漏拍。琴键专项曾通过，但日志被重复任务覆盖，正单独重跑以保留最终证据。
+- 2026-10-28 16:58，统一实现仍在Routing Phase 1之后，无新位流报告。有限次构建收尾进程`tmp/finish_gesture_build.ps1`已启动，等待本次构建与琴键验证结束，然后运行`tmp/publish_gesture.py`：所有日志/五域时序/固件哈希均通过才备份旧.fs、替换标准位流、写发布JSON与文档并提交；失败保留错误状态。先查`tmp/gesture_finish_status.json`，不要重复启动构建或抢先发布。日志`tmp/gesture_publish.log`与`tmp/gesture_release_commit.log`。该进程仅为本次构建收尾，不是定时/循环任务。
+
 - 生产源码检查点`1af0e10`，已接入RGB菜单、HDMI识别框/复用字体诊断、相机特征链路与COMPOSER命令仲裁。工程79个RTL文件，GPRJ和两份CLI清单已同步。菜单入口SETUP→AI BASS→COMPOSE→SETTINGS→GESTURES，RECOGNITION与CONTROL默认OFF。
 - UI[63]为开关和状态，UI[35]为分差/面积。识别和控制分离；只在COMPOSER拥有BACKING、非录入/学习/紧急停止且有新鲜结果时交付动作。触屏/打击垫优先，取消过时手势，保持张掌不能撤销手动STOP；连续三帧确认/去重/停流超时。单拍命令寄存隔开MIDI判定和识别控制路径。
 - LTO+常用绘制函数独立调用，未扩大软核存储；UI镜像80404B、BSS10804B、栈余17900B。快照固件SHA256 `623CBD26FE34953AF60D1FA10012157AABD54BB148A8B45A9AB10FB70A5763B7`。
