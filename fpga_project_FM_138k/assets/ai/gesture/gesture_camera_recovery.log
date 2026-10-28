@@ -1,0 +1,2 @@
+PASS independent HDMI/capture recovery: no false diagnostic events on sensor reconfiguration, async reset with stopped PCLK, synchronous release and no stale buffer exposure
+sim/tb_camera_recovery.sv:34: $finish called at 2800000 (1ps)

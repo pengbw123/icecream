@@ -1,0 +1,10 @@
+WARNING: src/usb_midi/rtl/rv32i.v:447: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+WARNING: src/usb_midi/rtl/rv32i.v:421: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+UI MIDI 00903964 at          85356030000
+UI MIDI 00803900 at          91717310000
+UI MIDI 00b01600 at          98283230000
+UI MIDI 00903964 at         383161070000
+UI MIDI 00803900 at         389523310000
+UI MIDI 00b01600 at         497242750000
+PASS real RV32I/I2C gesture page: OFF defaults, recognition/control isolation, status, cross-page persistence, mode exit disarm
+sim/tb_touch_ui.sv:432: $finish called at 507357130000 (1ps)

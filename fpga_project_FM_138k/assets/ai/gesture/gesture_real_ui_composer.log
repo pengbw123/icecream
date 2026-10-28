@@ -1,0 +1,14 @@
+WARNING: src/usb_midi/rtl/rv32i.v:447: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+WARNING: src/usb_midi/rtl/rv32i.v:421: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+UI MIDI 00903964 at          85356030000
+UI MIDI 00803900 at          91717310000
+UI MIDI 00b01600 at          98283230000
+UI MIDI 00903064 at         170279070000
+UI MIDI 00803000 at         176531310000
+UI MIDI 00903264 at         185827790000
+UI MIDI 00803200 at         192083150000
+UI MIDI 00903464 at         201383550000
+UI MIDI 00803400 at         209320910000
+UI MIDI 00b01600 at         628370750000
+PASS real RV32I/I2C composer: entry/backing patch, XY, three-note theme, live BPM/key/form edits, count-in/touch rhythm, cadence END, exit and zero missed steps
+sim/tb_touch_ui.sv:462: $finish called at 636485130000 (1ps)
