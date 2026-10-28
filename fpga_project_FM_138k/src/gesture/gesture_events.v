@@ -6,7 +6,7 @@ module gesture_events #(
     parameter integer STABLE_FRAMES=3, RELEASE_FRAMES=3,
     parameter integer TIMEOUT_CYCLES=50000000,
     parameter integer MIN_MARGIN=2048, MIN_ENERGY=768, MAX_ENERGY=30000,
-    parameter integer CANCEL_ENABLED=0
+    parameter integer CANCEL_ENABLED=0, PRECHECKED=0
 )(
     input wire clk,reset_n,enable,result_valid,
     input wire [1:0] class_id,
@@ -15,7 +15,7 @@ module gesture_events #(
     output reg action_valid,input wire action_ready,
     output reg [3:0] action,
     output reg tracking,output reg [1:0] stable_class,
-    input wire cancel
+    input wire cancel,input wire prechecked_accepted
 );
     reg signed [31:0] best,runner;
     reg signed [32:0] margin;
@@ -26,10 +26,12 @@ module gesture_events #(
         else if(score2>runner)runner=score2;
         margin=$signed({best[31],best})-$signed({runner[31],runner});
     end
-    wire accepted=class_id<3&&margin>=MIN_MARGIN&&feature_energy>=MIN_ENERGY&&feature_energy<=MAX_ENERGY;
+    wire accepted=PRECHECKED?prechecked_accepted:
+        class_id<3&&margin>=MIN_MARGIN&&feature_energy>=MIN_ENERGY&&feature_energy<=MAX_ENERGY;
     reg [1:0] candidate,latched;
     reg latched_valid;
-    integer consecutive,released;
+    localparam COUNT_BITS=$clog2((STABLE_FRAMES>RELEASE_FRAMES?STABLE_FRAMES:RELEASE_FRAMES)+1);
+    reg [(COUNT_BITS<1?1:COUNT_BITS)-1:0] consecutive,released;
     reg [31:0] age;
     always @(posedge clk)begin
         if(!reset_n||!enable)begin

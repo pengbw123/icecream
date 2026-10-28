@@ -10,7 +10,7 @@ module tb_gesture_pipeline;
     wire [14:0] result_energy;
     wire signed [31:0] s0,s1,s2;
     gesture_pipeline #(.TIMEOUT_CYCLES(200000)) dut(clk,cam,reset_n,enable,controls,
-        fs,fg,fb,pw,addr,data,result_valid,cls,s0,s1,s2,tracking,stable,av,1'b1,action,busy,cycles,1'b0,result_energy);
+        fs,fg,fb,pw,addr,data,result_valid,cls,s0,s1,s2,tracking,stable,av,1'b1,action,busy,cycles,1'b0,result_energy,,);
     reg [7:0] images[0:95231];reg [31:0] scores[0:1115];
     integer results=0,expected=0,i;
     always @(posedge clk)begin
@@ -44,7 +44,7 @@ module tb_gesture_pipeline;
         repeat(5)@(negedge clk);reset_n=1;repeat(10)@(negedge cam);
         for(i=0;i<3;i=i+1)begin
             expected=i*124;boundary(0,0);frame(expected);boundary(1,0);
-            wait(result_valid);@(negedge clk);wait(!dut.source_busy);
+            wait(result_valid);repeat(2)@(negedge clk);wait(!dut.source_busy);
             if(results!=i+1)$fatal(1,"missing job");
         end
         boundary(0,0);frame(0);boundary(1,1);repeat(14000)@(negedge clk);

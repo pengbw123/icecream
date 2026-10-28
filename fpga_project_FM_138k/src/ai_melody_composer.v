@@ -47,10 +47,18 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=
     // are exposed; a palm held while already playing must not restart a phrase.
     assign gesture_ready=GESTURE_ENABLED&&(gesture_cancel||gesture_allowed&&!cfg_write);
     wire external_action=GESTURE_ENABLED&&gesture_valid&&gesture_ready&&!gesture_cancel;
-    wire [3:0] action=(cfg_write&&cfg_address==10'h3c5) ? cfg_value[3:0] :
+    wire [3:0] decoded_action=(cfg_write&&cfg_address==10'h3c5) ? cfg_value[3:0] :
         manual_pad ? pad_action : external_action ?
         (gesture_action==2 ? (running?4'd0:4'd2) : gesture_action==3 ? 4'd3 :
         gesture_action==4&&running ? 4'd4 : 4'd0) : 4'd0;
+    // Terminate the eight-pad associative match/priority chain before it
+    // fans out to phrase/transport registers. One clock (20ns) only.
+    reg [3:0] action_q;
+    always @(posedge clk)begin
+        if(!reset_n)action_q<=0;
+        else action_q<=decoded_action;
+    end
+    wire [3:0] action=action_q;
     reg [1:0] record_mode;reg [5:0] record_step;reg record_resume;
     reg [31:0] rhythm_mask;reg rhythm_valid;
     reg [5:0] step_index;

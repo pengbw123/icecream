@@ -1,3 +1,4 @@
+add_file -type verilog "src/gesture/gesture_score_gate.v"
 add_file -type verilog "src/gesture/gesture_controller.v"
 add_file -type verilog "src/gesture/gesture_video_snapshot.v"
 add_file -type verilog "src/gesture/gesture_pipeline.v"

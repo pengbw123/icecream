@@ -13,7 +13,7 @@ module gesture_controller #(parameter integer FRESH_CYCLES=50000000)(
     wire result_valid,busy,tracking;
     wire [1:0] class_id,stable_class;
     wire signed [31:0] s0,s1,s2;
-    wire [15:0] cycles;wire [14:0] energy;
+    wire [15:0] cycles,filtered_margin;wire [14:0] energy;wire filtered_accepted;
     reg fresh;
     wire control_active=config_data[0]&&config_data[1]&&allowed&&capture_reset_n&&fresh;
     wire network_action_valid;wire [3:0] network_action;
@@ -26,7 +26,8 @@ module gesture_controller #(parameter integer FRESH_CYCLES=50000000)(
         .pixel_write(pixel_write),.pixel_address(pixel_address),.pixel_data(pixel_data),
         .result_valid(result_valid),.class_id(class_id),.score0(s0),.score1(s1),.score2(s2),
         .tracking(tracking),.stable_class(stable_class),.action_valid(network_action_valid),
-        .action_ready(network_ready),.action(network_action),.inference_busy(busy),.inference_cycles(cycles),.result_energy(energy));
+        .action_ready(network_ready),.action(network_action),.inference_busy(busy),.inference_cycles(cycles),.result_energy(energy),
+        .result_margin(filtered_margin),.result_accepted(filtered_accepted));
     // Break the MIDI/pad eligibility -> control -> composer action path with
     // one elastic register. The composer still checks ownership at consumption.
     always @(posedge clk or negedge reset_n)begin
@@ -36,14 +37,6 @@ module gesture_controller #(parameter integer FRESH_CYCLES=50000000)(
             action_valid<=network_action_valid;
             if(network_action_valid)action<=network_action;
         end
-    end
-    reg signed [31:0] best,runner;
-    reg signed [32:0] margin;
-    always @*begin
-        best=s0;runner=s1;
-        if(s1>s0)begin best=s1;runner=s0;end
-        if(s2>best)begin runner=best;best=s2;end else if(s2>runner)runner=s2;
-        margin=$signed({best[31],best})-$signed({runner[31],runner});
     end
     reg [31:0] age;
     reg [15:0] results,margin_q;
@@ -58,8 +51,8 @@ module gesture_controller #(parameter integer FRESH_CYCLES=50000000)(
             else if(result_valid)begin
                 age<=0;fresh<=1;
                 if(results!=65535)results<=results+1'b1;
-                margin_q<=margin>65535?16'hffff:margin[15:0];energy_q<=energy;
-                accepted<=margin>=2048&&energy>=768&&energy<=30000;
+                margin_q<=filtered_margin;energy_q<=energy;
+                accepted<=filtered_accepted;
             end else if(age<FRESH_CYCLES)begin
                 age<=age+1'b1;
                 if(age==FRESH_CYCLES-1)begin fresh<=0;accepted<=0;end

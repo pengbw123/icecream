@@ -6,7 +6,7 @@ module tb_gesture_events;
     reg [14:0] energy=4000;
     wire av,tracking;wire [3:0] action;wire [1:0] stable;
     reg cancel=0;
-    gesture_events #(.TIMEOUT_CYCLES(100),.CANCEL_ENABLED(1)) dut(clk,reset_n,enable,rv,cls,s0,s1,s2,energy,av,ready,action,tracking,stable,cancel);
+    gesture_events #(.TIMEOUT_CYCLES(100),.CANCEL_ENABLED(1)) dut(clk,reset_n,enable,rv,cls,s0,s1,s2,energy,av,ready,action,tracking,stable,cancel,1'b0);
     integer count=0;reg [3:0] last=0;
     always @(posedge clk)if(av&&ready)begin count=count+1;last=action;end
     task result(input integer c,input integer margin);

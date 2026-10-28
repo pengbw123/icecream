@@ -422,6 +422,8 @@ module fm_poly_synth #(
     reg [14:0] event_scale_product;
     reg [7:0] event_scale_magnitude;
     reg signed [15:0] event_level_offset_latched;
+    reg signed [12:0] event_velocity_product_q;
+    reg [23:0] prep_age_latched;
     reg [10:0] event_detune_address;
     reg [16:0] event_detune_read_data;
     reg [31:0] event_note_increment_latched;
@@ -1070,7 +1072,7 @@ module fm_poly_synth #(
     wire signed [12:0] event_velocity_product = event_velocity_curve_signed *
         $signed({1'b0, (event_part ? back_patch_velocity_sensitivity[event_init_operator] : patch_velocity_sensitivity[event_init_operator])});
     wire signed [15:0] event_velocity_delta =
-        (($signed(event_velocity_product) + 13'sd7) >>> 3) <<< 4;
+        (($signed(event_velocity_product_q) + 13'sd7) >>> 3) <<< 4;
     wire signed [8:0] event_scale_note_offset =
         $signed({2'b00, event_note}) -
         $signed({2'b00, (event_part ? back_patch_breakpoint[event_init_operator] : patch_breakpoint[event_init_operator])}) - 9'sd17;
@@ -1161,6 +1163,7 @@ module fm_poly_synth #(
             event_scale_product <= 0;
             event_scale_magnitude <= 0;
             event_level_offset_latched <= -16'sd192;
+            event_velocity_product_q<=0;prep_age_latched<=0;
             event_detune_address <= 11'd0;
             event_note_increment_latched <= 32'd0;
             event_patch_frequency_latched <= 32'd0;
@@ -1818,6 +1821,9 @@ module fm_poly_synth #(
                 end
 
                 ENGINE_EVENT_GAIN_WAIT: begin
+                    // Resolve velocity before the final scaling/clamp stage;
+                    // use an existing event cycle, preserving scheduler cost.
+                    event_velocity_product_q<=event_velocity_product;
                     event_old_state<=operator_state_read_data;
                     event_base_increment <= event_operator_increment;
                     event_scale_product <= event_scale_source * event_scale_depth;
@@ -1881,6 +1887,7 @@ module fm_poly_synth #(
                 end
 
                 ENGINE_PREP: begin
+                    prep_age_latched<=voice_age[scheduler_voice];
                     prep_voice_latched <= scheduler_voice;
                     prep_active_latched <= voice_active[scheduler_voice];
                     prep_gate_latched <= voice_gate[scheduler_voice];
@@ -1890,8 +1897,6 @@ module fm_poly_synth #(
                     prep_delta_latched <= prep_pitch_delta_input;
                     prep_step_latched <= (voice_part[scheduler_voice] ? back_patch_pitch_step[prep_pitch_index] : patch_pitch_step[prep_pitch_index]);
                     if (voice_active[scheduler_voice]) begin
-                        if (voice_age[scheduler_voice] != 24'hffffff)
-                            voice_age[scheduler_voice] <= voice_age[scheduler_voice] + 1'b1;
                         voice_eg_block_position[scheduler_voice] <=
                             voice_eg_block_position[scheduler_voice] + 1'b1;
                     end
@@ -1899,6 +1904,8 @@ module fm_poly_synth #(
                 end
 
                 ENGINE_PREP_RESOLVE: begin
+                    if(prep_active_latched&&prep_age_latched!=24'hffffff)
+                        voice_age[prep_voice_latched]<=prep_age_latched+1'b1;
                     prep_level_resolved <= prep_next;
                     prep_fraction_ratio_latched <=
                         dx7_pitch_eg_fraction[prep_next[19:12]];
