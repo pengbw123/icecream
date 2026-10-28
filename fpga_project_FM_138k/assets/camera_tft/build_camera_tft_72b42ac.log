@@ -1,0 +1,509 @@
+*** GOWIN Tcl Command Line Console  ***
+add new file: "src/gesture/gesture_score_gate.v"
+add new file: "src/gesture/gesture_controller.v"
+add new file: "src/gesture/gesture_video_snapshot.v"
+add new file: "src/gesture/gesture_pipeline.v"
+add new file: "src/gesture/gesture_roi.v"
+add new file: "src/gesture/gesture_mailbox.v"
+add new file: "src/gesture/gesture_mlp.v"
+add new file: "src/gesture/gesture_events.v"
+add new file: "src/camera/camera_diagnostics.v"
+add new file: "src/camera/camera_sccb.v"
+add new file: "src/camera/ov5640_config.v"
+add new file: "src/camera/ov5640_capture.v"
+add new file: "src/camera/camera_framebuffer.v"
+add new file: "src/camera/camera_hdmi_video.v"
+add new file: "src/camera/camera_hdmi_tx.v"
+add new file: "src/camera/camera_reference_pll.v"
+add new file: "src/ai_melody_inference.v"
+add new file: "src/ai_melody_composer.v"
+add new file: "src/seg8_status.v"
+add new file: "src/ai_bass_inference.v"
+add new file: "src/ai_bass_accompaniment.v"
+add new file: "src/sd_spi_byte.v"
+add new file: "src/ch376/ch376_spi_command.v"
+add new file: "src/ch376/ch376_control_transfer.v"
+add new file: "src/ch376/ch376_midi_host.v"
+add new file: "src/ch376/usb_midi_config_parser.v"
+add new file: "src/ch376/usb_midi_event_decode.v"
+add new file: "src/ch376/midi_event_arbiter3.v"
+add new file: "src/ch376/midi_input_queue.v"
+add new file: "src/step_sequencer.v"
+add new file: "src/midi_arpeggiator.v"
+add new file: "src/lesson_player.v"
+add new file: "src/lesson_score_memory.v"
+add new file: "src/lesson_view.v"
+add new file: "src/midi_note_owners.v"
+add new file: "src/audio_performance_monitor.v"
+add new file: "src/i2s_tx.v"
+add new file: "src/es8388_output.v"
+add new file: "src/uart_rx.v"
+add new file: "src/fm_uart_control.v"
+add new file: "src/fm_poly_synth.v"
+add new file: "src/midi_performance_control.v"
+add new file: "src/audio_effects.v"
+add new file: "src/audio_fx.v"
+add new file: "src/audio_chorus.v"
+add new file: "src/audio_phaser.v"
+add new file: "src/audio_delay.v"
+add new file: "src/audio_reverb.v"
+add new file: "src/audio_output_stage.v"
+add new file: "src/fm_status_lcd.v"
+add new file: "src/usb_midi/rtl/rv32i.v"
+add new file: "src/usb_midi/rtl/usb11_phy.v"
+add new file: "src/usb_midi/rtl/usb11_regs.v"
+add new file: "src/usb_midi/rtl/usb11_sie.v"
+add new file: "src/usb_midi/rtl/usb_pll.v"
+add new file: "src/usb_midi/rtl/usb_midi_host.v"
+add new file: "src/top.v"
+add new file: "src/top_138k.v"
+add new file: "src/top_138k_hdmi.v"
+add new file: "src/midi_bridge_rx.v"
+add new file: "src/ws2812_keys.v"
+add new file: "src/video_pll.v"
+add new file: "src/hdmi_scope_tx.v"
+add new file: "src/hdmi_scope_video.v"
+add new file: "src/tmds_encoder.v"
+add new file: "src/rgb_visualizer.v"
+add new file: "src/audio_xy_scope.v"
+add new file: "src/audio_spectrum_analyzer.v"
+add new file: "src/audio_spectrum_snapshot.v"
+add new file: "src/audio_wave_scope.v"
+add new file: "src/rtl_performance_text.v"
+add new file: "src/rtl_char_display.v"
+add new file: "src/ui_eg_curve.v"
+add new file: "src/ui_eg_multi.v"
+add new file: "src/ui_algo_map.v"
+add new file: "src/visual_auto_gain.v"
+add new file: "src/rtl_menu_text.v"
+add new file: "src/gt9147_reset.v"
+add new file: "src/touch_ui_controller.v"
+add new file: "src/acg720_rgb_hdmi.cst"
+add new file: "src/acg720_rgb_hdmi.sdc"
+current device: GW5AT-138B  GW5AT-LV138PG484AC1/I0
+GowinSynthesis start
+Running parser ...
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_score_gate.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_controller.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_video_snapshot.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_pipeline.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_roi.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_mailbox.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_mlp.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_events.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_diagnostics.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_sccb.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\ov5640_config.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\ov5640_capture.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_framebuffer.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_hdmi_video.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_hdmi_tx.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_reference_pll.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_inference.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\seg8_status.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_inference.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\sd_spi_byte.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\ch376_spi_command.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\ch376_control_transfer.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\ch376_midi_host.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\usb_midi_config_parser.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\usb_midi_event_decode.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\midi_event_arbiter3.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\midi_input_queue.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\step_sequencer.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_arpeggiator.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\lesson_player.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\lesson_score_memory.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\lesson_view.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_note_owners.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_performance_monitor.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\i2s_tx.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\es8388_output.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\uart_rx.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_performance_control.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_effects.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_fx.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_chorus.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_phaser.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_delay.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_output_stage.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_status_lcd.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\usb11_phy.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\usb11_regs.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\usb11_sie.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\usb_pll.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\usb_midi_host.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v'
+Undeclared symbol 'fx_cfg_addr', assumed default net type 'wire'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v":331)
+Undeclared symbol 'fx_cfg_value', assumed default net type 'wire'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v":331)
+Undeclared symbol 'fx_cfg_write', assumed default net type 'wire'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v":332)
+Undeclared symbol 'fx2_read_index', assumed default net type 'wire'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v":332)
+Undeclared symbol 'fx2_read_value', assumed default net type 'wire'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v":333)
+WARN  (EX3638) : 'fx_cfg_addr' is already implicitly declared on line 331("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v":484)
+WARN  (EX3638) : 'fx_cfg_value' is already implicitly declared on line 331("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v":485)
+WARN  (EX3638) : 'fx_cfg_write' is already implicitly declared on line 332("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v":486)
+WARN  (EX3638) : 'fx2_read_index' is already implicitly declared on line 332("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v":487)
+WARN  (EX3638) : 'fx2_read_value' is already implicitly declared on line 333("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v":488)
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top_138k.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top_138k_hdmi.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_bridge_rx.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ws2812_keys.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\video_pll.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\hdmi_scope_tx.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\hdmi_scope_video.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\tmds_encoder.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\rgb_visualizer.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_xy_scope.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_snapshot.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_wave_scope.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\rtl_performance_text.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\rtl_char_display.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_curve.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_multi.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_algo_map.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\visual_auto_gain.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\rtl_menu_text.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gt9147_reset.v'
+Analyzing Verilog file 'D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\touch_ui_controller.v'
+Compiling module 'top_138k_hdmi'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top_138k_hdmi.v":3)
+Compiling module 'seg8_audio_status'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\seg8_status.v":39)
+WARN  (EX3791) : Expression size 7 truncated to fit in target size 4("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\seg8_status.v":82)
+WARN  (EX3791) : Expression size 8 truncated to fit in target size 4("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\seg8_status.v":82)
+Compiling module 'seg8_status'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\seg8_status.v":3)
+Compiling module 'audio_spectrum_analyzer'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":6)
+Extracting RAM for identifier 'real_mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":17)
+Extracting RAM for identifier 'imag_mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":17)
+Extracting RAM for identifier 'hann'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":18)
+Extracting RAM for identifier 'twiddle'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":19)
+Extracting RAM for identifier 'bands'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":20)
+Extracting RAM for identifier 'smooth'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":90)
+Extracting RAM for identifier 'peak'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":90)
+Extracting RAM for identifier 'hold_count'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":91)
+WARN  (EX3791) : Expression size 19 truncated to fit in target size 18("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":71)
+WARN  (EX3791) : Expression size 20 truncated to fit in target size 19("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":129)
+WARN  (EX3791) : Expression size 20 truncated to fit in target size 19("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":129)
+WARN  (EX3791) : Expression size 11 truncated to fit in target size 10("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":139)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_analyzer.v":42)
+Compiling module 'ch376_midi_host'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\ch376_midi_host.v":3)
+Compiling module 'ch376_spi_command'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\ch376_spi_command.v":4)
+Compiling module 'ch376_control_transfer(TIMEOUT_CYCLES=25000000,RETRY_CYCLES=50000)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\ch376_control_transfer.v":4)
+Compiling module 'usb_midi_config_parser'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\usb_midi_config_parser.v":4)
+Compiling module 'usb_midi_event_decode'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\usb_midi_event_decode.v":3)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\ch376_midi_host.v":243)
+Compiling module 'midi_event_arbiter3'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\midi_event_arbiter3.v":3)
+Compiling module 'midi_input_queue'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ch376\midi_input_queue.v":4)
+WARN  (EX3073) : Port 'w_mic_mmuwe' remains unconnected for this instance("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\touch_ui_controller.v":150)
+Compiling module 'touch_ui_controller(GESTURE_ENABLED=1)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\touch_ui_controller.v":4)
+Compiling module 'lesson_player'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\lesson_player.v":3)
+Compiling module 'lesson_score_memory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\lesson_score_memory.v":5)
+Extracting RAM for identifier 'factory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\lesson_score_memory.v":9)
+Extracting RAM for identifier 'uploaded'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\lesson_score_memory.v":10)
+Compiling module 'step_sequencer'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\step_sequencer.v":3)
+Extracting RAM for identifier 'steps'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\step_sequencer.v":17)
+Compiling module 'gt9147_reset'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gt9147_reset.v":9)
+Compiling module 'RV32I(FIRMWARE_FILE="src\ui_firmware\firmware.hex",FIRMWARE_HIGH_FILE="src\ui_firmware\firmware_high.hex",DATA_BYTES=98304)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":183)
+WARN  (EX3791) : Expression size 3 truncated to fit in target size 2("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":217)
+Compiling module 'm_imm_gen'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":67)
+Compiling module 'm_regfile'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":13)
+Extracting RAM for identifier 'mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":21)
+Compiling module 'm_alu_i'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":106)
+Compiling module 'm_alu_b'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":150)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 2("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":335)
+Compiling module 'm_lm_mc(FIRMWARE_FILE="src\ui_firmware\firmware.hex",FIRMWARE_HIGH_FILE="src\ui_firmware\firmware_high.hex",DATA_BYTES=98304)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":395)
+Extracting RAM for identifier 'instruction_mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":419)
+Extracting RAM for identifier 'extra_mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":428)
+Extracting RAM for identifier 'low_mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":443)
+Extracting RAM for identifier 'high_mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":444)
+WARN  (EX2412) : Illegal entry at src/ui_firmware/firmware.hex:16385 for index 16384 in range [0:16383]("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":447)
+WARN  (EX2412) : Illegal entry at src/ui_firmware/firmware.hex:16385 for index 16384 in range [0:16383]("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":422)
+Compiling module 'usb_debug_uart(BAUD_COUNT=434)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\usb_midi_host.v":193)
+Compiling module 'sd_spi_byte'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\sd_spi_byte.v":4)
+Compiling module 'top(OUTPUT_SELECT_ENABLED=1,FM_AUDIO_ONLY=0,FX2_ENABLED=1,GESTURE_ENABLED=1)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top.v":4)
+Compiling module 'midi_performance_control'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_performance_control.v":5)
+Compiling module 'fm_uart_control'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v":9)
+Extracting RAM for identifier 'preset_global_memory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v":138)
+Extracting RAM for identifier 'preset_operator_memory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v":139)
+Extracting RAM for identifier 'preset_scaling_memory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v":140)
+Extracting RAM for identifier 'preset_envelope_memory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v":141)
+Extracting RAM for identifier 'preset_pitch_memory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v":142)
+Extracting RAM for identifier 'preset_algorithm_memory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v":143)
+Extracting RAM for identifier 'algorithm_flags_rom'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v":147)
+WARN  (EX3791) : Expression size 11 truncated to fit in target size 10("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v":162)
+WARN  (EX3791) : Expression size 13 truncated to fit in target size 12("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v":163)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_uart_control.v":164)
+Compiling module 'uart_rx'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\uart_rx.v":2)
+Compiling module 'ai_melody_composer(GESTURE_ENABLED=1)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v":4)
+Extracting RAM for identifier 'pad_channel'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v":21)
+Extracting RAM for identifier 'phrase'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v":68)
+Compiling module 'ai_melody_inference'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_inference.v":3)
+Extracting RAM for identifier 'weights'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_inference.v":13)
+Extracting RAM for identifier 'biases'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_inference.v":14)
+Extracting RAM for identifier 'features'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_inference.v":15)
+Extracting RAM for identifier 'hidden'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_inference.v":15)
+Extracting RAM for identifier 'scores'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_inference.v":16)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 5("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_inference.v":51)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 5("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_inference.v":52)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 2("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_inference.v":56)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 2("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_inference.v":57)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v":128)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v":128)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v":128)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v":128)
+WARN  (EX3791) : Expression size 8 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v":239)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 4("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v":251)
+WARN  (EX3791) : Expression size 4 truncated to fit in target size 3("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v":254)
+WARN  (EX3791) : Expression size 4 truncated to fit in target size 3("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_melody_composer.v":255)
+Compiling module 'midi_arpeggiator'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_arpeggiator.v":3)
+Extracting RAM for identifier 'velocity'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_arpeggiator.v":29)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_arpeggiator.v":180)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_arpeggiator.v":184)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_arpeggiator.v":197)
+Compiling module 'ai_bass_accompaniment'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":4)
+Extracting RAM for identifier 'hist'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":47)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":22)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":22)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":22)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":22)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 4("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":36)
+Compiling module 'ai_harmony_tracker'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":259)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 4("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":269)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 4("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":271)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 4("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":271)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 4("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":297)
+Compiling module 'ai_bass_inference'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_inference.v":3)
+Extracting RAM for identifier 'weights'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_inference.v":14)
+Extracting RAM for identifier 'biases'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_inference.v":15)
+Extracting RAM for identifier 'features'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_inference.v":16)
+Extracting RAM for identifier 'hidden'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_inference.v":16)
+Extracting RAM for identifier 'scores'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_inference.v":17)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 3("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_inference.v":53)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 2("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_inference.v":54)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 2("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_inference.v":55)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 4("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":168)
+WARN  (EX3791) : Expression size 12 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":199)
+WARN  (EX3791) : Expression size 12 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":200)
+WARN  (EX3791) : Expression size 12 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":201)
+WARN  (EX3791) : Expression size 11 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":202)
+WARN  (EX3791) : Expression size 8 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":217)
+WARN  (EX3791) : Expression size 8 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":223)
+WARN  (EX3791) : Expression size 8 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":225)
+Compiling module 'ai_midi_merge'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ai_bass_accompaniment.v":322)
+Compiling module 'midi_owner_queue(INDEPENDENT_PARTS=1)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_note_owners.v":36)
+Compiling module 'midi_note_owners(INDEPENDENT_PARTS=1)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\midi_note_owners.v":4)
+Compiling module 'fm_poly_synth(VOICE_COUNT=32)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":14)
+Extracting RAM for identifier 'midi_phase_increment'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":110)
+Extracting RAM for identifier 'sine_quarter_delta'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":113)
+Extracting RAM for identifier 'pitch_ratio_table'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":114)
+Extracting RAM for identifier 'dx7_level_gain'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":115)
+Extracting RAM for identifier 'dx7_eg_block_step'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":116)
+Extracting RAM for identifier 'dx7_ams_attenuation_q15'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":117)
+Extracting RAM for identifier 'dx7_note_detune'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":118)
+Extracting RAM for identifier 'dx7_pitch_eg_fraction'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":119)
+Extracting RAM for identifier 'dx7_velocity_curve'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":120)
+Extracting RAM for identifier 'dx7_lfo_phase_increment'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":121)
+Extracting RAM for identifier 'dx7_lfo_delay_inc'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":122)
+Extracting RAM for identifier 'dx7_lfo_delay_inc2'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":123)
+Extracting RAM for identifier 'dx7_lfo_sine'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":124)
+Extracting RAM for identifier 'mono_history'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":317)
+Extracting RAM for identifier 'operator_state_memory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":334)
+Extracting RAM for identifier 'operator_gain_state_memory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":339)
+Extracting RAM for identifier 'glide_memory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":722)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 3("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":204)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 3("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":213)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":549)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":556)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":557)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":632)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":639)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":640)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":692)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":697)
+WARN  (EX3791) : Expression size 7 truncated to fit in target size 5("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":789)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":1082)
+WARN  (EX3791) : Expression size 16 truncated to fit in target size 10("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":1354)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":1461)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":1475)
+WARN  (EX3791) : Expression size 29 truncated to fit in target size 28("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":1550)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":1582)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":1857)
+WARN  (EX3791) : Expression size 6 truncated to fit in target size 5("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\fm_poly_synth.v":1869)
+Compiling module 'audio_performance_monitor(VOICE_CAPACITY=32)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_performance_monitor.v":3)
+Compiling module 'audio_fx'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_fx.v":18)
+Extracting RAM for identifier 'filter_f'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_fx.v":36)
+Extracting RAM for identifier 'filter_q'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_fx.v":37)
+Extracting RAM for identifier 'tone_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_fx.v":38)
+Extracting RAM for identifier 'level_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_fx.v":39)
+Extracting RAM for identifier 'dist_drive'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_fx.v":40)
+Extracting RAM for identifier 'dist_makeup'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_fx.v":41)
+Extracting RAM for identifier 'dist_initial_gain'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_fx.v":42)
+Extracting RAM for identifier 'tanh_lut'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_fx.v":43)
+WARN  (EX3791) : Expression size 17 truncated to fit in target size 16("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_fx.v":169)
+Compiling module 'audio_reverb'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":4)
+Extracting RAM for identifier 'comb1'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":24)
+Extracting RAM for identifier 'comb2'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":25)
+Extracting RAM for identifier 'comb3'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":26)
+Extracting RAM for identifier 'comb4'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":27)
+Extracting RAM for identifier 'ap_mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":28)
+Extracting RAM for identifier 'ap_mem2'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":29)
+Extracting RAM for identifier 'fb_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":44)
+Extracting RAM for identifier 'mix_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":45)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 16("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":107)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 16("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":109)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 16("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":111)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 16("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_reverb.v":113)
+Compiling module 'audio_delay'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_delay.v":3)
+Extracting RAM for identifier 'mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_delay.v":24)
+Extracting RAM for identifier 'len_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_delay.v":33)
+Extracting RAM for identifier 'fb_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_delay.v":34)
+Extracting RAM for identifier 'mix_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_delay.v":34)
+WARN  (EX3791) : Expression size 48 truncated to fit in target size 32("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_delay.v":22)
+Compiling module 'audio_chorus'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_chorus.v":3)
+Extracting RAM for identifier 'mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_chorus.v":19)
+Extracting RAM for identifier 'inc_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_chorus.v":30)
+Extracting RAM for identifier 'mix_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_chorus.v":31)
+Compiling module 'audio_phaser'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_phaser.v":2)
+Extracting RAM for identifier 'inc_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_phaser.v":25)
+Extracting RAM for identifier 'mix_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_phaser.v":26)
+Extracting RAM for identifier 'coeff_tab'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_phaser.v":27)
+WARN  (EX3791) : Expression size 24 truncated to fit in target size 16("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_phaser.v":99)
+Compiling module 'i2s_tx(OUTPUT_SELECT_ENABLED=1)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\i2s_tx.v":3)
+Compiling module 'es8388_output'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\es8388_output.v":4)
+Compiling module 'es8388_i2c_write'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\es8388_output.v":116)
+Compiling module 'ws2812_keys'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ws2812_keys.v":4)
+Compiling module 'rgb_visualizer'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\rgb_visualizer.v":4)
+Extracting RAM for identifier 'preset_names'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\rgb_visualizer.v":211)
+Compiling module 'video_pll(PIXEL_DIV=30,ENABLE_SERIAL=0)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\video_pll.v":3)
+Compiling module 'rtl_char_display'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\rtl_char_display.v":18)
+Extracting RAM for identifier 'cells'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\rtl_char_display.v":38)
+Extracting RAM for identifier 'font'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\rtl_char_display.v":43)
+Extracting RAM for identifier 'palette_meta'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\rtl_char_display.v":86)
+Compiling module 'audio_xy_scope'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_xy_scope.v":3)
+Extracting RAM for identifier 'pixels'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_xy_scope.v":12)
+Extracting RAM for identifier 'history'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_xy_scope.v":13)
+Extracting RAM for identifier 'pairs'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_xy_scope.v":32)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_xy_scope.v":57)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_xy_scope.v":57)
+Compiling module 'audio_wave_scope'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_wave_scope.v":2)
+Extracting RAM for identifier 'samples'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_wave_scope.v":11)
+Extracting RAM for identifier 'spans'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_wave_scope.v":12)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_wave_scope.v":35)
+Compiling module 'audio_spectrum_snapshot'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_snapshot.v":3)
+Extracting RAM for identifier 'snapshots'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\audio_spectrum_snapshot.v":12)
+Compiling module 'lesson_view'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\lesson_view.v":3)
+Extracting RAM for identifier 'geometry'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\lesson_view.v":79)
+Compiling module 'ui_eg_multi(PANEL_Y=208,PANEL_H=80)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_multi.v":4)
+Extracting RAM for identifier 'mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_multi.v":20)
+WARN  (EX3791) : Expression size 18 truncated to fit in target size 10("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_multi.v":34)
+WARN  (EX3791) : Expression size 11 truncated to fit in target size 10("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_multi.v":35)
+WARN  (EX3791) : Expression size 18 truncated to fit in target size 10("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_multi.v":68)
+WARN  (EX3791) : Expression size 11 truncated to fit in target size 10("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_multi.v":69)
+Compiling module 'ui_algo_map(PANEL_X=272,PANEL_Y=144)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_algo_map.v":7)
+Extracting RAM for identifier 'rectangles'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_algo_map.v":13)
+Extracting RAM for identifier 'line0'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_algo_map.v":32)
+Extracting RAM for identifier 'line1'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_algo_map.v":33)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 8("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_algo_map.v":63)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 9("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_algo_map.v":94)
+Compiling module 'ui_eg_curve(X0=272,Y0=192,W=512,H=208)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_curve.v":9)
+Extracting RAM for identifier 'level_mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_curve.v":29)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 11("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_curve.v":38)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 18("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\ui_eg_curve.v":69)
+Compiling module 'camera_hdmi_tx(GESTURE_ENABLED=1)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_hdmi_tx.v":2)
+Compiling module 'video_pll'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\video_pll.v":3)
+Compiling module 'camera_reference_pll'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_reference_pll.v":4)
+Compiling module 'ov5640_config'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\ov5640_config.v":3)
+Extracting RAM for identifier 'table_mem'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\ov5640_config.v":12)
+Compiling module 'camera_sccb(QUARTER_CLOCKS=31)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_sccb.v":3)
+Compiling module 'ov5640_capture(WIDTH=800,HEIGHT=480,WARMUP_FRAMES=10,CROP_X=80,CROP_WIDTH=640,SAMPLE_X=4,SAMPLE_Y=4)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\ov5640_capture.v":3)
+Compiling module 'camera_framebuffer'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_framebuffer.v":4)
+Extracting RAM for identifier 'bank0'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_framebuffer.v":12)
+Extracting RAM for identifier 'bank1'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_framebuffer.v":13)
+Compiling module 'gesture_controller'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_controller.v":3)
+Compiling module 'gesture_pipeline(CANCEL_ENABLED=1)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_pipeline.v":5)
+Compiling module 'gesture_roi'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_roi.v":5)
+Compiling module 'gesture_mailbox'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_mailbox.v":5)
+Extracting RAM for identifier 'memory'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_mailbox.v":15)
+Compiling module 'gesture_mlp'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_mlp.v":4)
+Extracting RAM for identifier 'weights'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_mlp.v":17)
+Extracting RAM for identifier 'biases'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_mlp.v":18)
+Extracting RAM for identifier 'features'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_mlp.v":19)
+Extracting RAM for identifier 'hidden'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_mlp.v":19)
+Compiling module 'gesture_score_gate'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_score_gate.v":4)
+Compiling module 'gesture_events(CANCEL_ENABLED=1,PRECHECKED=1)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_events.v":5)
+WARN  (EX3791) : Expression size 3 truncated to fit in target size 2("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_events.v":53)
+WARN  (EX3791) : Expression size 3 truncated to fit in target size 2("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_events.v":66)
+Compiling module 'gesture_video_snapshot'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\gesture\gesture_video_snapshot.v":3)
+Compiling module 'camera_hdmi_video(GESTURE_ENABLED=1)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_hdmi_video.v":3)
+Compiling module 'camera_diagnostics(GESTURE_ENABLED=1)'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_diagnostics.v":4)
+Extracting RAM for identifier 'font'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_diagnostics.v":132)
+WARN  (EX3791) : Expression size 256 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_diagnostics.v":91)
+WARN  (EX3791) : Expression size 256 truncated to fit in target size 7("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\camera\camera_diagnostics.v":126)
+Compiling module 'tmds_encoder'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\tmds_encoder.v":2)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 6("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\tmds_encoder.v":21)
+Compiling module 'tmds_lane'("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\tmds_encoder.v":49)
+NOTE  (EX0101) : Current top module is "top_138k_hdmi"
+[5%] Running netlist conversion ...
+WARN  (CV0016) : Input bridge_uart_rx_pin is unused("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\top_138k_hdmi.v":8)
+Running device independent optimization ...
+[10%] Optimizing Phase 0 completed
+[15%] Optimizing Phase 1 completed
+[25%] Optimizing Phase 2 completed
+Running inference ...
+WARN  (IF0005) : Not support distributed RAM in current device, please change ramstyle property setting
+[30%] Inferring Phase 0 completed
+[40%] Inferring Phase 1 completed
+[50%] Inferring Phase 2 completed
+[55%] Inferring Phase 3 completed
+Running technical mapping ...
+[60%] Tech-Mapping Phase 0 completed
+[65%] Tech-Mapping Phase 1 completed
+[75%] Tech-Mapping Phase 2 completed
+[80%] Tech-Mapping Phase 3 completed
+[90%] Tech-Mapping Phase 4 completed
+WARN  (NL0002) : The module "m_alu_b" instantiated to "ALU_B" is swept in optimizing("D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\usb_midi\rtl\rv32i.v":279)
+[95%] Generate netlist file "D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\impl\gwsynthesis\fm_138k_rgb_hdmi.vg" completed
+[100%] Generate report file "D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\impl\gwsynthesis\fm_138k_rgb_hdmi_syn.rpt.html" completed
+GowinSynthesis finish
+Reading netlist file: "D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\impl\gwsynthesis\fm_138k_rgb_hdmi.vg"
+Parsing netlist file "D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\impl\gwsynthesis\fm_138k_rgb_hdmi.vg" completed
+Processing netlist completed
+Reading constraint file: "D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\src\acg720_rgb_hdmi.cst"
+Physical Constraint parsed completed
+Running placement......
+[10%] Placement Phase 0 completed
+[20%] Placement Phase 1 completed
+[30%] Placement Phase 2 completed
+[50%] Placement Phase 3 completed
+Running routing......
+[60%] Routing Phase 0 completed
+[70%] Routing Phase 1 completed
+[80%] Routing Phase 2 completed
+WARN  (PR1014) : Generic routing resource will be used to clock signal 'camera_pclk_d' by the specified constraint. And then it may lead to the excessive delay or skew
+[90%] Routing Phase 3 completed
+Running timing analysis......
+[95%] Timing analysis completed
+Placement and routing completed
+Bitstream generation in progress......
+Bitstream generation completed
+Running power analysis......
+[100%] Power analysis completed
+Generate file "D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\impl\pnr\fm_138k_rgb_hdmi.power.html" completed
+Generate file "D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\impl\pnr\fm_138k_rgb_hdmi.pin.html" completed
+Generate file "D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\impl\pnr\fm_138k_rgb_hdmi.rpt.html" completed
+Generate file "D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\impl\pnr\fm_138k_rgb_hdmi.rpt.txt" completed
+Generate file "D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\tmp\camera_tft_build_72b42ac\impl\pnr\fm_138k_rgb_hdmi.tr.html" completed
+Wed Oct 28 22:17:36 2026
+
+clk_50m: required 50.000 MHz, Fmax 50.257 MHz
+camera_pclk_85m: required 85.000 MHz, Fmax 103.650 MHz
+pixel_33m: required 33.333 MHz, Fmax 35.820 MHz
+hdmi_pixel_25m: required 25.000 MHz, Fmax 76.511 MHz
+hdmi_serial_125m: required 125.000 MHz, Fmax 352.943 MHz
+camera_xclk_24m: Gowin reports no data timing paths
+PASS all constrained clocks: setup/hold TNS = 0
