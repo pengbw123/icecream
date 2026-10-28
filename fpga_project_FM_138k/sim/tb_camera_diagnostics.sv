@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
 module tb_camera_diagnostics;
+    wire [31:0] gesture_status=32'd0,gesture_detail=32'd0;
     reg pixel_clk=0,camera_pclk=0,clock_on=1;
     realtime half_period=13;
     always #20 pixel_clk=~pixel_clk;always begin #(half_period);if(clock_on)camera_pclk=~camera_pclk;end
