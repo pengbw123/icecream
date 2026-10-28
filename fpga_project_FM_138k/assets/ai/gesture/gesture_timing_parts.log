@@ -1,0 +1,2 @@
+PASS dual part: exact BACKING PCM, LIVE preset isolation, same pitch independent voices, sustain, ARP/SEQ tags and scoped stop
+sim/tb_fm_readback.sv:626: $finish called at 5155740000 (1ps)

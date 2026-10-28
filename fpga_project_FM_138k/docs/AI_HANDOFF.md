@@ -1,16 +1,26 @@
 # 给后续 AI 的工程交接说明
 
-## 2026-10-28 手势识别集成（构建验收中）
+## 2026-10-28 手势集成：最终构建验收
 
-- 本轮恢复后，最终固件的真实RV32I/I2C手势页及原COMPOSER长场景均通过，证据已提交`assets/ai/gesture/gesture_real_ui_final.log`与`gesture_real_ui_composer.log`；原COMPOSER主题/实时编辑/节奏/收尾无漏拍。琴键专项曾通过，但日志被重复任务覆盖，正单独重跑以保留最终证据。
-- 2026-10-28 16:58，统一实现仍在Routing Phase 1之后，无新位流报告。有限次构建收尾进程`tmp/finish_gesture_build.ps1`已启动，等待本次构建与琴键验证结束，然后运行`tmp/publish_gesture.py`：所有日志/五域时序/固件哈希均通过才备份旧.fs、替换标准位流、写发布JSON与文档并提交；失败保留错误状态。先查`tmp/gesture_finish_status.json`，不要重复启动构建或抢先发布。日志`tmp/gesture_publish.log`与`tmp/gesture_release_commit.log`。该进程仅为本次构建收尾，不是定时/循环任务。
+- 生产源码 `9cf7ec2`，标准位流北京时间 `2026-10-28 20:15:42`，SHA256 `A443C69D6247B4A9E44E5DEB3B8CC409970D1B3978F116366F1B56B105E12117`。
+- Logic 67652/138240，FF 37189/139095，BSRAM 331/340，DSP 82/298。
+- 未删模块、未降频、未放宽约束；四拍手势后处理与一拍动作译码，FM调度周期不变。
+- 五域setup/hold TNS=0；Fmax(MHz)：clk_50m=50.069, camera_pclk_50m=106.012, pixel_33m=34.835, hdmi_pixel_25m=73.67, hdmi_serial_125m=358.422。
+- 最终固件真实RV32I/I2C手势页与琴键回归通过，时序优化后COMPOSER回归重新通过，另有NN/ROI/CDC/控制联合、FM32/I2S、MIDI入口、摄像头诊断/显示回归。
+- 默认识别/控制OFF，未自动烧录。摄像头实机无图仍未解决，真实手势准确率未验收；公开CGI测试81.72%。
+- 回退：`impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-28_pre_gesture.fs`，SHA256 `D1491687FD1979D5A3309A66F4BF6C0AEEFC3E67A7E9335BD14E9472FCE87747`。完整记录`releases/2026-10-28_gesture_integration.json`。
 
-- 生产源码检查点`1af0e10`，已接入RGB菜单、HDMI识别框/复用字体诊断、相机特征链路与COMPOSER命令仲裁。工程79个RTL文件，GPRJ和两份CLI清单已同步。菜单入口SETUP→AI BASS→COMPOSE→SETTINGS→GESTURES，RECOGNITION与CONTROL默认OFF。
-- UI[63]为开关和状态，UI[35]为分差/面积。识别和控制分离；只在COMPOSER拥有BACKING、非录入/学习/紧急停止且有新鲜结果时交付动作。触屏/打击垫优先，取消过时手势，保持张掌不能撤销手动STOP；连续三帧确认/去重/停流超时。单拍命令寄存隔开MIDI判定和识别控制路径。
-- LTO+常用绘制函数独立调用，未扩大软核存储；UI镜像80404B、BSS10804B、栈余17900B。快照固件SHA256 `623CBD26FE34953AF60D1FA10012157AABD54BB148A8B45A9AB10FB70A5763B7`。
-- 八组手势专项通过，全部1116分数仍逐位一致；真实样本帧→NN→实际COMPOSER联合测试、原音乐规则、FM32/I2S、144事件MIDI入口、摄像头诊断/停钟恢复/1100800像素显示联合回归通过。最终固件的真实RV32I/I2C菜单回归正在重跑，不得提前写成已验收。
-- 隔离构建`tmp/gesture_build_1af0e10`。前次进程在布线路由70%中断，没有新.fs，不是发布。恢复命令`resume_pnr.tcl`虽写run pnr，工具仍重新综合，日志`tmp/build_gesture_1af0e10_resume.log`。只在最终固件回归和五域setup/hold检查通过后替换标准位流；旧标准仍为D1491687...。
-- 完整接口与操作见`GESTURE_RECOGNITION.md`。模型还是白底CGI离线81.72%的原型，真实摄像头仍无图，未解决采集故障，未进行实机识别或自动烧录。
+
+## 2026-10-28 时序优化与历史构建结论
+
+- 用户要求优化直到通过，删模块须先征求意见。本轮未删模块、未降频、未放宽SDC，32复音和双Part保留。
+- 失败基线1af0e10于17:16结束：主域45.581MHz，setup TNS −539.124ns/823端点；失败位流未发布。旧`tmp/finish_gesture_build.ps1`已失败退出，旧`tmp/publish_gesture.py`绑定失败快照，均不得再用于发布。
+- 9cf7ec2首次进程在综合阶段中断；19:50重启，20:15完成并通过。新日志`tmp/build_gesture_9cf7ec2_restart.log`，快照`tmp/gesture_build_9cf7ec2`。本轮发布门禁`tmp/publish_gesture_timing.py`与`tmp/gesture_timing_publish.log`，已完成正式路径替换和旧文件备份。
+- 最差路径由NN/力度/声部年龄/打击垫译码转为音频输出→数码管峰值换算，主域最差setup slack仅0.028ns。未来扩展前优先拆这条峰值换算链，再关注FM增益、ARP及MIDI扇出；不要把本轮通过理解为宽裕的时序空间。
+- 完整优化原理和日志索引见[GESTURE_TIMING_OPTIMIZATION.md](GESTURE_TIMING_OPTIMIZATION.md)。相比失败基线Logic少429，FF多250，BSRAM仍331、DSP仍82；PnR报告耗时从46分50秒降到17分54秒，此次结果不保证以后每次构建耗时相同。
+- 最终固件镜像80404B、BSS10804B、栈余17900B；固件SHA256 623CBD26FE34953AF60D1FA10012157AABD54BB148A8B45A9AB10FB70A5763B7。本轮没有修改固件，真实菜单回归包括新RTL的COMPOSER场景重新通过；琴键证据已恢复并归档。
+- 另记录既有UI问题：从SETUP的AI入口(y390)按住不松跨页，会落到新页琴键产生57号短音。旧COMPOSER/手势日志均有相同事件；本轮门禁按已知事件序列检查无新增MIDI，不能声称跨页全程零Note On。尚未修改该固件行为。
+- 手势菜单入口SETUP→AI BASS→COMPOSE→SETTINGS→GESTURES。识别和控制默认OFF；摄像头实机无图与真实识别准确率仍待验，未自动烧录。
 
 ## 2026-10-28 手势识别离线原型（历史阶段）
 
@@ -23,7 +33,7 @@
 - 待接入动作预案：握拳STOP=3、张掌START=2、V变奏=4，连续三帧确认、同手势不重发，默认关闭控制。还需UI开关/诊断、与触屏/垫命令的仲裁及COMPOSER模式所有权保护；不能直接脉冲相或接入。
 - 训练/离线单图推理源码`tools/gesture/`，导出`src/generated/gesture/`，完整原型接口/复现/局限/后续验收见`GESTURE_RECOGNITION.md`。取得真实图像后收集不同人、光照、无手背景的序列，分录制场次验收，必要时小CNN；多个模块准备好后统一PnR，不为这次离线原型重复长构建。
 
-## 2026-10-27 QVGA缩放/PCLK模式修正（最新发布）
+## 2026-10-27 QVGA缩放/PCLK模式修正（历史发布）
 
 - 第二次实机反馈仍只有蓝条/格子；ID5640/E0/READY1，P3880/H926E/V0006，但R/N/G=0。原F00可能是从未收到帧快照的初值，不是有效帧证明。
 - 核对用户新提供的第47章完整例程，引脚与当前版一致；发现QVGA补丁未开5001[5]缩放、未开460C[1]手动分频。修正5001=A3、460C=22、3824=04、3035=41、3036=60；25MHz XCLK不变，模式回读扩至13项。

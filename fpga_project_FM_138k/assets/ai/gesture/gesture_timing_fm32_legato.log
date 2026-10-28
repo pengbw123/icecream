@@ -1,0 +1,2 @@
+PASS mono legato: overlap, preserved phase/EG, signed glide, exact endpoint, last priority, sustain, panic and poly bypass
+sim/tb_fm_readback.sv:628: $finish called at 65198200000 (1ps)

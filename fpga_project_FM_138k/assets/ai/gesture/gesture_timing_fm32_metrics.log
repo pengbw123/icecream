@@ -1,0 +1,2 @@
+PASS real FM telemetry: voices=32 render=394 response=395 frames=33 steals=1
+sim/tb_fm_readback.sv:604: $finish called at 533907000 (1ps)

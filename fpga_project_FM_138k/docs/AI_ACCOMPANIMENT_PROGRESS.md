@@ -1,5 +1,16 @@
 # BSRAM优化与AI伴奏进度
 
+## 2026-10-28 手势集成：最终构建验收
+
+- 生产源码 `9cf7ec2`，标准位流北京时间 `2026-10-28 20:15:42`，SHA256 `A443C69D6247B4A9E44E5DEB3B8CC409970D1B3978F116366F1B56B105E12117`。
+- Logic 67652/138240，FF 37189/139095，BSRAM 331/340，DSP 82/298。
+- 未删模块、未降频、未放宽约束；四拍手势后处理与一拍动作译码，FM调度周期不变。
+- 五域setup/hold TNS=0；Fmax(MHz)：clk_50m=50.069, camera_pclk_50m=106.012, pixel_33m=34.835, hdmi_pixel_25m=73.67, hdmi_serial_125m=358.422。
+- 最终固件真实RV32I/I2C手势页与琴键回归通过，时序优化后COMPOSER回归重新通过，另有NN/ROI/CDC/控制联合、FM32/I2S、MIDI入口、摄像头诊断/显示回归。
+- 默认识别/控制OFF，未自动烧录。摄像头实机无图仍未解决，真实手势准确率未验收；公开CGI测试81.72%。
+- 回退：`impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-28_pre_gesture.fs`，SHA256 `D1491687FD1979D5A3309A66F4BF6C0AEEFC3E67A7E9335BD14E9472FCE87747`。完整记录`releases/2026-10-28_gesture_integration.json`。
+
+
 ## 2026-10-28 手势菜单与演奏控制集成
 
 识别链路已实例化到HDMI摄像头顶层，RGB菜单增加RECOGNITION/CONTROL独立开关，HDMI复用字体显示状态与ROI方框；COMPOSER增加模式保护、UI/打击垫优先与手势握手。默认全部OFF，未改摄像头引脚和配置。源码`1af0e10`，UI80404/81920B；八组专项和音频/MIDI/摄像头针对性回归通过。最终真实UI回归和统一PnR验收进行中，尚未替换标准位流；前次路由过程被中断，恢复构建日志`tmp/build_gesture_1af0e10_resume.log`。实机采集与识别仍待验证，离线测试81.72%不代表实际镜头效果。

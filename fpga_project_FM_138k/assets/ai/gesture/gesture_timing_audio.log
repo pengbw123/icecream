@@ -1,0 +1,2 @@
+PASS production LEAD->merge->owners->FM32->I2S:           3 AI notes,         414/        444 nonzero frames, 30 LIVE voices, LIVE preset isolation, scoped STOP, pad filtering, no missed samples
+sim/tb_ai_melody_audio.sv:80: $finish called at 9104660000 (1ps)

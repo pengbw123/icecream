@@ -1,0 +1,149 @@
+{
+  "date": "2026-10-28",
+  "timezone": "Asia/Shanghai",
+  "bitstream_time": "20:15:42",
+  "production_commit": "9cf7ec25a10815821e8d95065229e200fedd04e8",
+  "timing_optimization": {
+    "modules_removed": false,
+    "clock_constraints_relaxed": false,
+    "score_postprocess_cycles": 4,
+    "composer_action_extra_cycles": 1,
+    "fm_scheduler_extra_cycles": 0
+  },
+  "bitstream": "impl/pnr/fm_138k_rgb_hdmi.fs",
+  "bytes": 42340871,
+  "sha256": "A443C69D6247B4A9E44E5DEB3B8CC409970D1B3978F116366F1B56B105E12117",
+  "resources": {
+    "logic": 67652,
+    "logic_total": 138240,
+    "ff": 37189,
+    "ff_total": 139095,
+    "bsram": 331,
+    "bsram_total": 340,
+    "dsp": 82,
+    "dsp_total": 298
+  },
+  "resource_delta": {
+    "logic": 1797,
+    "ff": 1361,
+    "bsram": 7,
+    "dsp": 2
+  },
+  "fmax_mhz": {
+    "clk_50m": 50.069,
+    "camera_pclk_50m": 106.012,
+    "pixel_33m": 34.835,
+    "hdmi_pixel_25m": 73.67,
+    "hdmi_serial_125m": 358.422
+  },
+  "all_setup_hold_tns_zero": true,
+  "menu_entry": "SETUP > AI BASS > COMPOSE > SETTINGS > GESTURES",
+  "recognition_default": false,
+  "control_default": false,
+  "feature": "Opt-in RTL neural gesture recognition, RGB menu, HDMI ROI/diagnostics, scoped composer action arbitration",
+  "model": {
+    "architecture": [
+      256,
+      24,
+      3
+    ],
+    "labels": [
+      "fist",
+      "palm",
+      "v_sign"
+    ],
+    "feature_mode": "silhouette",
+    "validation_int8": 0.9722222222222222,
+    "test_int8": 0.8172043010752689,
+    "test_images": 372,
+    "real_camera_accuracy": null,
+    "network_cycles": 12486,
+    "network_us_at_50mhz": 249.72
+  },
+  "firmware": {
+    "image_bytes": 80404,
+    "bss_bytes": 10804,
+    "stack_headroom_bytes": 17900,
+    "instruction_rom_bytes": 81920,
+    "data_ram_bytes": 98304,
+    "hex_sha256": "623CBD26FE34953AF60D1FA10012157AABD54BB148A8B45A9AB10FB70A5763B7"
+  },
+  "validation_logs": {
+    "tmp/gesture_timing_checks.log": "7618AA163CD25283699F04E2FD89F0F0FDBDD0034205BE5DC7EDD06DE63BD0D5",
+    "tmp/gesture_timing_composer.log": "C14A2A9B5263B5A3E83E57C2DEEE66918F6A77F03C6699FF64184A18439FCE9B",
+    "tmp/gesture_real_ui_final.log": "0200F56C15CA6E736CBA18374A1E31035CB260C2876FD37825B60E12C7652C15",
+    "tmp/gesture_timing_real_ui_composer_restart.log": "54906D45BEFF593F20CA3AB52FD3F7D6F95712CB0013143E709F26392DD30400",
+    "tmp/gesture_real_ui_keyboard.log": "4D6C5A55465F4D05A9C1D5226950F180B50AEA77C3F8F1A66EE7514AE524B6D4",
+    "tmp/gesture_timing_audio.log": "41F09192637B4AAD4482D4F89786EBB237D073E4B5AE1C51C176CE8E99FCFE5E",
+    "tmp/gesture_timing_midi.log": "F68438E665857D8533EECFA15A49AA4C2AD753B3B14CBB9C6C2727B9936C435F",
+    "tmp/gesture_timing_fm32_poly32.log": "35EA550A55FA6FB27D56873603CAFA89EE74336A7344481AC125B0BA385C501B",
+    "tmp/gesture_timing_fm32_legato.log": "D01BDCEFBBE9441151C770C0E695B400735AAA984CFA4DA3FC804582D91E76BB",
+    "tmp/gesture_timing_fm32_metrics.log": "845A745D2EB4958DAAD35153CF84738CDC96CDFACB86B509454A5C06A14CA3D5",
+    "tmp/gesture_timing_parts.log": "A3350A79756A9742323272BEF3201DCC65711DF159022F1BB5E901CC67C6187C",
+    "tmp/gesture_camera_diag.log": "5560C36340261D1ED1D7D76E55BBF90046AE32AAF0CAC48AFBAB25D93D97E90C",
+    "tmp/gesture_camera_recovery.log": "7E77AE727550E6E5ABF0DB34EFEBCBAF1B2776222CD9FA25A3CE0DBDB63A6B9A",
+    "tmp/gesture_camera_pipeline.log": "183174D7DCF9C349EA1A5F6F6D5B240AE791FB3131E50BD27DD94D97E7E98BB0"
+  },
+  "hardware_camera_image_verified": false,
+  "hardware_gesture_control_verified": false,
+  "automatically_programmed": false,
+  "existing_camera_no_image_issue_fixed": false,
+  "original_camera_pinout_and_configuration_preserved": true,
+  "build_log": "tmp/build_gesture_9cf7ec2_restart.log",
+  "interrupted_build_log": "tmp/build_gesture_9cf7ec2.log",
+  "isolated_snapshot": "tmp/gesture_build_9cf7ec2",
+  "rollback_bitstream": "impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-28_pre_gesture.fs",
+  "rollback_sha256": "D1491687FD1979D5A3309A66F4BF6C0AEEFC3E67A7E9335BD14E9472FCE87747",
+  "known_ui_issue": "Holding SETUP AI entry at y390 across the page change can play keyboard note 57; predates this RTL optimization; firmware unchanged",
+  "ui_gesture_midi_baseline": [
+    "00903964",
+    "00803900",
+    "00b01600",
+    "00903964",
+    "00803900",
+    "00b01600"
+  ],
+  "limitations": [
+    "CGI white-background prototype, not general hand detection",
+    "No trained unknown/no-hand class; confidence gates are not a reliability guarantee",
+    "Real capture still unresolved; requires actual-camera calibration and sequence testing",
+    "Whole-frame dropping allowed; three-frame debounce uses accepted inference frames, not every camera frame"
+  ],
+  "main_setup_worst_slack_ns": 0.028,
+  "main_critical_path": "u_audio/gen_fx2.u_fx2/sample_out -> u_seg8/scaled_peak",
+  "pnr_elapsed_seconds": 1074,
+  "compared_failed_baseline": {
+    "production_commit": "1af0e10",
+    "fmax_main_mhz": 45.581,
+    "setup_tns_main_ns": -539.124,
+    "failing_main_setup_endpoints": 823,
+    "resource_delta": {
+      "logic": -429,
+      "ff": 250,
+      "bsram": 0,
+      "dsp": 0
+    }
+  },
+  "incremental_pnr": false,
+  "build_log_sha256": "3112F1E92035DDE6279C8BFC326F5B551E1AA28B929C2757C793056C8FAB0B45",
+  "archived_validation_logs": {
+    "assets/ai/gesture/gesture_timing_checks.log": "0EBF4D62337500C509961629C354A7529B51355BB7232FB442A41C8D0BD4C5B3",
+    "assets/ai/gesture/gesture_timing_composer.log": "D44706BF33C21E23032E019BFFA21F05C51C6E2EB62A053B9201089CA9E8230E",
+    "assets/ai/gesture/gesture_real_ui_final.log": "806FECB176B790F54F7E51B900D8D63835E26D837B5DD6D960B8377F14F35742",
+    "assets/ai/gesture/gesture_timing_real_ui_composer_restart.log": "4B038B51DEB9B511316326DFD3D750161A94D26E3814F09298769978EF3A8294",
+    "assets/ai/gesture/gesture_real_ui_keyboard.log": "A2D4F510B1F08957BB90B77DB017EB77333F1F1FC7515A253CD147469024A2B2",
+    "assets/ai/gesture/gesture_timing_audio.log": "33509881C20D55C96A3C2F1D80831FCEB49B03B134E32436FAEDD32AA0717886",
+    "assets/ai/gesture/gesture_timing_midi.log": "A7F16D4456F57FF677A5154B885EDF07F2A37BDC0982A8F0B0F8F65A0D74EA31",
+    "assets/ai/gesture/gesture_timing_fm32_poly32.log": "9C69966CC3503297C1C6E7624592098A020B449AF1D4BF25B2AA105001AF9F50",
+    "assets/ai/gesture/gesture_timing_fm32_legato.log": "9CB90A25108B2DACBF1F21FEA3B41E0A8861A34135167B443DBC5B24A797B13A",
+    "assets/ai/gesture/gesture_timing_fm32_metrics.log": "92468840B4C97CE8ABC66347C6F43B8096111D572BA9E50735906620B9BCA8F2",
+    "assets/ai/gesture/gesture_timing_parts.log": "01CF91BFA0259F5C9C6E72AE4FF93EB836BBEB7CE2241FA7642711B5B556EA1D",
+    "assets/ai/gesture/gesture_camera_diag.log": "FAD4396CE5AACC4B8A61FE2FE7E545073DB5ACF5C09B4646547BE7D65CBE2511",
+    "assets/ai/gesture/gesture_camera_recovery.log": "2A8DAE8EC0B3B8B54AAE244F531A719603AD2E4D94EC1235AAE2F8927AE1D064",
+    "assets/ai/gesture/gesture_camera_pipeline.log": "127E3BD616DB42A65EFB22C5CE145199ED86C427C80C3DC3EE2788F3D6AF52E2",
+    "assets/ai/gesture/gesture_timing_build.log": "BD64F0E1D9A7EAD11F944E3B01158D6867BC3E2DCAA0CDB03258A13E467B9872",
+    "assets/ai/gesture/gesture_timing_sta.log": "C5DFAFDEDAAE3A052FA8496FB5A68E926F6A0C7B108402F9939E4F53B042AAF3",
+    "assets/ai/gesture/gesture_timing_paths.log": "5051902B91E07889896E7D38684160C55B525F60FDF0D738828550364081597E"
+  },
+  "archived_log_normalization": "UTF-8 LF; archived build log also strips line-end whitespace; raw build hash retained separately"
+}
