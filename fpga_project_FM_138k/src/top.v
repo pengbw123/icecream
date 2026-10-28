@@ -11,6 +11,7 @@ module top #(
     parameter integer PRO_FX_ENABLED = 0,
     // 1: use the new parameterised post-mix FX chain (audio_fx.v).
     parameter integer FX2_ENABLED = 0,
+    parameter integer GESTURE_ENABLED = 0,
     // USB key velocity calibration endpoints: 0x00 -> 0, 80 -> 127.
     // Compile-time knobs; pads (channel 10) and UART are not rescaled.
     parameter [6:0] USB_KEY_VELOCITY_MIN = 7'h00,
@@ -21,6 +22,8 @@ module top #(
     input  wire key_s2,
     input wire [159:0] arp_config,input wire arp_suspend,input wire sequence_active,
     output wire [31:0] ai_status,composer_status,composer_detail,
+    input wire gesture_valid,input wire [3:0] gesture_action,
+    output wire gesture_ready,gesture_allowed,gesture_cancel,
     output wire [31:0] arp_status,output wire [127:0] arp_notes,
     input wire headphone_select,
     output wire headphone_din,
@@ -369,7 +372,9 @@ module top #(
     wire [31:0] composer_midi_data,auto_midi_data;
     wire composer_midi_valid,composer_midi_ready,auto_midi_valid,auto_midi_ready;
     wire [6:0] auto_brightness;
-    ai_melody_composer u_composer(.clk(clk),.reset_n(audio_reset_n),
+    ai_melody_composer #(.GESTURE_ENABLED(GESTURE_ENABLED)) u_composer(.clk(clk),.reset_n(audio_reset_n),
+        .gesture_valid(gesture_valid),.gesture_action(gesture_action),
+        .gesture_ready(gesture_ready),.gesture_allowed(gesture_allowed),.gesture_cancel(gesture_cancel),
         .cfg_write(aux_write_valid),.cfg_address(aux_write_address),.cfg_value(aux_write_value),
         .suspend(arp_suspend||arp_config[0]||ai_status[0]),
         .observe_data(selected_midi_data),.observe_valid(selected_midi_valid&&ingress_ready),.consume_input(composer_consume),

@@ -116,7 +116,12 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire [6:0] lesson_address;
     wire sequencer_active;
     wire [31:0] ai_status,composer_status,composer_detail;wire [159:0] arp_config;wire [31:0] arp_status;wire [127:0] arp_notes;
-    touch_ui_controller #(.VOICE_CAPACITY(AUDIO_VOICES)) u_ui (
+    wire [1:0] gesture_config;
+    wire [31:0] gesture_status,gesture_detail;
+    wire gesture_valid,gesture_ready,gesture_allowed,gesture_cancel;
+    wire [3:0] gesture_action;
+    touch_ui_controller #(.VOICE_CAPACITY(AUDIO_VOICES),.GESTURE_ENABLED(1)) u_ui (
+        .gesture_config(gesture_config),.gesture_status(gesture_status),.gesture_detail(gesture_detail),
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),
         .sequencer_active(sequencer_active),.arp_config(arp_config),.ai_status(ai_status),.composer_status(composer_status),.composer_detail(composer_detail),.arp_status(arp_status),.arp_notes(arp_notes),
         .lesson_state(lesson_state),.lesson_bank(lesson_bank),.lesson_count(lesson_count),
@@ -139,7 +144,9 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .patch_read_data(readback_data),.patch_read_valid(readback_valid),
         .fx_write(),.fx_index(),.fx_value(),.fx_read_value(32'd0),.numeric_display()
     );
-    top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1)) u_audio (
+    top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1),.GESTURE_ENABLED(1)) u_audio (
+        .gesture_valid(gesture_valid),.gesture_action(gesture_action),
+        .gesture_ready(gesture_ready),.gesture_allowed(gesture_allowed),.gesture_cancel(gesture_cancel),
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),.perf_bridge_drop(bridge_drop),
         .arp_config(arp_config),.arp_suspend(lesson_state[16]||sequencer_active),.sequence_active(sequencer_active),.ai_status(ai_status),.composer_status(composer_status),.composer_detail(composer_detail),.arp_status(arp_status),.arp_notes(arp_notes),
         .clk(clk),.key_s2(~reset_n),.uart_rx_pin(uart_rx_pin),
@@ -197,7 +204,10 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     );
     wire hdmi_video_lock;
     wire camera_ready,camera_stale;wire [2:0] camera_fault;
-    camera_hdmi_tx u_hdmi (
+    camera_hdmi_tx #(.GESTURE_ENABLED(1)) u_hdmi (
+        .gesture_config(gesture_config),.gesture_allowed(gesture_allowed),.gesture_cancel(gesture_cancel),
+        .gesture_action_valid(gesture_valid),.gesture_action_ready(gesture_ready),.gesture_action(gesture_action),
+        .gesture_status(gesture_status),.gesture_detail(gesture_detail),
         .clk(clk), .reset_n(reset_n),
         .camera_pclk(camera_pclk),.camera_href(camera_href),.camera_vsync(camera_vsync),
         .camera_data(camera_data),.camera_scl(camera_scl),.camera_sda(camera_sda),

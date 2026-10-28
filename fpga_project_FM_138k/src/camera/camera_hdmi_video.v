@@ -1,6 +1,6 @@
 // 640x480/59.52 Hz at the existing 25 MHz HDMI clock. Registered RGB/sync
 // align with the synchronous framebuffer read; nearest-neighbour 4x preview.
-module camera_hdmi_video #(parameter integer STALE_FRAMES=60)(
+module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0)(
     input wire pixel_clk,reset_n,config_ready,input wire [2:0] config_fault,
     input wire buffer_valid,present_pulse,input wire [7:0] pixel_data,
     input wire bad_toggle,drop_toggle,
@@ -9,7 +9,8 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60)(
     input wire [71:0] debug_packet,output wire debug_ack,input wire [7:0] capture_status,
     output wire frame_latch,output wire [14:0] read_address,
     output reg [7:0] red,green,blue,output reg de,hsync,vsync,
-    output wire stream_stale
+    output wire stream_stale,
+    input wire [31:0] gesture_status,gesture_detail
 );
     reg [9:0] hcount,vcount,x1,y1;
     reg [1:0] ready_sync,bad_sync,drop_sync;
@@ -22,7 +23,8 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60)(
     assign read_address=active?row_address+{7'd0,hcount[9:2]}:15'd0;
     assign stream_stale=!buffer_valid||silent_frames>=STALE_FRAMES;
     wire diagnostic_area,diagnostic_ink;
-    camera_diagnostics u_diagnostics(.pixel_clk(pixel_clk),.reset_n(reset_n),
+    camera_diagnostics #(.GESTURE_ENABLED(GESTURE_ENABLED)) u_diagnostics(.pixel_clk(pixel_clk),.reset_n(reset_n),
+        .gesture_status(gesture_status),.gesture_detail(gesture_detail),
         .camera_pclk(camera_pclk),.camera_href(camera_href),.camera_vsync(camera_vsync),
         .config_ready(config_ready),.config_fault(config_fault),.chip_id(chip_id),
         .frame_count(frames),.error_count(errors),.drop_count(drops),
@@ -49,6 +51,9 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60)(
             else if(x1<256)color=errors[bit_sel]?24'hd02020:24'h180808;
             else if(x1<384)color=drops[bit_sel]?24'hd09010:24'h181008;
         end
+        if(GESTURE_ENABLED&&gesture_status[0]&&
+           (((x1==128||x1==511)&&y1>=48&&y1<=431)||((y1==48||y1==431)&&x1>=128&&x1<=511)))
+            color=gesture_status[6]?24'h36a8cc:24'h9caab8;
         if(diagnostic_area)color=diagnostic_ink?24'he0f0ff:24'h081018;
         if(x1>=640||y1>=480)color=0;
     end

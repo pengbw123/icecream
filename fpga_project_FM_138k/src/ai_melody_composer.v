@@ -1,11 +1,13 @@
 // Interactive lead composer. Transport and inference stay entirely in RTL.
 // Aux 3c0 session/commit, 3c1/2 period shadow, 3c3 key/minor/form,
 // 3c4 density/direction, 3c5 one-shot action, 3c6 variation/output strength.
-module ai_melody_composer #(parameter integer CLOCKS_PER_US=50)(
+module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=0)(
     input wire clk,reset_n,cfg_write,input wire [9:0] cfg_address,input wire [15:0] cfg_value,
     input wire suspend,input wire [31:0] observe_data,input wire observe_valid,
     output wire consume_input,output reg [31:0] out_data,output reg out_valid,input wire out_ready,
-    output reg [31:0] status,detail
+    output reg [31:0] status,detail,
+    input wire gesture_valid,input wire [3:0] gesture_action,
+    output wire gesture_ready,gesture_allowed,gesture_cancel
 );
     reg session,running,theme_recording,learning,panic_latched,start_wait;
     reg [31:0] period_shadow,step_us,remaining;
@@ -36,8 +38,19 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50)(
         0:pad_action=1;1:pad_action=4;2:pad_action=5;3:pad_action=6;
         4:pad_action=7;5:pad_action=8;6:pad_action=10;default:pad_action=11;
     endcase
+    wire manual_cfg=cfg_write&&(cfg_address==10'h3c5||cfg_address==10'h3c0);
+    wire manual_pad=session&&pad_on&&pad_match&&!learning&&record_mode==0;
+    assign gesture_allowed=GESTURE_ENABLED&&session&&!suspend&&!panic_latched&&
+        !panic&&!learning&&!theme_recording&&record_mode==0;
+    assign gesture_cancel=GESTURE_ENABLED&&(manual_cfg||manual_pad||panic);
+    // Drop obsolete pending gestures when a manual command wins. Only 2/3/4
+    // are exposed; a palm held while already playing must not restart a phrase.
+    assign gesture_ready=GESTURE_ENABLED&&(gesture_cancel||gesture_allowed&&!cfg_write);
+    wire external_action=GESTURE_ENABLED&&gesture_valid&&gesture_ready&&!gesture_cancel;
     wire [3:0] action=(cfg_write&&cfg_address==10'h3c5) ? cfg_value[3:0] :
-        session&&pad_on&&pad_match&&!learning&&record_mode==0 ? pad_action : 0;
+        manual_pad ? pad_action : external_action ?
+        (gesture_action==2 ? (running?4'd0:4'd2) : gesture_action==3 ? 4'd3 :
+        gesture_action==4&&running ? 4'd4 : 4'd0) : 4'd0;
     reg [1:0] record_mode;reg [5:0] record_step;reg record_resume;
     reg [31:0] rhythm_mask;reg rhythm_valid;
     reg [5:0] step_index;

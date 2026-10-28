@@ -5,7 +5,8 @@
 module gesture_events #(
     parameter integer STABLE_FRAMES=3, RELEASE_FRAMES=3,
     parameter integer TIMEOUT_CYCLES=50000000,
-    parameter integer MIN_MARGIN=2048, MIN_ENERGY=768, MAX_ENERGY=30000
+    parameter integer MIN_MARGIN=2048, MIN_ENERGY=768, MAX_ENERGY=30000,
+    parameter integer CANCEL_ENABLED=0
 )(
     input wire clk,reset_n,enable,result_valid,
     input wire [1:0] class_id,
@@ -13,7 +14,8 @@ module gesture_events #(
     input wire [14:0] feature_energy,
     output reg action_valid,input wire action_ready,
     output reg [3:0] action,
-    output reg tracking,output reg [1:0] stable_class
+    output reg tracking,output reg [1:0] stable_class,
+    input wire cancel
 );
     reg signed [31:0] best,runner;
     reg signed [32:0] margin;
@@ -62,6 +64,13 @@ module gesture_events #(
                     if(released<RELEASE_FRAMES)released<=released+1;
                     if(released>=RELEASE_FRAMES-1)latched_valid<=0;
                 end
+            end
+            // Manual UI/pad commands invalidate pending actions. Remember the
+            // current candidate so a held palm cannot immediately undo STOP.
+            if(CANCEL_ENABLED&&cancel)begin
+                action_valid<=0;consecutive<=0;released<=0;
+                if(result_valid&&accepted)begin latched<=class_id;latched_valid<=1;end
+                else if(consecutive!=0||tracking)begin latched<=candidate;latched_valid<=1;end
             end
         end
     end

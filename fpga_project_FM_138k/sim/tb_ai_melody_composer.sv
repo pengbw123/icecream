@@ -5,6 +5,8 @@ module tb_ai_melody_composer;
     reg reset_n=0,cfg_write=0,suspend=0,observe_valid=0,out_ready=1;
     reg [9:0] cfg_address=0;reg [15:0] cfg_value=0;reg [31:0] observe_data=0;
     wire consume_input;wire [31:0] out_data,status,detail;wire out_valid;
+    wire gesture_valid=1'b0;wire [3:0] gesture_action=4'd0;
+    wire gesture_ready,gesture_allowed,gesture_cancel;
     ai_melody_composer #(.CLOCKS_PER_US(1)) dut(.*);
     integer ons=0,offs=0,last_on=0,held=-1,case_id=0,cycles=0,fd;
     integer attacks[0:3],pitch_sum[0:3];reg [127:0] used=0;

@@ -5,7 +5,8 @@ module tb_gesture_events;
     reg [1:0] cls=0;reg signed [31:0] s0=0,s1=0,s2=0;
     reg [14:0] energy=4000;
     wire av,tracking;wire [3:0] action;wire [1:0] stable;
-    gesture_events #(.TIMEOUT_CYCLES(100)) dut(clk,reset_n,enable,rv,cls,s0,s1,s2,energy,av,ready,action,tracking,stable);
+    reg cancel=0;
+    gesture_events #(.TIMEOUT_CYCLES(100),.CANCEL_ENABLED(1)) dut(clk,reset_n,enable,rv,cls,s0,s1,s2,energy,av,ready,action,tracking,stable,cancel);
     integer count=0;reg [3:0] last=0;
     always @(posedge clk)if(av&&ready)begin count=count+1;last=action;end
     task result(input integer c,input integer margin);
@@ -33,7 +34,11 @@ module tb_gesture_events;
         energy=4000;repeat(3)result(2,8000);if(count!=6)$fatal(1,"V return");
         repeat(110)@(negedge clk);if(tracking||av)$fatal(1,"camera timeout");
         repeat(3)result(2,8000);if(count!=7)$fatal(1,"timeout rearm");
-        ready=0;repeat(3)result(0,8000);enable=0;repeat(2)@(negedge clk);
+        ready=0;repeat(3)result(0,8000);
+        cancel=1;@(negedge clk);cancel=0;repeat(4)result(0,8000);
+        if(av)$fatal(1,"held hand undid manual command");
+        repeat(3)result(1,8000);if(!av||action!=2)$fatal(1,"new gesture after cancel");
+        enable=0;repeat(2)@(negedge clk);
         if(av||tracking)$fatal(1,"disable stale action");
         $display("PASS gesture_events: stability, release, margin/blank rejection, backpressure, timeout, disable");$finish;
     end

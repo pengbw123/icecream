@@ -129,6 +129,8 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Mono legato regression failed.' }
         }
         if ($case.Name -eq 'tb_touch_ui') {
+            & $vvp $outputFile '+gesture'
+            if ($LASTEXITCODE -ne 0) { throw 'Gesture UI check failed.' }
             & $vvp $outputFile '+composer'
             if ($LASTEXITCODE -ne 0) { throw 'Composer real firmware regression failed.' }
             & $vvp $outputFile '+ai'

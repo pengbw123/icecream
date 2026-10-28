@@ -28,9 +28,9 @@ static void apply_theme(u8 unused){
     for(i=0;i<16;i++)UI[16]=((u32)i<<24)|palette_now[i];
     UI[10]=bg;UI[11]=vis;UI[12]=vis;
 }
-static void rect_cells(u8 c,u8 r,u8 w,u8 h,u8 pal){u8 y;for(y=r;y<r+h;y++)fill_cells(c,(u8)(c+w-1),y,pal,4);}
-static void pair_text(u8 c,u8 r,const char *s,u8 bg,int selected){text(c,r,s,bg,(u8)(selected?9:8));}
-static void button_box(u8 c,u8 r,u8 w,u8 h,const char *label,int selected){
+static __attribute__((noinline)) void rect_cells(u8 c,u8 r,u8 w,u8 h,u8 pal){u8 y;for(y=r;y<r+h;y++)fill_cells(c,(u8)(c+w-1),y,pal,4);}
+static __attribute__((noinline)) void pair_text(u8 c,u8 r,const char *s,u8 bg,int selected){text(c,r,s,bg,(u8)(selected?9:8));}
+static __attribute__((noinline)) void button_box(u8 c,u8 r,u8 w,u8 h,const char *label,int selected){
     u8 n=str_len(label),bg=selected?3:5;
     rect_cells(c,r,w,h,bg);
     pair_text((u8)(c+(w-n)/2u),(u8)(r+h/2),label,bg,selected);

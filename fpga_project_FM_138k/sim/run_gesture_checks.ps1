@@ -13,6 +13,9 @@ try {
         @{ Name='tb_gesture_events'; Files=@('src/gesture/gesture_events.v') },
         @{ Name='tb_gesture_mailbox'; Files=@('src/gesture/gesture_mailbox.v') },
         @{ Name='tb_gesture_mlp'; Files=@('src/gesture/gesture_mlp.v') },
+        @{ Name='tb_gesture_composer'; Files=@('src/ai_melody_composer.v','src/ai_melody_inference.v') },
+        @{ Name='tb_gesture_video'; Files=@('src/gesture/gesture_video_snapshot.v','src/camera/camera_hdmi_video.v','src/camera/camera_diagnostics.v') },
+        @{ Name='tb_gesture_controller'; Files=@('src/gesture/gesture_controller.v','src/gesture/gesture_roi.v','src/gesture/gesture_mailbox.v','src/gesture/gesture_mlp.v','src/gesture/gesture_events.v','src/gesture/gesture_pipeline.v','src/ai_melody_composer.v','src/ai_melody_inference.v') },
         @{ Name='tb_gesture_pipeline'; Files=@('src/gesture/gesture_roi.v','src/gesture/gesture_mailbox.v','src/gesture/gesture_mlp.v','src/gesture/gesture_events.v','src/gesture/gesture_pipeline.v') }
     )
     foreach ($case in $cases) {

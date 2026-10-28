@@ -1,13 +1,14 @@
 // Readable bring-up telemetry. Capture uses a held packet/toggle handshake;
 // a Gray counter measures PCLK independently of sensor configuration/reset.
 // Everything shown is latched at HDMI vertical blank, so digits stay coherent.
-module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000)(
+module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000,GESTURE_ENABLED=0)(
     input wire pixel_clk,reset_n,camera_pclk,camera_href,camera_vsync,config_ready,
     input wire [2:0] config_fault,input wire [15:0] chip_id,
     input wire [7:0] frame_count,error_count,drop_count,capture_status,
     input wire debug_request,input wire [71:0] debug_packet,output reg debug_ack,
     input wire frame_latch,input wire [9:0] prefetch_x,prefetch_y,x,y,
-    output wire area,ink
+    output wire area,ink,
+    input wire [31:0] gesture_status,gesture_detail
 );
     reg [19:0] pclk_count,pclk_gray;
     reg [2:0] pclk_reset_sync;
@@ -77,6 +78,16 @@ module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000)(
             2:line_text="R:0000 B:0000-0000              ";
             default:line_text="N:0000 F:00 S:00 G:00 D:00 B:00 ";
         endcase
+        if(GESTURE_ENABLED&&gesture_status[0])begin
+            if(!gesture_status[3]||gesture_status[4])line_text="NN:NO CAMERA CTRL:OFF M:0000    ";
+            else if(!gesture_status[5])line_text="NN:WAIT      CTRL:OFF M:0000    ";
+            else if(!gesture_status[6])line_text="NN:UNKNOWN   CTRL:OFF M:0000    ";
+            else case(gesture_status[11:10])
+                0:line_text="NN:FIST      CTRL:OFF M:0000    ";
+                1:line_text="NN:PALM      CTRL:OFF M:0000    ";
+                default:line_text="NN:V SIGN    CTRL:OFF M:0000    ";
+            endcase
+        end
         character=col<32 ? (line_text>>((31-col)*8)):7'd32;
         value=0;shift=0;
         case(row)
@@ -109,11 +120,19 @@ module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000)(
                 if(col==30)character=hex_char(display_counts[11:8]);
             end
         endcase
+        if(GESTURE_ENABLED&&gesture_status[0])begin
+            // Every status string is 32 columns. Recompute AFTER legacy
+            // hexadecimal substitutions so camera fields cannot overwrite it.
+            character=col<32 ? (line_text>>((31-col)*8)):7'd32;
+            if(col==19)character=gesture_status[13]?"N":"F";
+            if(col==20)character=gesture_status[13]?" ":"F";
+            if(col>=24&&col<=27)character=hex_char(gesture_detail[31:16]>>((27-col)*4));
+        end
     end
     reg [7:0] font[0:2047] /* synthesis syn_ramstyle="block_ram" */;
     initial $readmemh("src/generated/font8x16.mem",font);
     reg [7:0] font_row;
     always @(posedge pixel_clk)font_row<=font[{character,prefetch_y[4:1]}];
-    assign area=y>=352&&y<480&&x<640;
+    assign area=y>=(GESTURE_ENABLED&&gesture_status[0]?448:352)&&y<480&&x<640;
     assign ink=area&&font_row[7-x[3:1]];
 endmodule

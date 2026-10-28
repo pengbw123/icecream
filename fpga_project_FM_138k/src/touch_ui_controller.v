@@ -1,7 +1,7 @@
 // Small RV32I controller for GT911/GT9147 polling and menu actions.
 // It changes control registers only. Audio synthesis and pixel rendering
 // never wait for firmware, I2C, UART diagnostics or touch events.
-module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
+module touch_ui_controller #(parameter integer VOICE_CAPACITY=32,GESTURE_ENABLED=0) (
     input wire [31:0] ai_status,composer_status,composer_detail,
     input wire clk, input wire reset_n,
     inout wire tp_scl, tp_sda, tp_int,
@@ -39,7 +39,9 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
     // 0x69 readback results from the synth (registers 14/15).
     input wire [15:0] patch_read_data,input wire patch_read_valid,
     input wire [31:0] perf_data,output reg [4:0] perf_index,
-    output wire perf_snapshot,perf_clear
+    output wire perf_snapshot,perf_clear,
+    input wire [31:0] gesture_status,gesture_detail,
+    output reg [1:0] gesture_config
 );
     reg [127:0] arp_timing_shadow;
     wire [31:0] address,write_data,read_data;
@@ -170,6 +172,8 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
             60:ui_data=ai_status;
             61:ui_data=composer_status;
             62:ui_data=composer_detail;
+            63:ui_data=GESTURE_ENABLED?{gesture_status[31:2],gesture_config}:32'd0;
+            35:ui_data=GESTURE_ENABLED?gesture_detail:32'd0;
             5:ui_data=ui_state;
             9:ui_data={31'd0,command_ready&&!command_valid};
             17:ui_data={31'd0,text_enable};
@@ -205,7 +209,7 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
     end
     always @(posedge clk or negedge reset_n) begin
         if(!reset_n)begin
-            perf_index<=0;
+            perf_index<=0;gesture_config<=0;
             seq_timing<={32'd87500,32'd87500,32'd125000,32'd125000};seq_control<=32'h3c0;seq_read_address<=0;
             arp_timing_shadow<={32'd175000,32'd175000,32'd250000,32'd250000};
             arp_config<={32'd175000,32'd175000,32'd250000,32'd250000,32'h00006000};
@@ -244,6 +248,7 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32) (
             end
             if(ui_select&&write_en)begin
                 case(address[7:2])
+                    63:gesture_config<=GESTURE_ENABLED&&write_data[0]?write_data[1:0]:2'b00;
                     0:i2c_drive<=write_data[1:0];
                     3:if(!fw_valid||fw_ready)begin
                         fw_data<=write_data;fw_valid<=1;

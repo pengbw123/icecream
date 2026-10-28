@@ -32,6 +32,7 @@ $hex = Join-Path $firmwareDir 'firmware.hex'
     -mcpu=generic_rv32 `
     -mabi=ilp32 `
     -Oz `
+    -flto `
     -ffreestanding `
     -fno-builtin `
     -fno-pic `
