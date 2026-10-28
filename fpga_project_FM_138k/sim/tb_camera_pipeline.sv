@@ -23,6 +23,7 @@ module tb_camera_pipeline;
     defparam dut.u_config.BOOT_CLOCKS=50;
     defparam dut.u_config.SOFT_RESET_CLOCKS=30;
     defparam dut.u_config.RETRY_CLOCKS=100;
+    defparam dut.u_config.WATCHDOG_CLOCKS=2000000; // 40ms run / 200ms startup in this test
     defparam dut.u_video.STALE_FRAMES=2;
     ov5640_sccb_model model(.scl(scl),.sensor_reset_n(cam_reset_n),.present(1'b1),.wrong_id(1'b0),
         .corrupt_readback(1'b0),.nack_first(1'b0),.stretch_first(1'b0),.sda(sda),.stretch_low(stretch));
@@ -87,7 +88,12 @@ module tb_camera_pipeline;
     end
     integer i;reg [7:0] saved0;
     initial begin
-        repeat(5)@(negedge clk);reset_n=1;wait(ready);repeat(20)@(negedge pclk);sync_frame;
+        repeat(5)@(negedge clk);reset_n=1;wait(ready);
+        // Reproduce a sensor settling beyond the running watchdog duration.
+        // The original single 40ms deadline resets before these frames start.
+        #50000000;
+        if(!ready||fault)$fatal(1,"Camera reset during initial settling grace");
+        repeat(20)@(negedge pclk);sync_frame;
         for(i=0;i<8;i=i+1)image(i,0);
         image(7,1); // odd byte count must never become a published frame
         for(i=0;i<8;i=i+1)image(i,0);

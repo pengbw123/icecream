@@ -3,7 +3,8 @@
 module ov5640_config #(parameter integer QUARTER_CLOCKS=125,
     parameter integer RESET_CLOCKS=250000,BOOT_CLOCKS=1000000,
     parameter integer SOFT_RESET_CLOCKS=250000,RETRY_CLOCKS=50000000,
-    parameter integer WATCHDOG_CLOCKS=100000000)(
+    parameter integer WATCHDOG_CLOCKS=100000000,
+    parameter integer STARTUP_WATCHDOG_CLOCKS=WATCHDOG_CLOCKS*5)(
     input wire clk,reset_n,frame_toggle,
     output reg camera_reset_n,inout wire scl,sda,
     output reg ready,output reg [2:0] fault,output reg [15:0] chip_id
@@ -19,6 +20,9 @@ module ov5640_config #(parameter integer QUARTER_CLOCKS=125,
         .address(address),.write_data(write_data),.scl(scl),.sda(sda),
         .done(done),.failed(failed),.read_data(read_data));
     reg [3:0] state;reg [31:0] wait_count,watchdog;
+    // Startup includes sensor settling and the capture receiver's warmup.
+    // Do not repeatedly reset a slow first stream with the running timeout.
+    reg stream_seen;
     reg [3:0] check_index;
     reg [1:0] frame_sync;reg frame_prev;
     always @(posedge clk or negedge reset_n)
@@ -40,7 +44,7 @@ module ov5640_config #(parameter integer QUARTER_CLOCKS=125,
         if(!reset_n)begin
             camera_reset_n<=0;ready<=0;fault<=0;chip_id<=0;
             index<=0;start<=0;read_request<=0;address<=0;write_data<=0;
-            state<=0;wait_count<=RESET_CLOCKS-1;check_index<=0;watchdog<=0;
+            state<=0;wait_count<=RESET_CLOCKS-1;check_index<=0;watchdog<=0;stream_seen<=0;
         end else begin
             start<=0;
             case(state)
@@ -74,11 +78,12 @@ module ov5640_config #(parameter integer QUARTER_CLOCKS=125,
                 9:if(done)begin
                     if(failed)begin fault<=1;state<=14;end
                     else if(check_index==6 ? ((read_data&8'hc0)!=0) : (read_data!=check_word[7:0]))begin fault<=3;state<=14;end
-                    else if(check_index==12)begin ready<=1;fault<=0;watchdog<=0;state<=10;end
+                    else if(check_index==12)begin ready<=1;fault<=0;watchdog<=0;stream_seen<=0;state<=10;end
                     else begin check_index<=check_index+1'b1;state<=8;end
                 end
-                10:if(frame_sync[1]!=frame_prev)watchdog<=0;
-                   else if(watchdog==WATCHDOG_CLOCKS-1)begin fault<=4;ready<=0;state<=14;end
+                10:if(frame_sync[1]!=frame_prev)begin watchdog<=0;stream_seen<=1;end
+                   else if((stream_seen&&watchdog==WATCHDOG_CLOCKS-1)||
+                           (!stream_seen&&watchdog==STARTUP_WATCHDOG_CLOCKS-1))begin fault<=4;ready<=0;state<=14;end
                    else watchdog<=watchdog+1'b1;
                 14:begin camera_reset_n<=0;ready<=0;wait_count<=RETRY_CLOCKS-1;state<=15;end
                 15:if(wait_count!=0)wait_count<=wait_count-1'b1;

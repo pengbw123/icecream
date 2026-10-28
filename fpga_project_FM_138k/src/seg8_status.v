@@ -50,23 +50,27 @@ module seg8_audio_status #(
     reg [15:0] peak;
     wire [15:0] magnitude=audio_sample[15] ? (~audio_sample+16'd1) : audio_sample;
     wire [15:0] peak_now=sample_tick && magnitude>peak ? magnitude : peak;
-    wire [22:0] peak_wide={7'd0,peak_now};
+    reg [15:0] window_peak;
+    reg peak_valid;
+    wire [22:0] peak_wide={7'd0,window_peak};
     reg [22:0] scaled_peak;
     reg scale_valid;
     reg [6:0] level;
     // 99*x = 64*x + 32*x + 2*x + x; rounding maps full scale to 99.
     always @(posedge clk or negedge reset_n) begin
         if(!reset_n) begin
-            window_count<=0;peak<=0;scaled_peak<=0;scale_valid<=0;level<=0;
+            window_count<=0;peak<=0;window_peak<=0;peak_valid<=0;scaled_peak<=0;scale_valid<=0;level<=0;
         end else begin
-            scale_valid<=0;
+            peak_valid<=0;scale_valid<=peak_valid;
             if(window_count==WINDOW_CYCLES-1) begin
                 window_count<=0;peak<=0;
-                scaled_peak<=(peak_wide<<6)+(peak_wide<<5)+(peak_wide<<1)+peak_wide+23'd16384;
-                scale_valid<=1;
+                // Split magnitude/max selection from percentage arithmetic.
+                // One extra display clock; the audio path is only observed.
+                window_peak<=peak_now;peak_valid<=1;
             end else begin
                 window_count<=window_count+1'b1;peak<=peak_now;
             end
+            if(peak_valid)scaled_peak<=(peak_wide<<6)+(peak_wide<<5)+(peak_wide<<1)+peak_wide+23'd16384;
             if(scale_valid) level<=scaled_peak[21:15];
         end
     end
