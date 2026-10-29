@@ -1,0 +1,2 @@
+PASS composer: density 16/33 attacks; neutral/up mean pitch 62/71; theme, full phrase LOCK replay, tonic END, pad learn/actions, count-in/two-bar rhythm, rapid restart, backpressure/panic and zero missed steps
+sim/tb_ai_melody_composer.sv:103: $finish called at 511450660000 (1ps)
