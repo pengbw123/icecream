@@ -8,11 +8,13 @@ module tb_gesture_plane_pipeline;
     wire result_valid,tracking,av,busy;
     wire [1:0] cls,stable;wire [3:0] action;wire [15:0] cycles;
     wire [14:0] result_energy;
+    wire [255:0] debug_mask;wire [3:0] reject_reason;
     wire signed [31:0] s0,s1,s2;
     gesture_pipeline #(.NORMALIZE(1),.WEIGHTS("src/generated/gesture_plane/weights.mem"),.BIASES("src/generated/gesture_plane/biases.mem"),.TIMEOUT_CYCLES(200000)) dut(clk,cam,reset_n,enable,controls,
-        fs,fg,fb,pw,addr,data,result_valid,cls,s0,s1,s2,tracking,stable,av,1'b1,action,busy,cycles,1'b0,result_energy,,);
+        fs,fg,fb,pw,addr,data,result_valid,cls,s0,s1,s2,tracking,stable,av,1'b1,action,busy,cycles,1'b0,result_energy,,,debug_mask,reject_reason);
     reg [7:0] images[0:383999];reg [31:0] scores[0:4499];
     reg [14:0] energies[0:1499];
+    reg [6:0] features[0:383999];reg [3:0] reasons[0:1499];
     integer results=0,expected=0,i;
     always @(posedge clk)begin
         if(av)$fatal(1,"controls disabled but action escaped");
@@ -20,6 +22,8 @@ module tb_gesture_plane_pipeline;
             if(s0!==scores[expected*3]||s1!==scores[expected*3+1]||s2!==scores[expected*3+2])
                 $fatal(1,"full camera->ROI->CDC->NN score mismatch image %0d",expected);
             if(result_energy!==energies[expected])$fatal(1,"pipeline energy mismatch");
+            if(reject_reason!==reasons[expected])$fatal(1,"pipeline reason mismatch");
+            for(integer k=0;k<256;k=k+1)if(debug_mask[k] !== (features[expected*256+k]!=0))$fatal(1,"pipeline exact input mask mismatch");
             results=results+1;
         end
     end
@@ -44,6 +48,7 @@ module tb_gesture_plane_pipeline;
         $readmemh("tmp/plane_vectors/packed.mem",images);
         $readmemh("tmp/plane_vectors/scores.mem",scores);
         $readmemh("tmp/plane_vectors/energy.mem",energies);
+        $readmemh("tmp/plane_vectors/features.mem",features);$readmemh("tmp/plane_vectors/reason.mem",reasons);
         repeat(5)@(negedge clk);reset_n=1;repeat(10)@(negedge cam);
         for(i=0;i<12;i=i+1)begin
             expected=i<9?(i/3)*372+(i%3)*124:(i==9?1116:i==10?1244:1499);boundary(0,0);frame(expected);boundary(1,0);

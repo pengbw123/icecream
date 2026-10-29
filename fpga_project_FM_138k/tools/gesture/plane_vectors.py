@@ -2,7 +2,7 @@
 import argparse
 from pathlib import Path
 import numpy as np
-from model import rgb332_features, shape_energy, integer_forward, read_export
+from model import rgb332_features, shape_energy, shape_reason, integer_forward, read_export
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -20,7 +20,7 @@ def main():
     w,b=read_export(ROOT/'src/generated/gesture_plane');scores=integer_forward(features,w,b)
     a.out.mkdir(parents=True,exist_ok=True)
     packed=((samples[:,:,0]>>5)<<5)|((samples[:,:,1]>>5)<<2)|(samples[:,:,2]>>6)
-    for name,data,width in [('packed',packed,2),('raw',raw,2),('features',features,2),('energy',energy,4),('scores',scores,8)]:
+    for name,data,width in [('reason',shape_reason(features),1),('packed',packed,2),('raw',raw,2),('features',features,2),('energy',energy,4),('scores',scores,8)]:
         (a.out/(name+'.mem')).write_text(''.join(f'{int(x)&0xffffffff:0{width}x}\n' for x in data.flat))
     (a.out/'count.txt').write_text(str(len(samples)))
     (a.out/'controller_scores.mem').write_text(''.join(f'{int(x)&0xffffffff:08x}\n' for x in scores[:372].flat))

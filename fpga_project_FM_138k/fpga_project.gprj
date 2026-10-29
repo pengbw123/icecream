@@ -13,6 +13,7 @@
         <File path="src/gesture/gesture_mailbox.v" type="file.verilog" enable="1"/>
         <File path="src/gesture/gesture_normalize.v" type="file.verilog" enable="1"/>
         <File path="src/gesture/gesture_mlp.v" type="file.verilog" enable="1"/>
+        <File path="src/gesture/gesture_vote_events.v" type="file.verilog" enable="1"/>
         <File path="src/gesture/gesture_events.v" type="file.verilog" enable="1"/>
         <File path="src/generated/gesture_plane/weights.mem" type="file.other" enable="1"/>
         <File path="src/generated/gesture_plane/biases.mem" type="file.other" enable="1"/>

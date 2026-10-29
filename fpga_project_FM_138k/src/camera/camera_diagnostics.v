@@ -8,7 +8,7 @@ module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000,GESTURE_
     input wire debug_request,input wire [71:0] debug_packet,output reg debug_ack,
     input wire frame_latch,input wire [9:0] prefetch_x,prefetch_y,x,y,
     output wire area,ink,
-    input wire [31:0] gesture_status,gesture_detail
+    input wire [31:0] gesture_status,gesture_detail,input wire [3:0] gesture_reason
 );
     reg [19:0] pclk_count,pclk_gray;
     reg [2:0] pclk_reset_sync;
@@ -71,7 +71,18 @@ module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000,GESTURE_
     wire [5:0] col=prefetch_x[9:4];
     wire [1:0] row=prefetch_y[6:5]-2'd3; // y352..479 -> rows0..3
     integer shift;
+    reg [63:0] reason_text;
     always @*begin
+        reason_text="STABLE  ";
+        if(!gesture_status[3]||gesture_status[4])reason_text="CAMERA  ";
+        else if(!gesture_status[5])reason_text="NO FRAME";
+        else if(gesture_reason==1)reason_text="EMPTY   ";
+        else if(gesture_reason==2)reason_text="FILL    ";
+        else if(gesture_reason==3)reason_text="BORDER  ";
+        else if(gesture_reason==4)reason_text="NOISE   ";
+        else if(!gesture_detail[15])reason_text="LOW GAP ";
+        else if(!gesture_status[6])reason_text="VOTING  ";
+        else if(gesture_status[9:8]!=gesture_status[11:10])reason_text="HOLD    ";
         case(row)
             0:line_text="ID:0000 E:0 READY:0             ";
             1:line_text="P:00000 H:0000 V:0000           ";
@@ -129,12 +140,15 @@ module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000,GESTURE_
             if(col>=14&&col<=17)character=hex_char({1'b0,gesture_detail[14:0]}>>((17-col)*4));
             if(col>=18&&col<=20)character=" ";
             if(col>=24&&col<=27)character=hex_char(gesture_detail[31:16]>>((27-col)*4));
+            if(col>=32&&col<40)character=reason_text>>((39-col)*8);
+            if(prefetch_y>=160&&prefetch_y<192&&col<8)character=64'h4e4e20494e505554>>((7-col)*8); // NN INPUT
         end
     end
     reg [7:0] font[0:2047] /* synthesis syn_ramstyle="block_ram" */;
     initial $readmemh("src/generated/font8x16.mem",font);
     reg [7:0] font_row;
     always @(posedge pixel_clk)font_row<=font[{character,prefetch_y[4:1]}];
-    assign area=y>=(GESTURE_ENABLED&&gesture_status[0]?448:352)&&y<480&&x<640;
+    assign area=(y>=(GESTURE_ENABLED&&gesture_status[0]?448:352)&&y<480&&x<640)||
+        (GESTURE_ENABLED&&gesture_status[0]&&x<128&&y>=160&&y<192);
     assign ink=area&&font_row[7-x[3:1]];
 endmodule

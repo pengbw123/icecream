@@ -11,7 +11,7 @@ try {
     }
     $gesture=@('src/gesture/gesture_controller.v','src/gesture/gesture_pipeline.v','src/gesture/gesture_roi.v',
         'src/gesture/gesture_mailbox.v','src/gesture/gesture_normalize.v','src/gesture/gesture_mlp.v','src/gesture/gesture_score_gate.v',
-        'src/gesture/gesture_events.v','src/gesture/gesture_video_snapshot.v')
+        'src/gesture/gesture_events.v','src/gesture/gesture_vote_events.v','src/gesture/gesture_video_snapshot.v')
     $cases=@(
         @{Name='tb_ov5640_config';Files=@('src/camera/ov5640_config.v','src/camera/camera_sccb.v','sim/ov5640_sccb_model.sv')},
         @{Name='tb_ov5640_capture';Files=@('src/camera/ov5640_capture.v')},

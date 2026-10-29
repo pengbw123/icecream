@@ -11,6 +11,7 @@ try {
     & $Python tools/gesture/plane_vectors.py
     if ($LASTEXITCODE -ne 0) { throw 'Plane reference generation failed' }
     $cases = @(
+        @{ Name='tb_gesture_vote_events'; Files=@('src/gesture/gesture_vote_events.v') },
         @{ Name='tb_gesture_normalize'; Files=@('src/gesture/gesture_normalize.v') },
         @{ Name='tb_gesture_plane_pipeline'; Files=@('src/gesture/gesture_roi.v','src/gesture/gesture_mailbox.v','src/gesture/gesture_mlp.v','src/gesture/gesture_events.v','src/gesture/gesture_pipeline.v') },
         @{ Name='tb_gesture_plane_controller'; Files=@('src/gesture/gesture_controller.v','src/gesture/gesture_roi.v','src/gesture/gesture_mailbox.v','src/gesture/gesture_mlp.v','src/gesture/gesture_events.v','src/gesture/gesture_pipeline.v','src/ai_melody_composer.v','src/ai_melody_inference.v') },
@@ -25,7 +26,7 @@ try {
         @{ Name='tb_gesture_pipeline'; Files=@('src/gesture/gesture_roi.v','src/gesture/gesture_mailbox.v','src/gesture/gesture_mlp.v','src/gesture/gesture_events.v','src/gesture/gesture_pipeline.v') }
     )
     foreach ($case in $cases) {
-        if ($case.Files -contains 'src/gesture/gesture_pipeline.v') { $case.Files += @('src/gesture/gesture_score_gate.v','src/gesture/gesture_normalize.v') }
+        if ($case.Files -contains 'src/gesture/gesture_pipeline.v') { $case.Files += @('src/gesture/gesture_score_gate.v','src/gesture/gesture_normalize.v','src/gesture/gesture_vote_events.v') }
         $out = 'tmp/' + $case.Name + '.vvp'
         & $iv '-g2012' '-Wall' '-s' $case.Name '-o' $out ('sim/' + $case.Name + '.sv') @($case.Files)
         if ($LASTEXITCODE -ne 0) { throw "Compile failed: $($case.Name)" }

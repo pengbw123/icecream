@@ -73,6 +73,14 @@ def shape_energy(x):
     return np.where((area>=7)&(area<=192)&(border<=24)&(edges<=96),area*127,0)
 
 
+def shape_reason(x):
+    grid = np.asarray(x).reshape(-1,16,16) != 0
+    area = grid.sum(axis=(1,2))
+    border = grid[:,0,:].sum(1)+grid[:,-1,:].sum(1)+grid[:,1:-1,0].sum(1)+grid[:,1:-1,-1].sum(1)
+    edges = (grid[:,1:,:]!=grid[:,:-1,:]).sum(axis=(1,2))+(grid[:,:,1:]!=grid[:,:,:-1]).sum(axis=(1,2))
+    return np.select([area<7,area>192,border>24,edges>96],[1,2,3,4],default=0)
+
+
 def read_export(folder):
     weights = np.array([int(s, 16) for s in (folder/'weights.mem').read_text().split()], dtype=np.int32)
     weights = np.where(weights >= 128, weights-256, weights)

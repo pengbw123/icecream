@@ -10,7 +10,8 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0)(
     output wire frame_latch,output wire [14:0] read_address,
     output reg [7:0] red,green,blue,output reg de,hsync,vsync,
     output wire stream_stale,
-    input wire [31:0] gesture_status,gesture_detail
+    input wire [31:0] gesture_status,gesture_detail,
+    input wire [255:0] gesture_mask,input wire [3:0] gesture_reason
 );
     reg [9:0] hcount,vcount,x1,y1;
     reg [1:0] ready_sync,bad_sync,drop_sync;
@@ -25,6 +26,7 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0)(
     wire diagnostic_area,diagnostic_ink;
     camera_diagnostics #(.GESTURE_ENABLED(GESTURE_ENABLED)) u_diagnostics(.pixel_clk(pixel_clk),.reset_n(reset_n),
         .gesture_status(gesture_status),.gesture_detail(gesture_detail),
+        .gesture_reason(gesture_reason),
         .camera_pclk(camera_pclk),.camera_href(camera_href),.camera_vsync(camera_vsync),
         .config_ready(config_ready),.config_fault(config_fault),.chip_id(chip_id),
         .frame_count(frames),.error_count(errors),.drop_count(drops),
@@ -35,6 +37,8 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0)(
     wire [7:0] g332={pixel_data[4:2],pixel_data[4:2],pixel_data[4:3]};
     wire [7:0] b332={4{pixel_data[1:0]}};
     reg [23:0] color;reg [2:0] bit_sel;
+    wire [9:0] mask_y=y1-10'd32;
+    wire [7:0] mask_index={mask_y[6:3],x1[6:3]};
     always @*begin
         color={r332,g332,b332};bit_sel=x1[6:4];
         if(stream_stale||!ready_sync[1])begin
@@ -54,6 +58,12 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0)(
         if(GESTURE_ENABLED&&gesture_status[0]&&
            (((x1==128||x1==511)&&y1>=48&&y1<=431)||((y1==48||y1==431)&&x1>=128&&x1<=511)))
             color=gesture_status[6]?24'h36a8cc:24'h9caab8;
+        // Exact MLP input: sixteen rows, sixteen columns, 8x nearest-neighbor.
+        // The panel fits entirely to the left of the central camera ROI.
+        if(GESTURE_ENABLED&&gesture_status[0]&&x1<128&&y1>=32&&y1<160)begin
+            color=!gesture_status[5]?24'h303844:gesture_mask[mask_index]?24'hffffff:24'h080808;
+            if(x1==0||x1==127||y1==32||y1==159)color=24'h738395;
+        end
         if(diagnostic_area)color=diagnostic_ink?24'he0f0ff:24'h081018;
         if(x1>=640||y1>=480)color=0;
     end

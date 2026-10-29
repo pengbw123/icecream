@@ -7,7 +7,8 @@ module gesture_normalize(
     input wire input_start,
     output reg feature_write,output reg [7:0] feature_index,
     output reg [6:0] feature_value,output reg start,
-    output reg [14:0] feature_energy
+    output reg [14:0] feature_energy,
+    output reg [3:0] reject_reason
 );
     reg [6:0] samples[0:255] /* synthesis syn_ramstyle="distributed_ram" */;
     reg mask[0:255] /* synthesis syn_ramstyle="distributed_ram" */;
@@ -30,7 +31,7 @@ module gesture_normalize(
         q<=samples[index];
         if(!reset_n||!enable)begin
             state<=IDLE;index<=0;feature_write<=0;feature_index<=0;
-            feature_value<=0;start<=0;feature_energy<=0;
+            feature_value<=0;start<=0;feature_energy<=0;reject_reason<=0;
             tl<=127;tr<=127;bl<=127;br<=127;
             left<=0;right<=0;plane<=0;area<=0;edges<=0;border<=0;
             previous_row<=0;previous<=0;
@@ -64,6 +65,7 @@ module gesture_normalize(
                     else begin index<=index+1'b1;state<=READ;end
                 end
                 CHECK: begin
+                    reject_reason<=area<7?4'd1:area>192?4'd2:border>24?4'd3:edges>96?4'd4:4'd0;
                     // Shape rejection is conservative engineering filtering,
                     // not a trained unknown class. Keep features for raw scores.
                     feature_energy<=(area>=7&&area<=192&&border<=24&&edges<=96)?

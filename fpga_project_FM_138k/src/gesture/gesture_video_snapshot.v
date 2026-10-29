@@ -1,12 +1,12 @@
 // Coherent system->HDMI telemetry. Request at vertical blank; source holds
 // the entire packet until the NEXT request. No independently sampled digits.
-module gesture_video_snapshot(
+module gesture_video_snapshot #(parameter integer WIDTH=64)(
     input wire clk,pixel_clk,reset_n,frame_latch,
-    input wire [63:0] source_data,output reg [63:0] video_data
+    input wire [WIDTH-1:0] source_data,output reg [WIDTH-1:0] video_data
 );
     reg request,ack;
     reg [1:0] req_sync,ack_sync;
-    reg [63:0] held;
+    reg [WIDTH-1:0] held;
     reg [2:0] main_reset,video_reset;
     always @(posedge clk or negedge reset_n)
         if(!reset_n)main_reset<=0;else main_reset<={main_reset[1:0],1'b1};
@@ -26,8 +26,10 @@ module gesture_video_snapshot(
         else if(!video_reset[2])begin request<=0;ack_sync<=0;received<=0;video_data<=0;end
         else begin
             ack_sync<={ack_sync[0],ack};
-            if(frame_latch&&request==ack_sync[1])request<=!request;
-            if(ack_sync[1]!=received)begin video_data<=held;received<=ack_sync[1];end
+            if(frame_latch&&request==ack_sync[1])begin
+                if(ack_sync[1]!=received)begin video_data<=held;received<=ack_sync[1];end
+                request<=!request;
+            end
         end
     end
 endmodule

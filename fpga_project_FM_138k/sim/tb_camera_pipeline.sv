@@ -84,7 +84,7 @@ module tb_camera_pipeline;
         if(oe&&(^({dut.de,dut.hsync,dut.vsync,dut.red,dut.green,dut.blue})===1'bx))$fatal(1,"Unknown HDMI output");
         if(pwdn!==1'b0)$fatal(1,"PWDN must be explicitly driven low");
         if(gesture_action_valid)$fatal(1,"Recognition-only camera pipeline leaked control");
-        if(ready&&!stale&&dut.de&&py>=8&&py<352&&
+        if(ready&&!stale&&dut.de&&py>=8&&py<352&&!(px<128&&py>=32&&py<192)&&
            !(((px==128||px==511)&&py>=48&&py<=431)||((py==48||py==431)&&px>=128&&px<=511)))begin
             sx=80+(px/4)*4;sy=(py/4)*4;sample={display_tag,sx[7:5],sy[6:5]};
             expected={{sample[7:5],sample[7:5],sample[7:6]},

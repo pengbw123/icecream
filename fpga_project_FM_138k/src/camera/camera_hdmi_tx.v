@@ -49,22 +49,25 @@ module camera_hdmi_tx #(parameter integer GESTURE_ENABLED=0)(
         .read_address(read_address),.read_data(read_data),.valid(buffer_valid),
         .present_pulse(present_pulse),.drop_toggle(drop_toggle));
     wire [7:0] red,green,blue;wire de,hsync,vsync;
-    wire [63:0] gesture_video_data;
+    wire [323:0] gesture_video_data;
     generate if(GESTURE_ENABLED)begin:g_gesture
+        wire [255:0] mask;wire [3:0] reason;
         gesture_controller u_gesture(.clk(clk),.camera_clk(camera_pclk),.reset_n(sys_reset_sync[2]),
             .capture_reset_n(capture_common_n),.camera_ready(config_ready),.camera_fault(config_fault),
             .config_data(gesture_config),.frame_start(frame_start),.frame_good(frame_good),.frame_bad(frame_bad),
             .pixel_write(pixel_write),.pixel_address(pixel_address),.pixel_data(pixel_data),
             .allowed(gesture_allowed),.cancel(gesture_cancel),.action_ready(gesture_action_ready),
-            .action_valid(gesture_action_valid),.action(gesture_action),.status(gesture_status),.detail(gesture_detail));
-        gesture_video_snapshot snapshot(.clk(clk),.pixel_clk(pixel_clk),.reset_n(common_reset_n),
-            .frame_latch(frame_latch),.source_data({gesture_detail,gesture_status}),.video_data(gesture_video_data));
+            .action_valid(gesture_action_valid),.action(gesture_action),.status(gesture_status),.detail(gesture_detail),
+            .debug_mask(mask),.debug_reason(reason));
+        gesture_video_snapshot #(.WIDTH(324)) snapshot(.clk(clk),.pixel_clk(pixel_clk),.reset_n(common_reset_n),
+            .frame_latch(frame_latch),.source_data({reason,mask,gesture_detail,gesture_status}),.video_data(gesture_video_data));
     end else begin
         assign gesture_action_valid=0;assign gesture_action=0;assign gesture_status=0;assign gesture_detail=0;
         assign gesture_video_data=0;
     end endgenerate
     camera_hdmi_video #(.GESTURE_ENABLED(GESTURE_ENABLED)) u_video(.pixel_clk(pixel_clk),.reset_n(video_reset_sync[2]),
         .gesture_status(gesture_video_data[31:0]),.gesture_detail(gesture_video_data[63:32]),
+        .gesture_mask(gesture_video_data[319:64]),.gesture_reason(gesture_video_data[323:320]),
         .config_ready(config_ready),.config_fault(config_fault),.buffer_valid(buffer_valid),
         .present_pulse(present_pulse),.pixel_data(read_data),.bad_toggle(bad_toggle),.drop_toggle(drop_toggle),
         .camera_pclk(camera_pclk),.camera_href(camera_href),.camera_vsync(camera_vsync),.chip_id(chip_id),

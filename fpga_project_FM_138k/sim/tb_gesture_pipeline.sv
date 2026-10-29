@@ -10,7 +10,7 @@ module tb_gesture_pipeline;
     wire [14:0] result_energy;
     wire signed [31:0] s0,s1,s2;
     gesture_pipeline #(.TIMEOUT_CYCLES(200000)) dut(clk,cam,reset_n,enable,controls,
-        fs,fg,fb,pw,addr,data,result_valid,cls,s0,s1,s2,tracking,stable,av,1'b1,action,busy,cycles,1'b0,result_energy,,);
+        fs,fg,fb,pw,addr,data,result_valid,cls,s0,s1,s2,tracking,stable,av,1'b1,action,busy,cycles,1'b0,result_energy,,,,);
     reg [7:0] images[0:95231];reg [31:0] scores[0:1115];
     integer results=0,expected=0,i;
     always @(posedge clk)begin

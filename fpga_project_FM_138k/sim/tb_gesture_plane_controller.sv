@@ -11,7 +11,7 @@ module tb_gesture_plane_controller;
     gesture_controller #(.FRESH_CYCLES(200000),.NORMALIZE(1),
         .WEIGHTS("src/generated/gesture_plane/weights.mem"),.BIASES("src/generated/gesture_plane/biases.mem")) dut(clk,cam,reset_n,capture_reset_n,
         camera_ready,camera_fault,config_data,fs,fg,fb,pw,addr,data,
-        allowed,cancel,action_ready,action_valid,action,gesture_status,gesture_detail);
+        allowed,cancel,action_ready,action_valid,action,gesture_status,gesture_detail,,);
     reg cfg_write=0;reg [9:0] cfg_address=0;reg [15:0] cfg_value=0;
     wire [31:0] out_data,status,detail;wire out_valid;
     ai_melody_composer #(.CLOCKS_PER_US(1),.GESTURE_ENABLED(1)) composer(
@@ -66,19 +66,19 @@ module tb_gesture_plane_controller;
             if(ids[c]<0)$fatal(1,"missing correct strong held-out sample");
         end
         repeat(5)@(negedge clk);reset_n=1;config_data=1;repeat(10)@(negedge cam);
-        repeat(3)frame(ids[1]);
-        if(!gesture_status[6]||gesture_status[31:16]!=3||actions||ons)$fatal(1,"display-only recognition or telemetry");
+        repeat(4)frame(ids[1]);
+        if(!gesture_status[6]||gesture_status[31:16]!=4||actions||ons)$fatal(1,"display-only recognition or telemetry");
         cfg('h3c0,1);config_data=3;
         repeat(4)frame(ids[1]);if(composer.running||actions)$fatal(1,"arming replayed a held palm");
-        repeat(3)frame(-1);repeat(3)frame(ids[1]);
+        repeat(3)frame(-1);repeat(4)frame(ids[1]);
         if(!composer.running||actions!=1)$fatal(1,"new palm did not start");
         wait(ons>0);cfg('h3c5,3);repeat(4)frame(ids[1]);
         if(composer.running||actions!=1||held!=-1)$fatal(1,"held palm undid manual STOP");
-        repeat(3)frame(ids[0]);repeat(3)frame(ids[1]);
+        repeat(4)frame(ids[0]);repeat(4)frame(ids[1]);
         if(!composer.running)$fatal(1,"gesture change did not rearm");
-        saved_actions=actions;repeat(3)frame(ids[2]);
+        saved_actions=actions;repeat(4)frame(ids[2]);
         if(actions!=saved_actions+1||composer.variation_steps==0)$fatal(1,"V variation");
-        repeat(3)frame(ids[0]);repeat(60)@(negedge clk);
+        repeat(4)frame(ids[0]);repeat(60)@(negedge clk);
         if(composer.running||held!=-1)$fatal(1,"fist stop left notes");
         cam_run=0;repeat(200010)@(negedge clk);
         if(gesture_status[5]||gesture_status[6]||gesture_detail[15]||action_valid)$fatal(1,"stopped camera retained fresh result/action");
