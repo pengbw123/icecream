@@ -1,0 +1,2 @@
+PASS gesture_vote_events: 3/5 acquisition, 4/5 switch, jitter/reject tolerance, ambiguity expiry, no held repeats, manual priority, backpressure, timeout
+sim/tb_gesture_vote_events.sv:48: $finish called at 9220000 (1ps)

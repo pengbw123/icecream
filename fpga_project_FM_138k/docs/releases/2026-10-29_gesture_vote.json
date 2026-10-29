@@ -1,0 +1,104 @@
+{
+  "date": "2026-10-29",
+  "timezone": "Asia/Shanghai",
+  "production_commit": "5880388f97beec86e9508172f314416261501ca1",
+  "bitstream": "impl/pnr/fm_138k_rgb_hdmi.fs",
+  "bitstream_time": "2026-10-29T18:43:21.269255+08:00",
+  "bytes": 42340871,
+  "sha256": "87253458FEF7D2EB0FCAA32EABD8F4F4AFAC567E9C7351C680F91C4E924E6844",
+  "resources": {
+    "logic": 71491,
+    "logic_total": 138240,
+    "ff": 42217,
+    "ff_total": 139095,
+    "bsram": 331,
+    "bsram_total": 340,
+    "dsp": 85,
+    "dsp_total": 298
+  },
+  "resource_delta": {
+    "logic": 1113,
+    "ff": 1312,
+    "bsram": 0,
+    "dsp": 0
+  },
+  "fmax_mhz": {
+    "clk_50m": 50.097,
+    "camera_pclk_85m": 105.946,
+    "pixel_33m": 34.012,
+    "hdmi_pixel_25m": 85.862,
+    "hdmi_serial_125m": 280.539
+  },
+  "all_setup_hold_tns_zero": true,
+  "clocks_or_constraints_relaxed": false,
+  "modules_removed": false,
+  "firmware_changed": false,
+  "weights_changed": false,
+  "preprocessor_changed": false,
+  "preprocessor": "bilinear four-corner darkness plane; relative threshold12",
+  "shape_filter": {
+    "min_area": 7,
+    "max_area": 192,
+    "max_border": 24,
+    "max_edges": 96
+  },
+  "temporal_filter": {
+    "window": 5,
+    "acquire": 3,
+    "switch": 4,
+    "release_rejects": 3,
+    "expire_unmatched": 5,
+    "timeout_seconds": 1
+  },
+  "debug_display": {
+    "mask_width": 16,
+    "mask_height": 16,
+    "scale": 8,
+    "position": [
+      0,
+      32
+    ],
+    "packet_bits": 324,
+    "blank_only_updates": true
+  },
+  "camera_configuration_changed": false,
+  "recognition_default": false,
+  "control_default": false,
+  "hardware_previous_tft_profile_capture_verified": true,
+  "hardware_current_gesture_verified": false,
+  "automatically_programmed": false,
+  "normalizer_oracle_frames": 1500,
+  "normalizer_features_checked": 384000,
+  "pipeline_results_checked": 13,
+  "synthetic_nonhand_probes_rejected": 49,
+  "real_camera_accuracy": null,
+  "gesture_regression_cases": 14,
+  "camera_regression_cases": 6,
+  "hdmi_camera_pixels_checked": 2087228,
+  "mask_display_interior_pixels_checked": 15876,
+  "weights_and_sensor_config_preserved": true,
+  "limitations": [
+    "Plain light background with clear corners required",
+    "Shape filter is not a trained unknown class",
+    "CGI and synthetic probes are not real-person validation"
+  ],
+  "isolated_snapshot": "tmp\\camera_build_5880388",
+  "rollback_bitstream": "impl\\pnr\\backup\\fm_138k_rgb_hdmi_2026-10-29_pre_gesture_vote.fs",
+  "rollback_sha256": "AC246BFF0E7295DE35A9A49DDE4E392C4573A05892F9E926F66D82AAD6A09855",
+  "archived_logs": {
+    "assets\\gesture_vote\\build_gesture_vote_5880388.log": "4E9FE5043D4C013EF4FFED07A3AC1F0B55568B10DC8C25666CA9BA04860FE474",
+    "assets\\gesture_vote\\gesture_vote_checks_release_final.log": "586946CFFC5AAB4833931223F2B9F7996CDB7ADC0CEB82D83E99A32BF96B468B",
+    "assets\\gesture_vote\\tft_tb_camera_diagnostics.log": "A768D57D26517F91B132A7E23CF00ECC9CF78868FD438E44EF712C44FE34C628",
+    "assets\\gesture_vote\\tft_tb_camera_pipeline.log": "94DA23DF5C58814744D569B66ADF8B0C6035F501ABEE5FC1CFB105FFDE11F997",
+    "assets\\gesture_vote\\tft_tb_camera_recovery.log": "2A8DAE8EC0B3B8B54AAE244F531A719603AD2E4D94EC1235AAE2F8927AE1D064",
+    "assets\\gesture_vote\\tft_tb_ov5640_capture.log": "717E5141BECC89F8C13D4B768CA7BDE9B78F9D4DB13C8532F32BC70052F39A02",
+    "assets\\gesture_vote\\tft_tb_ov5640_capture_tft.log": "09AA0745A17B0CC90C1509AF0F0786A6DA9D0359187BCD69578068663BF196E2",
+    "assets\\gesture_vote\\tft_tb_ov5640_config.log": "4EEEBC422033F4391DC1F85DE2EE26FE8421F76EBC8A6D7B8BEFA32B69ED2D7C",
+    "assets\\gesture_vote\\timing.log": "70391BF433E598632DF2F6802198F172080247B02A6CB6D88BD26B17A3778215",
+    "assets\\gesture_vote\\vote_events_final.log": "FA2495C0E021B74DCBFF26CEE3C6A8CC8206C70BB1956C5D381F4D04DAF00F92",
+    "assets\\gesture_vote\\vote_normalize_final.log": "499580F00A71417F369797DF88E2DC5A6976D6F47063DE620A875B66A891DB40",
+    "assets\\gesture_vote\\vote_plane_pipeline_final.log": "CDC3783E0CD290CD462A0CBFFFA27926FEF65A11EE83760B3BE5A628301250B5",
+    "assets\\gesture_vote\\vote_snapshot_final.log": "D914EDA6F13E5E0AF77FDFDED49718E7F2B54C88CE65DF204EC62AC33D10749F",
+    "assets\\gesture_vote\\vote_video_final.log": "299929A2F84B1C16ED83D4CF6AE0EF25C8482364BA410F95A06C0A89DCD5EC1A"
+  }
+}

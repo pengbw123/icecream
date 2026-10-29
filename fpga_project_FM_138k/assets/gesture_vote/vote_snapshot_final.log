@@ -1,0 +1,2 @@
+PASS gesture_snapshot: 324-bit coherent CDC, delayed ack in active frame held until blank, stopped clock, pending reset/recovery
+sim/tb_gesture_snapshot.sv:30: $finish called at 3016000 (1ps)

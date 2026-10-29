@@ -1,0 +1,2 @@
+PASS gesture_normalize: 1500 frames, 384000 features, plane/shape energy bit exact, reset
+sim/tb_gesture_normalize.sv:35: $finish called at 46230520000 (1ps)
