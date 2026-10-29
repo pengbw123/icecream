@@ -11,6 +11,7 @@ try {
     & $Python tools/gesture/plane_vectors.py
     if ($LASTEXITCODE -ne 0) { throw 'Plane reference generation failed' }
     $cases = @(
+        @{ Name='tb_gesture_snapshot'; Files=@('src/gesture/gesture_video_snapshot.v') },
         @{ Name='tb_gesture_vote_events'; Files=@('src/gesture/gesture_vote_events.v') },
         @{ Name='tb_gesture_normalize'; Files=@('src/gesture/gesture_normalize.v') },
         @{ Name='tb_gesture_plane_pipeline'; Files=@('src/gesture/gesture_roi.v','src/gesture/gesture_mailbox.v','src/gesture/gesture_mlp.v','src/gesture/gesture_events.v','src/gesture/gesture_pipeline.v') },

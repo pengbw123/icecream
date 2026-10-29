@@ -33,6 +33,8 @@ module tb_gesture_vote_events;
         // Manual cancel flushes vote history and preserves held-palm latch.
         clear;repeat(3)sample(1,1);check(1,1,1);
         cancel=1;@(negedge clk);cancel=0;repeat(7)sample(1,1);check(1,1,1);
+        @(negedge clk);rv=1;cls=0;accepted=1;cancel=1;
+        @(negedge clk);rv=0;cancel=0;repeat(7)sample(1,1);check(1,1,1);
         clear;sample(1,1);sample(1,1);cancel=1;@(negedge clk);cancel=0;
         repeat(5)sample(1,1);check(1,1,0);
         // Backpressure: command stays stable until accepted.

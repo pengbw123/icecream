@@ -15,8 +15,21 @@ def main():
     frames.append(rng.integers(0,256,(128,256,3)))
     frames.append(np.broadcast_to(np.arange(256)[:,None,None],(256,256,3)))
     samples=np.concatenate(frames).astype(np.uint8)
+    # Explicit shape-filter probes; keep original public samples unchanged.
+    checker=np.full((16,16,3),255,dtype=np.uint8)
+    for y in range(2,14):
+        for x in range(2,14):
+            if (x+y)%2:checker[y,x]=0
+    samples[1116]=checker.reshape(256,3)
+    border=np.full((16,16,3),255,dtype=np.uint8)
+    border[0,2:14]=0;border[15,2:14]=0;border[2:14,0]=0
+    samples[1117]=border.reshape(256,3)
+    fill=np.zeros((16,16,3),dtype=np.uint8)
+    for yy,xx in [(slice(0,2),slice(0,2)),(slice(0,2),slice(14,16)),(slice(14,16),slice(0,2)),(slice(14,16),slice(14,16))]:fill[yy,xx]=255
+    samples[1118]=fill.reshape(256,3)
     raw=rgb332_features(samples,'gray');features=rgb332_features(samples,'plane')
     energy=shape_energy(features)
+    assert shape_reason(features)[1116:1119].tolist()==[4,3,2]
     w,b=read_export(ROOT/'src/generated/gesture_plane');scores=integer_forward(features,w,b)
     a.out.mkdir(parents=True,exist_ok=True)
     packed=((samples[:,:,0]>>5)<<5)|((samples[:,:,1]>>5)<<2)|(samples[:,:,2]>>6)

@@ -3,9 +3,11 @@ module tb_gesture_video;
     reg clk=0,pixel_clk=0;always #10 clk=~clk;always #20 pixel_clk=~pixel_clk;
     reg reset_n=0;
     function [255:0] pattern;
-        for(integer k=0;k<256;k=k+1)pattern[k]=k[0]^k[4];
+        for(integer k=0;k<256;k=k+1)pattern[k]=((k*13+(k/16)*7)%17)<6;
     endfunction
     reg [323:0] source_data;
+    reg [255:0] reference_mask;
+    initial reference_mask=pattern();
     initial source_data={4'd0,pattern(),64'h12348001_0000046d};
     wire [323:0] video_data;
     wire frame_latch,stale;wire [7:0] r,g,b;wire de,hs,vs;
@@ -22,7 +24,7 @@ module tb_gesture_video;
     always @(posedge pixel_clk)begin x<=video.x1;y<=video.y1;end
     always @(negedge pixel_clk)if(check&&de)begin
         if(x>0&&x<127&&y>32&&y<159)begin
-            if({r,g,b}!==(((x/8)^((y-32)/8))&1?24'hffffff:24'h080808))
+            if({r,g,b}!==(reference_mask[((y-32)/8)*16+x/8]?24'hffffff:24'h080808))
                 $fatal(1,"mask ordering/tearing at %0d,%0d",x,y);
         end
         if(((x==128||x==511)&&y>=48&&y<=431)||((y==48||y==431)&&x>=128&&x<=511))begin
