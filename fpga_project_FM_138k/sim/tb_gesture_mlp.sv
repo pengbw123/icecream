@@ -1,19 +1,20 @@
 `timescale 1ns/1ps
 module tb_gesture_mlp;
+    parameter MODEL_DIR="src/generated/gesture";
     reg clk=0;always #10 clk=~clk;
     reg reset_n=0,wr=0,start=0;
     reg [7:0] index=0;reg [6:0] value=0;
     wire busy,done;wire [1:0] class_id;wire [15:0] cycles;
     wire signed [31:0] s0,s1,s2;
-    gesture_mlp dut(clk,reset_n,wr,index,value,start,busy,done,class_id,s0,s1,s2,cycles);
+    gesture_mlp #(.WEIGHTS({MODEL_DIR,"/weights.mem"}),.BIASES({MODEL_DIR,"/biases.mem"})) dut(clk,reset_n,wr,index,value,start,busy,done,class_id,s0,s1,s2,cycles);
     reg [7:0] features[0:95231];
     reg [31:0] scores[0:1115];
     reg [7:0] labels[0:371];
     integer i,j,correct=0,expected_class;
     initial begin
-        $readmemh("src/generated/gesture/test_features.mem",features);
-        $readmemh("src/generated/gesture/test_scores.mem",scores);
-        $readmemh("src/generated/gesture/test_labels.mem",labels);
+        $readmemh({MODEL_DIR,"/test_features.mem"},features);
+        $readmemh({MODEL_DIR,"/test_scores.mem"},scores);
+        $readmemh({MODEL_DIR,"/test_labels.mem"},labels);
         repeat(3)@(negedge clk);reset_n=1;
         for(i=0;i<372;i=i+1)begin
             for(j=0;j<256;j=j+1)begin

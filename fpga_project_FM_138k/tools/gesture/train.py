@@ -41,9 +41,14 @@ def load(name, mode):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=180)
-    parser.add_argument('--features', choices=['gray','silhouette'], default='silhouette')
+    parser.add_argument('--features', choices=['gray','silhouette','adaptive','plane'], default='silhouette')
     parser.add_argument('--out', type=Path, default=OUT)
+    parser.add_argument('--geometry-augment', action='store_true')
     args = parser.parse_args()
+    if args.features in ('adaptive','plane') and args.out.resolve() == OUT.resolve():
+        parser.error('Adaptive is an offline candidate: specify a separate --out directory')
+    if args.geometry_augment and args.out.resolve() == OUT.resolve():
+        parser.error('Augmentation experiment requires a separate --out directory')
     out = args.out
     rng = np.random.default_rng(720138)
     x, y, names = load('rps.zip', args.features)
@@ -69,6 +74,18 @@ def main():
         ids = rng.permutation(ti)
         for start in range(0, len(ids), 96):
             ix = ids[start:start+96]; xx = xf[ix]
+            if args.geometry_augment:
+                # Inverse affine sampling, white fill; training split only.
+                gy, gx = np.mgrid[:16,:16].astype(np.float32)
+                theta = rng.uniform(-.26,.26,(len(ix),1,1))
+                scale = rng.uniform(.7,1.12,(len(ix),1,1))
+                tx, ty = rng.uniform(-1.5,1.5,(2,len(ix),1,1))
+                ux, uy = gx-7.5-tx, gy-7.5-ty
+                sx = np.rint((np.cos(theta)*ux+np.sin(theta)*uy)/scale+7.5).astype(int)
+                sy = np.rint((-np.sin(theta)*ux+np.cos(theta)*uy)/scale+7.5).astype(int)
+                valid = (sx>=0)&(sx<16)&(sy>=0)&(sy<16)
+                xx = np.where(valid, xx.reshape(-1,16,16)[np.arange(len(ix))[:,None,None],
+                    sy.clip(0,15),sx.clip(0,15)],0).reshape(-1,INPUTS)
             # Small shifts on the 16x16 grid, white fill, training only.
             if epoch % 2:
                 dx, dy = rng.integers(-1, 2, 2)
@@ -122,6 +139,7 @@ def main():
         train=len(ti), validation=len(vi), validation_sequences=selected, test=len(yt), selected_epoch=epoch,
         validation_int8=best, test_int8=float((pred == yt).mean()), confusion=confusion.tolist(),
         hardware_verified=False, real_camera_accuracy=None,
+        geometry_augmentation=args.geometry_augment,
         limitations=['CGI domain; not validated on OV5640', 'Fixed square ROI; hand must fill ROI',
             'No trained no-hand class; margin rejection cannot guarantee unknown rejection',
             'Validation holds out filename sequences; independent real-subject accuracy unknown'],

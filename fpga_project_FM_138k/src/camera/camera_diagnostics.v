@@ -124,8 +124,10 @@ module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000,GESTURE_
             // Every status string is 32 columns. Recompute AFTER legacy
             // hexadecimal substitutions so camera fields cannot overwrite it.
             character=col<32 ? (line_text>>((31-col)*8)):7'd32;
-            if(col==19)character=gesture_status[13]?"N":"F";
-            if(col==20)character=gesture_status[13]?" ":"F";
+            if(col==12)character="E";
+            if(col==13)character=":";
+            if(col>=14&&col<=17)character=hex_char({1'b0,gesture_detail[14:0]}>>((17-col)*4));
+            if(col>=18&&col<=20)character=" ";
             if(col>=24&&col<=27)character=hex_char(gesture_detail[31:16]>>((27-col)*4));
         end
     end

@@ -8,7 +8,8 @@ module tb_gesture_controller;
     reg fs=0,fg=0,fb=0,pw=0;reg [14:0] addr=0;reg [7:0] data=255;
     wire action_valid,allowed,cancel,action_ready;wire [3:0] action;
     wire [31:0] gesture_status,gesture_detail;
-    gesture_controller #(.FRESH_CYCLES(200000)) dut(clk,cam,reset_n,capture_reset_n,
+    gesture_controller #(.FRESH_CYCLES(200000),.NORMALIZE(0),
+        .WEIGHTS("src/generated/gesture/weights.mem"),.BIASES("src/generated/gesture/biases.mem")) dut(clk,cam,reset_n,capture_reset_n,
         camera_ready,camera_fault,config_data,fs,fg,fb,pw,addr,data,
         allowed,cancel,action_ready,action_valid,action,gesture_status,gesture_detail);
     reg cfg_write=0;reg [9:0] cfg_address=0;reg [15:0] cfg_value=0;

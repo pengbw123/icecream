@@ -32,8 +32,18 @@ def main():
     scores = integer_forward(x, w, b)
     ordered = np.sort(scores)
     margin = int(ordered[-1]-ordered[-2]); energy = int(x.sum())
+    reasons = []
+    if energy < 768:
+        reasons.append('too_little_foreground')
+    if energy > 30000:
+        reasons.append('too_much_foreground_check_background_brightness')
+    if margin < 2048:
+        reasons.append('class_margin_too_small')
     print(json.dumps(dict(raw_class=report['labels'][int(scores.argmax())],
         scores=[int(s) for s in scores], margin=margin, energy=energy,
+        rejection_reasons=reasons,
+        foreground_cells=int(np.count_nonzero(x)),
+        feature_rows=[''.join('#' if v else '.' for v in row) for row in x.reshape(16,16)],
         passes_initial_gate=bool(margin >= 2048 and 768 <= energy <= 30000),
         warning='Prototype only: not a calibrated probability, no trained unknown class, no real-camera validation'), indent=2))
 

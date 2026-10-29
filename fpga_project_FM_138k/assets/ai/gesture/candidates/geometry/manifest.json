@@ -1,0 +1,16 @@
+{
+  "production_enabled": false,
+  "preprocessing_rtl_implemented": false,
+  "real_camera_verified": false,
+  "training_command": "python tools/gesture/train.py --features adaptive --geometry-augment --epochs 180 --out tmp/gesture_geometry",
+  "hashes": {
+    "biases.mem": "38e2a06c5f0fb8486d453073db4728f8347be8f6e4f2dde20b80195ae389770d",
+    "rtl_check.log": "7282ad729d1f54a9b87d4fcaab539f466b3677a34991de1e778603965d7bb523",
+    "test_features.mem": "0bbf7e4c4366dcd328af25418efe8f32263d935fcd156e1afd5dc24580c2fe88",
+    "test_labels.mem": "db0af8675408a624dfe5376da602bbf4bfeebeed09a2b68661a7720d7b324ade",
+    "test_scores.mem": "d3f755ca014090019f252f5644fc1ca5632e4c7233c69a14786a1136bf382759",
+    "train.log": "964dbaa0554760cf58c6332148931ab2298301a70235fd4ded56cc9ba66b1812",
+    "training_report.json": "d9715df7bf8c99a83bcbedb6875b330ee1159c7def9eea0da47d4d591d9e9d16",
+    "weights.mem": "e4a37d4cd162da21c1ffc7c6f8a44daa99b2491982edee956390e5f06514e714"
+  }
+}

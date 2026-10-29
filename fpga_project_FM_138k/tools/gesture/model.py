@@ -20,6 +20,23 @@ def rgb332_features(rgb, mode='gray'):
     value = (127 - ((r + 2*g + b) >> 2)).astype(np.uint8)
     if mode == 'silhouette':
         return np.where(value >= 12, 127, 0).astype(np.uint8)
+    if mode == 'adaptive':
+        # Offline candidate: brightest sample estimates the plain background.
+        # Cast before adding to avoid uint8 wrap on very dark frames.
+        axes = (-2, -1) if value.shape[-2:] == (16, 16) else -1
+        threshold = value.astype(np.int32).min(axis=axes, keepdims=True) + 12
+        return np.where(value >= threshold, 127, 0).astype(np.uint8)
+    if mode == 'plane':
+        grid = value.astype(np.int32).reshape(-1,16,16)
+        corners = [grid[:,ys,xs].min(axis=(1,2)) for ys,xs in
+                   [(slice(0,2),slice(0,2)),(slice(0,2),slice(14,16)),
+                    (slice(14,16),slice(0,2)),(slice(14,16),slice(14,16))]]
+        x = np.arange(16)[None,None,:]; y = np.arange(16)[None,:,None]
+        tl,tr,bl,br = [c[:,None,None] for c in corners]
+        left = (tl*(16-y)+bl*y)>>4
+        right = (tr*(16-y)+br*y)>>4
+        background = (left*(16-x)+right*x)>>4
+        return np.where(grid>=background+12,127,0).astype(np.uint8).reshape(value.shape)
     if mode != 'gray':
         raise ValueError(mode)
     return value
@@ -44,6 +61,16 @@ def integer_forward(x, weights, biases):
     x = np.asarray(x, dtype=np.int64)
     h = np.clip((x @ w1.T + biases[:HIDDEN]) >> SHIFT, 0, 127)
     return h @ w2.T + biases[HIDDEN:]
+
+
+def shape_energy(x):
+    """Deterministic precheck, NOT a neural unknown detector."""
+    grid = np.asarray(x).reshape(-1,16,16) != 0
+    area = grid.sum(axis=(1,2))
+    border = (grid[:,0,:].sum(1)+grid[:,-1,:].sum(1)+
+              grid[:,1:-1,0].sum(1)+grid[:,1:-1,-1].sum(1))
+    edges = (grid[:,1:,:] != grid[:,:-1,:]).sum(axis=(1,2)) + (grid[:,:,1:] != grid[:,:,:-1]).sum(axis=(1,2))
+    return np.where((area>=7)&(area<=192)&(border<=24)&(edges<=96),area*127,0)
 
 
 def read_export(folder):

@@ -1,0 +1,236 @@
+{
+  "note": "Synthetic transforms of already-viewed public test images. No real-camera accuracy claim; no threshold tuning.",
+  "models": {
+    "deployed_fixed": {
+      "original": {
+        "samples": 372,
+        "accepted": 366,
+        "area_rejected": 0,
+        "raw_correct": 310,
+        "correct_accepted": 306
+      },
+      "exposure_87pct": {
+        "samples": 372,
+        "accepted": 0,
+        "area_rejected": 372,
+        "raw_correct": 124,
+        "correct_accepted": 0
+      },
+      "exposure_70pct": {
+        "samples": 372,
+        "accepted": 0,
+        "area_rejected": 372,
+        "raw_correct": 124,
+        "correct_accepted": 0
+      },
+      "exposure_50pct": {
+        "samples": 372,
+        "accepted": 0,
+        "area_rejected": 372,
+        "raw_correct": 124,
+        "correct_accepted": 0
+      },
+      "contrast_60pct": {
+        "samples": 372,
+        "accepted": 368,
+        "area_rejected": 0,
+        "raw_correct": 308,
+        "correct_accepted": 304
+      },
+      "smaller_75pct": {
+        "samples": 372,
+        "accepted": 350,
+        "area_rejected": 0,
+        "raw_correct": 167,
+        "correct_accepted": 158
+      },
+      "shift_right_10pct": {
+        "samples": 372,
+        "accepted": 365,
+        "area_rejected": 0,
+        "raw_correct": 273,
+        "correct_accepted": 271
+      },
+      "rotate_15deg": {
+        "samples": 372,
+        "accepted": 367,
+        "area_rejected": 0,
+        "raw_correct": 270,
+        "correct_accepted": 270
+      },
+      "uneven_light": {
+        "samples": 372,
+        "accepted": 372,
+        "area_rejected": 0,
+        "raw_correct": 124,
+        "correct_accepted": 124
+      },
+      "noise_std8": {
+        "samples": 372,
+        "accepted": 364,
+        "area_rejected": 0,
+        "raw_correct": 306,
+        "correct_accepted": 302
+      },
+      "non_hand_probes": {
+        "samples": 49,
+        "accepted": 1,
+        "area_rejected": 48
+      }
+    },
+    "old_weights_adaptive": {
+      "original": {
+        "samples": 372,
+        "accepted": 366,
+        "area_rejected": 0,
+        "raw_correct": 310,
+        "correct_accepted": 306
+      },
+      "exposure_87pct": {
+        "samples": 372,
+        "accepted": 366,
+        "area_rejected": 0,
+        "raw_correct": 309,
+        "correct_accepted": 305
+      },
+      "exposure_70pct": {
+        "samples": 372,
+        "accepted": 366,
+        "area_rejected": 0,
+        "raw_correct": 308,
+        "correct_accepted": 305
+      },
+      "exposure_50pct": {
+        "samples": 372,
+        "accepted": 362,
+        "area_rejected": 0,
+        "raw_correct": 271,
+        "correct_accepted": 266
+      },
+      "contrast_60pct": {
+        "samples": 372,
+        "accepted": 368,
+        "area_rejected": 0,
+        "raw_correct": 308,
+        "correct_accepted": 304
+      },
+      "smaller_75pct": {
+        "samples": 372,
+        "accepted": 350,
+        "area_rejected": 0,
+        "raw_correct": 167,
+        "correct_accepted": 158
+      },
+      "shift_right_10pct": {
+        "samples": 372,
+        "accepted": 365,
+        "area_rejected": 0,
+        "raw_correct": 273,
+        "correct_accepted": 271
+      },
+      "rotate_15deg": {
+        "samples": 372,
+        "accepted": 367,
+        "area_rejected": 0,
+        "raw_correct": 270,
+        "correct_accepted": 270
+      },
+      "uneven_light": {
+        "samples": 372,
+        "accepted": 372,
+        "area_rejected": 0,
+        "raw_correct": 124,
+        "correct_accepted": 124
+      },
+      "noise_std8": {
+        "samples": 372,
+        "accepted": 364,
+        "area_rejected": 0,
+        "raw_correct": 306,
+        "correct_accepted": 302
+      },
+      "non_hand_probes": {
+        "samples": 49,
+        "accepted": 1,
+        "area_rejected": 48
+      }
+    },
+    "retrained_adaptive": {
+      "original": {
+        "samples": 372,
+        "accepted": 345,
+        "area_rejected": 0,
+        "raw_correct": 329,
+        "correct_accepted": 313
+      },
+      "exposure_87pct": {
+        "samples": 372,
+        "accepted": 345,
+        "area_rejected": 0,
+        "raw_correct": 326,
+        "correct_accepted": 315
+      },
+      "exposure_70pct": {
+        "samples": 372,
+        "accepted": 349,
+        "area_rejected": 0,
+        "raw_correct": 330,
+        "correct_accepted": 320
+      },
+      "exposure_50pct": {
+        "samples": 372,
+        "accepted": 335,
+        "area_rejected": 0,
+        "raw_correct": 272,
+        "correct_accepted": 259
+      },
+      "contrast_60pct": {
+        "samples": 372,
+        "accepted": 359,
+        "area_rejected": 0,
+        "raw_correct": 334,
+        "correct_accepted": 323
+      },
+      "smaller_75pct": {
+        "samples": 372,
+        "accepted": 344,
+        "area_rejected": 0,
+        "raw_correct": 279,
+        "correct_accepted": 271
+      },
+      "shift_right_10pct": {
+        "samples": 372,
+        "accepted": 358,
+        "area_rejected": 0,
+        "raw_correct": 312,
+        "correct_accepted": 309
+      },
+      "rotate_15deg": {
+        "samples": 372,
+        "accepted": 350,
+        "area_rejected": 0,
+        "raw_correct": 338,
+        "correct_accepted": 323
+      },
+      "uneven_light": {
+        "samples": 372,
+        "accepted": 372,
+        "area_rejected": 0,
+        "raw_correct": 124,
+        "correct_accepted": 124
+      },
+      "noise_std8": {
+        "samples": 372,
+        "accepted": 344,
+        "area_rejected": 0,
+        "raw_correct": 330,
+        "correct_accepted": 315
+      },
+      "non_hand_probes": {
+        "samples": 49,
+        "accepted": 1,
+        "area_rejected": 48
+      }
+    }
+  }
+}

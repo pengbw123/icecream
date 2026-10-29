@@ -1,12 +1,11 @@
-// Standalone camera tap -> feature mailbox -> NN -> optional composer actions.
-// Not instantiated in the instrument top until real-camera calibration passes.
+// Camera tap -> feature mailbox -> optional plane compensation -> NN/actions.
 // clk is the stable 50MHz system clock; camera_clk may stop without hanging it.
 // reset_n must include camera capture/config reset as well as main reset.
 module gesture_pipeline #(
     parameter WEIGHTS="src/generated/gesture/weights.mem",
     parameter BIASES="src/generated/gesture/biases.mem",
     parameter integer TIMEOUT_CYCLES=50000000,
-    parameter integer SILHOUETTE=1, CANCEL_ENABLED=0
+    parameter integer SILHOUETTE=1, CANCEL_ENABLED=0, NORMALIZE=0
 )(
     input wire clk,camera_clk,reset_n,
     input wire recognition_enable,control_enable,
@@ -29,16 +28,26 @@ module gesture_pipeline #(
     wire [6:0] source_value,feature_value;
     wire [14:0] source_energy,feature_energy;
     wire raw_done;wire [1:0] raw_class;
-    gesture_roi #(.SILHOUETTE(SILHOUETTE)) roi(camera_clk,reset_n,enable_sync[1],frame_start,frame_good,frame_bad,
+    gesture_roi #(.SILHOUETTE(NORMALIZE?0:SILHOUETTE)) roi(camera_clk,reset_n,enable_sync[1],frame_start,frame_good,frame_bad,
         pixel_write,pixel_address,pixel_data,source_busy,source_write,source_index,
         source_value,source_publish,source_energy);
     gesture_mailbox mailbox(camera_clk,clk,reset_n,source_write,source_index,source_value,
         source_publish,source_energy,source_busy,feature_write,feature_index,feature_value,
         start,feature_energy,raw_done);
-    gesture_mlp #(.WEIGHTS(WEIGHTS),.BIASES(BIASES)) mlp(clk,reset_n,feature_write,
-        feature_index,feature_value,start,inference_busy,raw_done,raw_class,score0,score1,score2,inference_cycles);
+    wire mlp_write,mlp_start;wire [7:0] mlp_index;wire [6:0] mlp_value;wire [14:0] mlp_energy;
+    generate if(NORMALIZE)begin:g_normalize
+        // Finish in-flight jobs even when recognition is disabled; mailbox
+        // ownership is released only by raw_done, not the display enable.
+        gesture_normalize normalizer(clk,reset_n,1'b1,feature_write,feature_index,feature_value,start,
+            mlp_write,mlp_index,mlp_value,mlp_start,mlp_energy);
+    end else begin:g_legacy
+        assign mlp_write=feature_write;assign mlp_index=feature_index;assign mlp_value=feature_value;
+        assign mlp_start=start;assign mlp_energy=feature_energy;
+    end endgenerate
+    gesture_mlp #(.WEIGHTS(WEIGHTS),.BIASES(BIASES)) mlp(clk,reset_n,mlp_write,
+        mlp_index,mlp_value,mlp_start,inference_busy,raw_done,raw_class,score0,score1,score2,inference_cycles);
     gesture_score_gate score_gate(clk,reset_n,recognition_enable,raw_done,
-        score0,score1,score2,raw_class,feature_energy,result_valid,result_accepted,result_margin,class_id,result_energy);
+        score0,score1,score2,raw_class,mlp_energy,result_valid,result_accepted,result_margin,class_id,result_energy);
     wire event_valid;
     assign action_valid=event_valid&&control_enable;
     gesture_events #(.TIMEOUT_CYCLES(TIMEOUT_CYCLES),.CANCEL_ENABLED(CANCEL_ENABLED),.PRECHECKED(1)) events(clk,reset_n,

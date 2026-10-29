@@ -1,0 +1,67 @@
+{
+  "note": "Synthetic lighting sensitivity only; not real-camera validation.",
+  "solid_gray_energy": {
+    "255": 0,
+    "240": 0,
+    "224": 0,
+    "223": 32512,
+    "220": 32512,
+    "200": 32512
+  },
+  "exposure_probes": [
+    {
+      "brightness_scale": 1.0,
+      "samples": 372,
+      "raw_correct": 304,
+      "area_rejected": 0,
+      "accepted": 362,
+      "correct_accepted": 297,
+      "median_foreground_cells": 55.0
+    },
+    {
+      "brightness_scale": 0.95,
+      "samples": 372,
+      "raw_correct": 304,
+      "area_rejected": 0,
+      "accepted": 362,
+      "correct_accepted": 297,
+      "median_foreground_cells": 55.0
+    },
+    {
+      "brightness_scale": 0.9,
+      "samples": 372,
+      "raw_correct": 304,
+      "area_rejected": 0,
+      "accepted": 362,
+      "correct_accepted": 297,
+      "median_foreground_cells": 55.0
+    },
+    {
+      "brightness_scale": 0.875,
+      "samples": 372,
+      "raw_correct": 124,
+      "area_rejected": 372,
+      "accepted": 0,
+      "correct_accepted": 0,
+      "median_foreground_cells": 256.0
+    },
+    {
+      "brightness_scale": 0.85,
+      "samples": 372,
+      "raw_correct": 124,
+      "area_rejected": 372,
+      "accepted": 0,
+      "correct_accepted": 0,
+      "median_foreground_cells": 256.0
+    },
+    {
+      "brightness_scale": 0.8,
+      "samples": 372,
+      "raw_correct": 124,
+      "area_rejected": 372,
+      "accepted": 0,
+      "correct_accepted": 0,
+      "median_foreground_cells": 256.0
+    }
+  ]
+}
