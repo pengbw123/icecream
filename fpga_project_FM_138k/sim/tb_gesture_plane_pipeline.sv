@@ -52,10 +52,20 @@ module tb_gesture_plane_pipeline;
         end
         boundary(0,0);frame(0);boundary(1,1);repeat(14000)@(negedge clk);
         if(results!=12)$fatal(1,"bad camera frame classified");
+        // Disable recognition and stop PCLK during normalization. Raw inference
+        // must still finish, otherwise the mailbox would never release again.
+        expected=1499;boundary(0,0);frame(expected);boundary(1,0);
+        wait(dut.g_normalize.normalizer.state==1);enable=0;cam_run=0;
+        repeat(16000)@(negedge clk);
+        if(results!=12||busy)$fatal(1,"disabled in-flight inference leaked/hung");
+        cam_run=1;wait(!dut.source_busy);enable=1;repeat(10)@(negedge cam);
+        expected=0;boundary(0,0);frame(expected);boundary(1,0);
+        wait(result_valid);repeat(2)@(negedge clk);wait(!dut.source_busy);
+        if(results!=13)$fatal(1,"reenable mailbox deadlock");
         // No camera clock: stable system domain keeps running, no spurious results.
         cam_run=0;repeat(1000)@(negedge clk);
         if(av||busy)$fatal(1,"stopped camera leaked command");
-        $display("PASS gesture_plane_pipeline: 12 RGB332 frames, exposure/gradient/random/blank, ROI/CDC/normalize/NN scores and energy exact, bad frames, stopped clock");$finish;
+        $display("PASS gesture_plane_pipeline: 13 RGB332 results, exposure/gradient/random/blank, ROI/CDC/normalize/NN scores and energy exact, bad frames, stopped clock, disable during normalize and reenable");$finish;
     end
     initial begin #40000000;$fatal(1,"timeout");end
 endmodule

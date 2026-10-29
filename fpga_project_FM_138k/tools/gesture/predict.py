@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import numpy as np
 from PIL import Image
-from model import image_features, integer_forward, read_export
+from model import image_features, integer_forward, read_export, shape_energy
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -31,16 +31,18 @@ def main():
     w, b = read_export(args.model)
     scores = integer_forward(x, w, b)
     ordered = np.sort(scores)
-    margin = int(ordered[-1]-ordered[-2]); energy = int(x.sum())
+    margin = int(ordered[-1]-ordered[-2]); raw_energy = int(x.sum())
+    energy = int(shape_energy(x)[0]) if report['feature_mode'] == 'plane' else raw_energy
     reasons = []
     if energy < 768:
-        reasons.append('too_little_foreground')
+        reasons.append('shape_filter_rejected' if raw_energy>=768 else 'too_little_foreground')
     if energy > 30000:
         reasons.append('too_much_foreground_check_background_brightness')
     if margin < 2048:
         reasons.append('class_margin_too_small')
     print(json.dumps(dict(raw_class=report['labels'][int(scores.argmax())],
         scores=[int(s) for s in scores], margin=margin, energy=energy,
+        raw_energy=raw_energy,
         rejection_reasons=reasons,
         foreground_cells=int(np.count_nonzero(x)),
         feature_rows=[''.join('#' if v else '.' for v in row) for row in x.reshape(16,16)],

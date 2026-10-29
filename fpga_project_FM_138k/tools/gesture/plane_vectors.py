@@ -23,6 +23,7 @@ def main():
     for name,data,width in [('packed',packed,2),('raw',raw,2),('features',features,2),('energy',energy,4),('scores',scores,8)]:
         (a.out/(name+'.mem')).write_text(''.join(f'{int(x)&0xffffffff:0{width}x}\n' for x in data.flat))
     (a.out/'count.txt').write_text(str(len(samples)))
+    (a.out/'controller_scores.mem').write_text(''.join(f'{int(x)&0xffffffff:08x}\n' for x in scores[:372].flat))
     print('plane oracle frames:',len(samples))
 
 if __name__=='__main__':main()

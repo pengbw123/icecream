@@ -13,6 +13,7 @@ try {
     $cases = @(
         @{ Name='tb_gesture_normalize'; Files=@('src/gesture/gesture_normalize.v') },
         @{ Name='tb_gesture_plane_pipeline'; Files=@('src/gesture/gesture_roi.v','src/gesture/gesture_mailbox.v','src/gesture/gesture_mlp.v','src/gesture/gesture_events.v','src/gesture/gesture_pipeline.v') },
+        @{ Name='tb_gesture_plane_controller'; Files=@('src/gesture/gesture_controller.v','src/gesture/gesture_roi.v','src/gesture/gesture_mailbox.v','src/gesture/gesture_mlp.v','src/gesture/gesture_events.v','src/gesture/gesture_pipeline.v','src/ai_melody_composer.v','src/ai_melody_inference.v') },
         @{ Name='tb_gesture_score_gate'; Files=@('src/gesture/gesture_score_gate.v') },
         @{ Name='tb_gesture_roi'; Files=@('src/gesture/gesture_roi.v') },
         @{ Name='tb_gesture_events'; Files=@('src/gesture/gesture_events.v') },
