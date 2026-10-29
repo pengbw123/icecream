@@ -29,4 +29,10 @@ python tools/gesture/benchmark_camera.py --candidate tmp/gesture_plane --output 
 
 ## 使用边界
 
-先开RECOGNITION，保持CONTROL关闭，在亮色背景下将手放入中央方框，四角尽量只含背景。避免手掌覆盖四角、强烈局部阴影、杂乱背景。当前补偿不是手部自动定位，不能保证复杂场景可靠工作。下载文件、综合布线与时序验收结果在本轮release记录完成后登记；本说明本身不表示已经通过实机。
+先开RECOGNITION，保持CONTROL关闭，在亮色背景下将手放入中央方框，四角尽量只含背景。避免手掌覆盖四角、强烈局部阴影、杂乱背景。当前补偿不是手部自动定位，不能保证复杂场景可靠工作。
+
+## 构建验收
+
+源码65e32dd，标准下载文件于2026-10-29 12:36:27更新。所有约束时钟setup/hold TNS均为0；主时钟Fmax50.025MHz，余量较小，摄像头PCLK Fmax117.267MHz。逻辑70378/138240、寄存器40905/139095、BSRAM331/340、DSP85/298；相对TFT版增加2703逻辑、3692寄存器、3 DSP，BSRAM不增加。
+
+12项手势与6项摄像头回归均通过。发布记录见 `releases/2026-10-29_gesture_plane.json`，备份在 `impl/pnr/backup/fm_138k_rgb_hdmi_2026-10-29_pre_gesture_plane.fs`。已更新标准文件，未自动烧录；新手势效果仍待实机验收。

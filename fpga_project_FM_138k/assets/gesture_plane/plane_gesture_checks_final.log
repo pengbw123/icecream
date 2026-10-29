@@ -1,0 +1,42 @@
+{
+  "vectors": 372,
+  "scores_checked": 1116,
+  "bit_exact": true,
+  "max_abs_accumulator_bound": 4135804,
+  "accepted": 362,
+  "correct_accepted": 297,
+  "threshold_source": "initial engineering defaults, not tuned on test split",
+  "hashes": {
+    "biases.mem": "3294a462002761f578ebdb584474571e557bbf6c4d27ca5abcbe88076e1526c0",
+    "test_features.mem": "0bbf7e4c4366dcd328af25418efe8f32263d935fcd156e1afd5dc24580c2fe88",
+    "test_labels.mem": "db0af8675408a624dfe5376da602bbf4bfeebeed09a2b68661a7720d7b324ade",
+    "test_rgb332.mem": "6c874e6b55c5a3abea6a1a77af1ffaab6a7d502f9481cf46616fee03d984ee32",
+    "test_scores.mem": "f2dfb394c8842f5ae433dfc9919061c3964053e27798bfa7c4898bd4280eda54",
+    "weights.mem": "ff9ef0f3bc264cfbf740e6461ce7319c6ed69f130c0dd8cc7cf6cfbf41e61cd1"
+  }
+}
+plane oracle frames: 1500
+PASS gesture_normalize: 1500 frames, 384000 features, plane/shape energy bit exact, reset
+sim/tb_gesture_normalize.sv:33: $finish called at 46230520000 (1ps)
+PASS gesture_plane_pipeline: 13 RGB332 results, exposure/gradient/random/blank, ROI/CDC/normalize/NN scores and energy exact, bad frames, stopped clock, disable during normalize and reenable
+sim/tb_gesture_plane_pipeline.sv:68: $finish called at 8380300000 (1ps)
+PASS gesture_plane_controller: held-out frames to actual composer, display-only/arming, manual override, start/stop/variation, no hanging notes, PCLK loss/reset
+sim/tb_gesture_plane_controller.sv:89: $finish called at 20416700000 (1ps)
+PASS gesture_score_gate: 127 back-to-back vectors, signed extremes/ties, threshold/area/class bounds, disable
+sim/tb_gesture_score_gate.sv:37: $finish called at 2900000 (1ps)
+PASS gesture_roi: RGB332/coordinates/energy, valid/bad/missing/busy frames
+sim/tb_gesture_roi.sv:47: $finish called at 1536780000 (1ps)
+PASS gesture_events: stability, release, margin/blank rejection, backpressure, timeout, disable
+sim/tb_gesture_events.sv:43: $finish called at 6220000 (1ps)
+PASS gesture_mailbox: async clocks, held bank/energy, stopped source, reset recovery
+sim/tb_gesture_mailbox.sv:48: $finish called at 44440000 (1ps)
+PASS gesture_mlp: all 1116 logits bit-exact; 304/372 classified correctly; cycles=12486
+sim/tb_gesture_mlp.sv:45: $finish called at 95084900000 (1ps)
+PASS gesture_composer: mode ownership, start/stop/variation, no held-palm restart, UI/pad priority, recordings, panic, cleanup
+sim/tb_gesture_composer.sv:61: $finish called at 327640000 (1ps)
+PASS gesture_video: atomic frame snapshot, ROI alignment, compact/reused font diagnostics, OFF restoration
+sim/tb_gesture_video.sv:40: $finish called at 61664901000 (1ps)
+PASS gesture_controller: held-out frames to actual composer, display-only/arming, manual override, start/stop/variation, no hanging notes, PCLK loss/reset
+sim/tb_gesture_controller.sv:89: $finish called at 19672420000 (1ps)
+PASS gesture_pipeline: held-out RGB332 frames through ROI/CDC/NN, bad frame and stopped camera, controls off
+sim/tb_gesture_pipeline.sv:55: $finish called at 2156440000 (1ps)

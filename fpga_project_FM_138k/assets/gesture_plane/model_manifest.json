@@ -1,0 +1,9 @@
+{
+  "production_source_commit": "65e32dd",
+  "weights": "3ebbf330af05377e04cded2144859da87b054d037e36f40f0a5b68b8f444972c",
+  "biases": "ba3735d7dbb83e0dc44e56d843d8abbb1090a8aef45ddf4480613eeb01bd0553",
+  "real_camera_accuracy": null,
+  "preprocessor": "plane",
+  "geometry_augmentation": true,
+  "training_command": "python tools/gesture/train.py --features plane --geometry-augment --epochs 180 --out tmp/gesture_plane"
+}
