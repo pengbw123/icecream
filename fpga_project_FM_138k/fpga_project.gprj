@@ -6,6 +6,7 @@
     <Device name="GW5AT-138B" pn="GW5AT-LV138PG484AC1/I0">gw5at138b-012</Device>
     <FileList>
         <File path="src/gesture/gesture_score_gate.v" type="file.verilog" enable="1"/>
+        <File path="src/gesture/gesture_position.v" type="file.verilog" enable="1"/>
         <File path="src/gesture/gesture_controller.v" type="file.verilog" enable="1"/>
         <File path="src/gesture/gesture_video_snapshot.v" type="file.verilog" enable="1"/>
         <File path="src/gesture/gesture_pipeline.v" type="file.verilog" enable="1"/>

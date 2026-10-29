@@ -59,7 +59,7 @@ module tb_touch_ui;
     end
     wire [31:0] ai_status,composer_status,composer_detail;
     reg [31:0] gesture_model=32'h00000004;
-    wire [1:0] gesture_config;
+    wire [2:0] gesture_config;
     wire [31:0] composer_data;wire composer_valid;integer composer_ons=0;
     wire [31:0] test_ai_data;wire test_ai_valid;
     integer ai_note_ons=0;
@@ -285,6 +285,7 @@ module tb_touch_ui;
             if(frame_kind==131)begin px=696;py=336;end
             if(frame_kind==132)begin px=192;py=152;end
             if(frame_kind==133)begin px=600;py=152;end
+            if(frame_kind==134)begin px=200;py=286;end
             if(frame_kind==112)begin px=80;py=104;end
             if(frame_kind==113)begin px=216;py=104;end
             if(frame_kind==114)begin px=510;py=155;end
@@ -415,6 +416,12 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=133;#10000000;
             if(gesture_config!==0)$fatal(1,"Control armed while recognition OFF");
             touch_kind=0;#8000000;touch_kind=132;wait(gesture_config==1);#10000000;
+            touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==3);#10000000;
+            touch_kind=0;#8000000;touch_kind=134;wait(gesture_config==5);#10000000;
+            if(!test_composer.perform_mode)$fatal(1,"PERFORM mode not committed");
+            touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==7);#10000000;
+            touch_kind=0;#8000000;touch_kind=134;wait(gesture_config==1);#10000000;
+            if(test_composer.perform_mode)$fatal(1,"BASIC mode not restored");
             touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==3);#10000000;
             gesture_model=32'h0001246c;
             #120000000;

@@ -1,5 +1,6 @@
 /* Phase 1: lead creation, volatile theme/phrase and learned pad controls. */
 static u16 composer_bpm=120;
+static u8 composer_gesture_mode;
 static u8 composer_key,composer_minor,composer_form,composer_density=64,composer_direction=64;
 static u8 composer_variation=64,composer_strength=100,composer_settings,composer_saved_glide;
 static u32 composer_last_draw,composer_last_status=~0u;
@@ -11,10 +12,10 @@ static void composer_publish(void){u32 period=15000000u/composer_bpm;
     backing_word(0x3c3,(u16)(composer_key|((u16)composer_minor<<4)|((u16)composer_form<<5)));
     backing_word(0x3c4,(u16)(composer_density|((u16)composer_direction<<8)));
     backing_word(0x3c6,(u16)(composer_variation|((u16)composer_strength<<8)));
-    backing_word(0x3c0,composer_session);
+    backing_word(0x3c7,composer_gesture_mode);backing_word(0x3c0,composer_session);
 }
 static void composer_stop(void){u32 t;
-    UI[63]=UI[63]&1u; /* Disarm controls when another mode takes BACKING. */
+    UI[63]=(UI[63]&1u)|((u32)composer_gesture_mode<<2); /* Disarm controls when another mode takes BACKING. */
     if(!composer_session)return;
     composer_session=0;backing_word(0x3c0,0);t=now();
     while((UI[61]&12u)&&(u32)(now()-t)<20000u){}
@@ -37,7 +38,7 @@ static void draw_gesture_status(void){u32 st=UI[63],n=st>>16;
     composer_text(26,14,"STABLE");composer_text(35,14,(st&64u)?gesture_name((st>>10)&3u):"--");
     composer_text(54,14,"FRAMES");composer_text(62,14,n>999?"999+":u3d(n));
     composer_text(72,14,"GAP/256");composer_text(82,14,u3d(UI[35]>>24));
-    composer_text(4,16,"LIGHT BACKGROUND / KEEP HAND INSIDE HDMI BOX");
+    composer_text(4,16,composer_gesture_mode?"FIST LOOP / PALM CONTINUE / V NEXT BAR":"FIST STOP / PALM START / V VARIATION");
 }
 static void draw_composer_status(void){u32 st=UI[61],dt=UI[62];const char *state;
     state=(st&2048u)?"PANIC":(st&64u)?"LEARN PADS":(st&16u)?"THEME INPUT":(dt>>30)==1?"COUNT IN":(dt>>30)==2?"TAP RHYTHM":(st&512u)?"ENDING":(st&128u)?"LOCKED":(st&256u)?"LOCK AT END":(st&2u)?"PLAYING":"READY";
@@ -69,7 +70,8 @@ static void draw_composer(void){u32 st=UI[61];
     if(composer_settings==2){u32 gs=UI[63];
         button_box(2,8,46,3,(gs&1u)?"RECOGNITION ON":"RECOGNITION OFF",gs&1u);
         button_box(52,8,46,3,(gs&2u)?"CONTROL ON":"CONTROL OFF",gs&2u);
-        composer_text(4,18,"FIST STOP / PALM START / V VARIATION / EXPERIMENTAL");
+        button_box(2,17,46,2,composer_gesture_mode?"MODE: PERFORM":"MODE: BASIC",composer_gesture_mode);
+        composer_text(4,16,composer_gesture_mode?"FIST LOOP / PALM CONTINUE / V NEXT BAR":"FIST STOP / PALM START / V VARIATION");
     }else if(composer_settings){
         arp_row(2,8,"BPM",u3d(composer_bpm));arp_row(52,8,"KEY",ai_keys[composer_key]);
         arp_row(2,11,"FORM",composer_forms[composer_form]);arp_row(52,11,"SCALE",composer_minor?"MINOR":"MAJOR");
@@ -108,9 +110,13 @@ static void composer_press(int x,int y){int row,local,d=0;u8 action=0;
         else if(x>=288&&x<416)action=10;else if(x>=424&&x<536)action=8;
         else if(x>=544&&x<656)action=7;else if(x>=664&&x<784){composer_settings=composer_settings==2?1:!composer_settings;draw_composer();return;}
     }else if(composer_settings==2){
+        if(y>=272&&y<304&&x>=16&&x<384){
+            UI[63]=(UI[63]&1u)|((u32)composer_gesture_mode<<2);composer_gesture_mode^=1;backing_word(0x3c7,composer_gesture_mode);
+            UI[63]=(UI[63]&1u)|((u32)composer_gesture_mode<<2);draw_composer();return;
+        }
         if(y>=128&&y<176){u32 gs=UI[63];
-            if(gs&4u){if(x>=16&&x<384)UI[63]=(gs&1u)?0:1;
-                else if(x>=416&&x<784&&(gs&1u))UI[63]=(gs&3u)^2u;}
+            if(gs&4u){if(x>=16&&x<384)UI[63]=((gs&1u)?0:1)|((u32)composer_gesture_mode<<2);
+                else if(x>=416&&x<784&&(gs&1u))UI[63]=((gs&3u)^2u)|((u32)composer_gesture_mode<<2);}
             draw_composer();}return;
     }else if(composer_settings){
         if(y>=320&&y<352&&x>=608&&x<784){composer_settings=2;draw_composer();return;}

@@ -6,7 +6,7 @@ module camera_hdmi_tx #(parameter integer GESTURE_ENABLED=0)(
     output wire hdmi_clk_p,hdmi_clk_n,output wire [2:0] hdmi_data_p,hdmi_data_n,
     output wire hdmi_oe,pll_locked,config_ready,stream_stale,
     output wire [2:0] config_fault,
-    input wire [1:0] gesture_config,
+    input wire [2:0] gesture_config,
     input wire gesture_allowed,gesture_cancel,gesture_action_ready,
     output wire gesture_action_valid,output wire [3:0] gesture_action,
     output wire [31:0] gesture_status,gesture_detail

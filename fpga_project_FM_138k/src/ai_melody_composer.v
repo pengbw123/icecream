@@ -9,6 +9,10 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=
     input wire gesture_valid,input wire [3:0] gesture_action,
     output wire gesture_ready,gesture_allowed,gesture_cancel
 );
+    reg perform_mode,bar_lock,freeze_pending,resume_pending,var_pending;
+    reg bar_valid,bar_write_bank,bar_completed_bank,bar_play_bank,snap_bar;
+    reg [15:0] bars[0:31];
+    reg [6:0] hand_density,hand_direction;reg hand_x_pending,hand_y_pending;
     reg session,running,theme_recording,learning,panic_latched,start_wait;
     reg [31:0] period_shadow,step_us,remaining;
     reg [7:0] us_div;
@@ -38,7 +42,7 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=
         0:pad_action=1;1:pad_action=4;2:pad_action=5;3:pad_action=6;
         4:pad_action=7;5:pad_action=8;6:pad_action=10;default:pad_action=11;
     endcase
-    wire manual_cfg=cfg_write&&(cfg_address==10'h3c5||cfg_address==10'h3c0);
+    wire manual_cfg=cfg_write&&(cfg_address==10'h3c5||cfg_address==10'h3c0||cfg_address==10'h3c4||cfg_address==10'h3c7);
     wire manual_pad=session&&pad_on&&pad_match&&!learning&&record_mode==0;
     assign gesture_allowed=GESTURE_ENABLED&&session&&!suspend&&!panic_latched&&
         !panic&&!learning&&!theme_recording&&record_mode==0;
@@ -47,18 +51,21 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=
     // are exposed; a palm held while already playing must not restart a phrase.
     assign gesture_ready=GESTURE_ENABLED&&(gesture_cancel||gesture_allowed&&!cfg_write);
     wire external_action=GESTURE_ENABLED&&gesture_valid&&gesture_ready&&!gesture_cancel;
-    wire [3:0] decoded_action=(cfg_write&&cfg_address==10'h3c5) ? cfg_value[3:0] :
+    wire [4:0] decoded_action=(cfg_write&&cfg_address==10'h3c5) ? {1'b0,cfg_value[3:0]} :
         manual_pad ? pad_action : external_action ?
-        (gesture_action==2 ? (running?4'd0:4'd2) : gesture_action==3 ? 4'd3 :
+        (perform_mode ?
+        (gesture_action==2 ? (running?5'd17:5'd2) : gesture_action==3&&running ? 5'd16 :
+         gesture_action==4&&running ? 5'd18 : gesture_action>=8&&gesture_action<=13 ? {1'b0,gesture_action}+5'd11 : 5'd0) :
+        gesture_action==2 ? (running?4'd0:4'd2) : gesture_action==3 ? 4'd3 :
         gesture_action==4&&running ? 4'd4 : 4'd0) : 4'd0;
     // Terminate the eight-pad associative match/priority chain before it
     // fans out to phrase/transport registers. One clock (20ns) only.
-    reg [3:0] action_q;
+    reg [4:0] action_q;reg action_external;
     always @(posedge clk)begin
-        if(!reset_n)action_q<=0;
-        else action_q<=decoded_action;
+        if(!reset_n)begin action_q<=0;action_external<=0;end
+        else begin action_q<=decoded_action;action_external<=external_action&&!manual_pad&&!(cfg_write&&cfg_address==10'h3c5);end
     end
-    wire [3:0] action=action_q;
+    wire [4:0] action=action_q;
     reg [1:0] record_mode;reg [5:0] record_step;reg record_resume;
     reg [31:0] rhythm_mask;reg rhythm_valid;
     reg [5:0] step_index;
@@ -163,9 +170,17 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=
         vel_value=(vel_value*snap_strength)>>7;if(vel_value<1)vel_value=1;if(vel_value>127)vel_value=127;
         decision_word={decision_gate,decision_velocity,(decision_action==2 ? final_note : decision_action==1 ? 7'd1 : 7'd0)};
     end
+    wire boundary=step_index[3:0]==0;
+    wire apply_resume=perform_mode&&boundary&&(resume_pending||var_pending);
+    wire use_bar=perform_mode&&((bar_lock&&!apply_resume)||(boundary&&freeze_pending&&bar_valid&&!apply_resume));
+    wire [15:0] bar_word=snap_replay?replay_word:decision_word;
+    wire [1:0] carry_gate=gate_left>4?3:gate_left>2?2:gate_left>1?1:0;
     integer i;
     always @(posedge clk)begin
         if(!reset_n)begin
+            perform_mode<=0;bar_lock<=0;freeze_pending<=0;resume_pending<=0;var_pending<=0;
+            bar_valid<=0;bar_write_bank<=0;bar_completed_bank<=0;bar_play_bank<=0;snap_bar<=0;
+            hand_density<=64;hand_direction<=64;hand_x_pending<=0;hand_y_pending<=0;
             session<=0;running<=0;theme_recording<=0;learning<=0;panic_latched<=0;start_wait<=0;
             period_shadow<=125000;step_us<=125000;remaining<=0;us_div<=0;
             key<=0;minor<=0;form<=0;density<=64;direction<=64;variation<=64;strength<=100;
@@ -190,16 +205,17 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=
         end else begin
             infer_start<=0;
             if(start_wait&&!infer_busy&&work==0&&!infer_start)start_wait<=0;
-            status<={learn_index,active_note,(record_mode!=0 ? record_step : step_index),seed_count,panic_latched,rhythm_valid,ending,lock_pending,locked,learning,record_mode!=0,theme_recording,
+            status<={learn_index,active_note,(record_mode!=0 ? record_step : step_index),seed_count,panic_latched,rhythm_valid,ending,(lock_pending||freeze_pending),(locked||bar_lock),learning,record_mode!=0,theme_recording,
                 infer_busy||work!=0,active||out_valid||off_pending||on_pending,running,session};
             detail<={record_mode,direction,density,misses};
             if(us_tick)begin us_div<=0;if(remaining!=0)remaining<=remaining-1'b1;end else us_div<=us_div+1'b1;
             if(cfg_write)case(cfg_address)
+                10'h3c7:if(perform_mode!=cfg_value[0])begin perform_mode<=cfg_value[0];locked<=0;replaying<=0;lock_pending<=0;bar_lock<=0;freeze_pending<=0;resume_pending<=0;var_pending<=0;hand_x_pending<=0;hand_y_pending<=0;end
                 10'h3c0:begin session<=cfg_value[0];step_us<=period_shadow<10000 ? 10000 : period_shadow>1000000 ? 1000000 : period_shadow;end
                 10'h3c1:period_shadow[15:0]<=cfg_value;
                 10'h3c2:period_shadow[31:16]<=cfg_value;
                 10'h3c3:begin key<=cfg_value[3:0]>11 ? 11 : cfg_value[3:0];minor<=cfg_value[4];form<=cfg_value[6:5]>2 ? 2 : cfg_value[6:5];end
-                10'h3c4:begin density<=cfg_value[6:0];direction<=cfg_value[14:8];end
+                10'h3c4:begin hand_x_pending<=0;hand_y_pending<=0;density<=cfg_value[6:0];direction<=cfg_value[14:8];end
                 10'h3c6:begin variation<=cfg_value[6:0];strength<=cfg_value[14:8]==0 ? 1 : cfg_value[14:8];end
             endcase
             if(out_valid&&out_ready)begin
@@ -260,6 +276,10 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=
                     history_action[0]<=snap_replay ? (replay_word[6:0]>=48 ? 2 : replay_word[6:0]==1 ? 1 : 0) : decision_action;
                     // Mirror replay as well: a live VAR/UNLOCK halfway through
                     // a loop must leave a complete prefix in the write bank.
+                    if(!snap_bar)begin
+                        bars[{bar_write_bank,snap_step[3:0]}]<=snap_step[3:0]==0&&bar_word[6:0]==1?{carry_gate,last_velocity,last_note}:bar_word;
+                        if(snap_step[3:0]==15)begin bar_valid<=1;bar_completed_bank<=bar_write_bank;bar_write_bank<=!bar_write_bank;end
+                    end
                     phrase[{snap_write_bank,snap_step}]<=snap_replay ? replay_word : decision_word;
                     if(decision_cadence&&!snap_replay)end_count<=4;
                     if(snap_step==63)begin
@@ -287,8 +307,22 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=
                         snap_density<=density;snap_direction<=direction;snap_variation<=variation_steps!=0&&variation<96 ? 96 : variation;snap_strength<=strength;snap_last<=last_note;snap_velocity<=last_velocity;snap_rng<=rng;
                         snap_same<=same_count;snap_seed<=seed[(step_index==0||step_index==48) ? 0 : motif_cursor];snap_ending<=ending;
                         snap_contrast<=(step_index[3:0]==0 ? contrast_pending : contrast_active)||step_index[5:4]==2;snap_write_bank<=write_bank;
-                        snap_replay<=replaying&&!ending;
-                        if(replaying&&!ending)begin replay_word<=phrase[{play_bank,step_index}];decision_cadence<=0;work<=5;end
+                        snap_bar<=use_bar&&!ending;
+                        snap_replay<=(use_bar||replaying)&&!ending;
+                        if(boundary)begin
+                            if(apply_resume)begin bar_lock<=0;resume_pending<=0;var_pending<=0;freeze_pending<=0;
+                                if(var_pending)variation_steps<=16;end
+                            else if(freeze_pending&&bar_valid)begin bar_lock<=1;freeze_pending<=0;bar_play_bank<=bar_completed_bank;end
+                        end
+                        if(perform_mode&&step_index[1:0]==0)begin
+                            if(hand_x_pending)begin density<=hand_density;snap_density<=hand_density;hand_x_pending<=0;end
+                            if(hand_y_pending)begin direction<=hand_direction;snap_direction<=hand_direction;hand_y_pending<=0;end
+                        end
+                        if(perform_mode&&boundary&&var_pending)snap_variation<=96;
+                        if(use_bar&&!ending)begin
+                            replay_word<=bars[{bar_lock?bar_play_bank:bar_completed_bank,step_index[3:0]}];
+                            decision_cadence<=0;work<=5;
+                        end else if(replaying&&!ending)begin replay_word<=phrase[{play_bank,step_index}];decision_cadence<=0;work<=5;end
                         else begin feature_index<=0;work<=1;end
                         if(step_index==0||step_index==48)motif_cursor<=0;
                         if(step_index[3:0]==0)begin contrast_active<=contrast_pending;contrast_pending<=0;end
@@ -308,7 +342,13 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=
                 else if(theme_recording&&!pad_match&&observe_data[19:16]!=9&&seed_count<8)begin seed[seed_count]<=observe_data[14:8];seed_count<=seed_count+1'b1;end
             end
             if(action!=0&&session&&!suspend)case(action)
+                16:begin locked<=0;replaying<=0;lock_pending<=0;repeat_pending<=0;freeze_pending<=1;resume_pending<=0;var_pending<=0;end
+                17:begin locked<=0;replaying<=0;lock_pending<=0;repeat_pending<=0;resume_pending<=1;freeze_pending<=0;end
+                18:begin locked<=0;replaying<=0;lock_pending<=0;repeat_pending<=0;var_pending<=1;resume_pending<=1;freeze_pending<=0;end
+                19,20,21:begin hand_density<=action==19?24:action==20?64:110;hand_x_pending<=1;end
+                22,23,24:begin hand_direction<=action==22?110:action==23?64:24;hand_y_pending<=1;end
                 1,2,14:begin
+                    bar_lock<=0;freeze_pending<=0;resume_pending<=0;var_pending<=0;bar_valid<=0;bar_write_bank<=0;
                     if(action==1&&running)begin running<=0;on_pending<=0;epoch<=epoch+1'b1;end
                     else begin
                         running<=1;start_wait<=1;theme_recording<=0;learning<=0;panic_latched<=0;record_mode<=0;step_index<=0;remaining<=0;epoch<=epoch+1'b1;
@@ -325,7 +365,7 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=
                 5:begin repeat_pending<=1;end
                 6:begin contrast_pending<=1;locked<=0;lock_pending<=0;replaying<=0;end
                 7:begin if(running)begin ending<=1;locked<=0;lock_pending<=0;repeat_pending<=0;replaying<=0;end end
-                8:begin if(locked||lock_pending)begin locked<=0;lock_pending<=0;replaying<=0;repeat_pending<=0;end else lock_pending<=1;end
+                8:begin if(bar_lock)begin bar_lock<=0;freeze_pending<=0;resume_pending<=0;end else if(locked||lock_pending)begin locked<=0;lock_pending<=0;replaying<=0;repeat_pending<=0;end else lock_pending<=1;end
                 9:begin
                     running<=0;record_mode<=0;learning<=0;on_pending<=0;epoch<=epoch+1'b1;
                     theme_recording<=!theme_recording;
@@ -340,7 +380,12 @@ module ai_melody_composer #(parameter integer CLOCKS_PER_US=50, GESTURE_ENABLED=
                 15:begin if(record_mode==2)rhythm_mask[record_step[4:0]]<=1;end
                 default:begin end
             endcase
+            if(manual_cfg||manual_pad||panic||(action!=0&&!action_external))begin
+                freeze_pending<=0;resume_pending<=0;var_pending<=0;hand_x_pending<=0;hand_y_pending<=0;
+                if(action!=0&&!action_external)bar_lock<=0;
+            end
             if(!session||suspend||panic)begin
+                bar_lock<=0;freeze_pending<=0;resume_pending<=0;var_pending<=0;bar_valid<=0;
                 running<=0;record_mode<=0;theme_recording<=0;learning<=0;on_pending<=0;remaining<=0;
                 locked<=0;lock_pending<=0;repeat_pending<=0;replaying<=0;ending<=0;end_count<=0;
                 if(panic&&session)panic_latched<=1;

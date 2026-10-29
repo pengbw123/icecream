@@ -116,7 +116,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire [6:0] lesson_address;
     wire sequencer_active;
     wire [31:0] ai_status,composer_status,composer_detail;wire [159:0] arp_config;wire [31:0] arp_status;wire [127:0] arp_notes;
-    wire [1:0] gesture_config;
+    wire [2:0] gesture_config;
     wire [31:0] gesture_status,gesture_detail;
     wire gesture_valid,gesture_ready,gesture_allowed,gesture_cancel;
     wire [3:0] gesture_action;

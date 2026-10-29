@@ -41,7 +41,7 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32,GESTURE_ENABLED
     input wire [31:0] perf_data,output reg [4:0] perf_index,
     output wire perf_snapshot,perf_clear,
     input wire [31:0] gesture_status,gesture_detail,
-    output reg [1:0] gesture_config
+    output reg [2:0] gesture_config
 );
     reg [127:0] arp_timing_shadow;
     wire [31:0] address,write_data,read_data;
@@ -172,7 +172,7 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32,GESTURE_ENABLED
             60:ui_data=ai_status;
             61:ui_data=composer_status;
             62:ui_data=composer_detail;
-            63:ui_data=GESTURE_ENABLED?{gesture_status[31:2],gesture_config}:32'd0;
+            63:ui_data=GESTURE_ENABLED?{gesture_status[31:2],gesture_config[1:0]}:32'd0;
             35:ui_data=GESTURE_ENABLED?gesture_detail:32'd0;
             5:ui_data=ui_state;
             9:ui_data={31'd0,command_ready&&!command_valid};
@@ -248,7 +248,7 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32,GESTURE_ENABLED
             end
             if(ui_select&&write_en)begin
                 case(address[7:2])
-                    63:gesture_config<=GESTURE_ENABLED&&write_data[0]?write_data[1:0]:2'b00;
+                    63:gesture_config<=GESTURE_ENABLED?{write_data[2],write_data[1]&&write_data[0],write_data[0]}:3'b000;
                     0:i2c_drive<=write_data[1:0];
                     3:if(!fw_valid||fw_ready)begin
                         fw_data<=write_data;fw_valid<=1;
