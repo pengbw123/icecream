@@ -33,6 +33,13 @@ module tb_gesture_perform;
   if(dut.bar_lock||!dut.running)$fatal(1,"variation did not resume");
   cfg('h3c5,3);repeat(500)@(negedge clk);
   if(dut.running||dut.bar_lock||held!=-1||ons!=offs)$fatal(1,"manual stop/drain");
+  // BASIC retains STOP instead of loop, and PERFORM is explicitly selected.
+  cfg('h3c7,0);gest(2);wait(dut.running);gest(3);repeat(500)@(negedge clk);
+  if(dut.running||held!=-1)$fatal(1,"BASIC fist no longer stops");
+  cfg('h3c7,1);gest(2);wait(dut.running);gest(3);cfg('h3c5,3);
+  repeat(500)@(negedge clk);gest(2);repeat(4)@(negedge clk);
+  if(dut.freeze_pending||dut.bar_lock)$fatal(1,"manual STOP retained loop request");
+  cfg('h3c5,3);repeat(500)@(negedge clk);
   $display("PASS gesture_perform: fist first-bar wait and loop integrity, palm resume, beat XY, boundary variation, manual stop and NoteOff");$finish;
  end
  initial begin #200000000;$fatal(1,"timeout step%0d run%0d lock%0d pending%0d",dut.step_index,dut.running,dut.bar_lock,dut.freeze_pending);end
