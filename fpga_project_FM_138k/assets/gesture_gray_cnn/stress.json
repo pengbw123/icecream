@@ -1,0 +1,54 @@
+{
+  "note": "Synthetic transforms of already-viewed public test set. No threshold tuning or real-world accuracy claim.",
+  "results": {
+    "original": {
+      "gesture_samples": 372,
+      "gesture_raw_correct": 330,
+      "gesture_correct_accepted": 300,
+      "synthetic_other_samples": 180,
+      "synthetic_other_false_accept": 6
+    },
+    "exposure70": {
+      "gesture_samples": 372,
+      "gesture_raw_correct": 321,
+      "gesture_correct_accepted": 298,
+      "synthetic_other_samples": 180,
+      "synthetic_other_false_accept": 4
+    },
+    "exposure50": {
+      "gesture_samples": 372,
+      "gesture_raw_correct": 324,
+      "gesture_correct_accepted": 277,
+      "synthetic_other_samples": 180,
+      "synthetic_other_false_accept": 2
+    },
+    "contrast60": {
+      "gesture_samples": 372,
+      "gesture_raw_correct": 301,
+      "gesture_correct_accepted": 285,
+      "synthetic_other_samples": 180,
+      "synthetic_other_false_accept": 4
+    },
+    "uneven": {
+      "gesture_samples": 372,
+      "gesture_raw_correct": 323,
+      "gesture_correct_accepted": 307,
+      "synthetic_other_samples": 180,
+      "synthetic_other_false_accept": 5
+    },
+    "noise8": {
+      "gesture_samples": 372,
+      "gesture_raw_correct": 316,
+      "gesture_correct_accepted": 299,
+      "synthetic_other_samples": 180,
+      "synthetic_other_false_accept": 6
+    },
+    "shift_right3": {
+      "gesture_samples": 372,
+      "gesture_raw_correct": 236,
+      "gesture_correct_accepted": 224,
+      "synthetic_other_samples": 180,
+      "synthetic_other_false_accept": 0
+    }
+  }
+}
