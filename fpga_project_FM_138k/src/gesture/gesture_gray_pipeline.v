@@ -1,0 +1,55 @@
+// Full gray camera frontend -> CNN -> four-class margin gate -> vote/actions.
+module gesture_gray_pipeline #(parameter integer TIMEOUT_CYCLES=50000000)(
+ input wire clk,camera_clk,reset_n,enable,control,cancel,ready,
+ input wire frame_start,frame_good,frame_bad,pixel_write,
+ input wire [14:0] pixel_address,input wire [15:0] pixel_rgb565,
+ output reg result_valid,accepted,output reg [1:0] class_id,
+ output reg [14:0] energy,output reg [15:0] margin,
+ output wire tracking,output wire [1:0] stable_class,
+ output wire action_valid,output wire [3:0] action,output wire busy,
+ output reg [255:0] mask,output reg [2047:0] preview,output reg [3:0] reason
+);
+ wire fw,start,done,mail_busy;wire [9:0] fi;wire [7:0] fv;wire [17:0] sum;
+ wire [1:0] cls;wire signed [31:0] s0,s1,s2,s3;wire [15:0] cycles;
+ gesture_gray_frontend frontend(clk,camera_clk,reset_n,enable,frame_start,frame_good,frame_bad,
+  pixel_write,pixel_address,pixel_rgb565,mail_busy,fw,start,fi,fv,sum,done);
+ gesture_gray_cnn cnn(clk,reset_n,fw,fi,fv,start,busy,done,cls,s0,s1,s2,s3,cycles);
+ reg [255:0] assembling_mask;reg [2047:0] assembling_preview;
+ wire [7:0] average=sum[17:10];
+ wire [7:0] mi={fi[9:6],fi[4:1]};
+ always @(posedge clk)begin
+  if(!reset_n)begin assembling_mask<=0;assembling_preview<=0;end
+  else if(fw&&fi[5]&&fi[0])begin
+   assembling_mask[mi]<=({1'b0,fv}+9'd8)<{1'b0,average};
+   assembling_preview[{mi,3'b000}+:8]<=fv;
+  end
+ end
+ reg [2:0] valid;
+ reg signed [31:0] ab,abr,cd,cdr,top,runner;
+ reg signed [32:0] difference;
+ reg [1:0] c1,c2,c3;
+ always @(posedge clk)begin
+  if(!reset_n||!enable)begin
+   valid<=0;result_valid<=0;accepted<=0;class_id<=0;energy<=0;margin<=0;mask<=0;preview<=0;reason<=0;
+   ab<=0;abr<=0;cd<=0;cdr<=0;top<=0;runner<=0;difference<=0;c1<=0;c2<=0;c3<=0;
+  end else begin
+   valid<={valid[1:0],done};result_valid<=valid[2];
+   if(done)begin ab<=s0>s1?s0:s1;abr<=s0>s1?s1:s0;cd<=s2>s3?s2:s3;cdr<=s2>s3?s3:s2;c1<=cls;end
+   if(valid[0])begin
+    top<=ab>cd?ab:cd;
+    runner<=ab>cd?(abr>cd?abr:cd):(cdr>ab?cdr:ab);c2<=c1;
+   end
+   if(valid[1])begin difference<=$signed({top[31],top})-$signed({runner[31],runner});c3<=c2;end
+   if(valid[2])begin
+    accepted<=c3<3&&difference>=2048;class_id<=c3;
+    margin<=difference>65535?16'hffff:difference[15:0];
+    // Gray telemetry E is mean luminance, not binary foreground area.
+    energy<={7'd0,average};mask<=assembling_mask;preview<=assembling_preview;reason<=c3==3?4'd5:4'd0;
+   end
+  end
+ end
+ wire event_valid;
+ gesture_vote_events #(.TIMEOUT_CYCLES(TIMEOUT_CYCLES),.CANCEL_ENABLED(1)) events(
+  clk,reset_n,enable,result_valid,class_id,accepted,event_valid,control?ready:1'b1,action,tracking,stable_class,cancel);
+ assign action_valid=event_valid&&control;
+endmodule

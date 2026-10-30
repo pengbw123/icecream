@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
 module tb_ov5640_capture;
+ wire [15:0] pixel_rgb565;
     reg pclk=0;always #13 pclk=~pclk;
     reg reset_n=0,href=0,vsync=0;reg [7:0] data=0;
     wire pixel_write,frame_start,frame_good,frame_bad,frame_toggle,bad_toggle;

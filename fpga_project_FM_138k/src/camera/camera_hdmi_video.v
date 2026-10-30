@@ -1,6 +1,6 @@
 // 640x480/59.52 Hz at the existing 25 MHz HDMI clock. Registered RGB/sync
 // align with the synchronous framebuffer read; nearest-neighbour 4x preview.
-module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0)(
+module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0,GRAY_PREVIEW=0)(
     input wire pixel_clk,reset_n,config_ready,input wire [2:0] config_fault,
     input wire buffer_valid,present_pulse,input wire [7:0] pixel_data,
     input wire bad_toggle,drop_toggle,
@@ -11,7 +11,7 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0)(
     output reg [7:0] red,green,blue,output reg de,hsync,vsync,
     output wire stream_stale,
     input wire [31:0] gesture_status,gesture_detail,
-    input wire [255:0] gesture_mask,input wire [3:0] gesture_reason
+    input wire [255:0] gesture_mask,input wire [3:0] gesture_reason,input wire [2047:0] gesture_gray
 );
     reg [9:0] hcount,vcount,x1,y1;
     reg [1:0] ready_sync,bad_sync,drop_sync;
@@ -24,7 +24,7 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0)(
     assign read_address=active?row_address+{7'd0,hcount[9:2]}:15'd0;
     assign stream_stale=!buffer_valid||silent_frames>=STALE_FRAMES;
     wire diagnostic_area,diagnostic_ink;
-    camera_diagnostics #(.GESTURE_ENABLED(GESTURE_ENABLED)) u_diagnostics(.pixel_clk(pixel_clk),.reset_n(reset_n),
+    camera_diagnostics #(.GESTURE_ENABLED(GESTURE_ENABLED),.GRAY_PREVIEW(GRAY_PREVIEW)) u_diagnostics(.pixel_clk(pixel_clk),.reset_n(reset_n),
         .gesture_status(gesture_status),.gesture_detail(gesture_detail),
         .gesture_reason(gesture_reason),
         .camera_pclk(camera_pclk),.camera_href(camera_href),.camera_vsync(camera_vsync),
@@ -38,6 +38,7 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0)(
     wire [7:0] b332={4{pixel_data[1:0]}};
     reg [23:0] color;reg [2:0] bit_sel;
     wire [9:0] mask_y=y1-10'd32;
+    wire [7:0] gray_pixel=gesture_gray[{mask_index,3'b000}+:8];
     wire [7:0] mask_index={mask_y[6:3],x1[6:3]};
     always @*begin
         color={r332,g332,b332};bit_sel=x1[6:4];
@@ -61,7 +62,7 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0)(
         // Exact MLP input: sixteen rows, sixteen columns, 8x nearest-neighbor.
         // The panel fits entirely to the left of the central camera ROI.
         if(GESTURE_ENABLED&&gesture_status[0]&&x1<128&&y1>=32&&y1<160)begin
-            color=!gesture_status[5]?24'h303844:gesture_mask[mask_index]?24'hffffff:24'h080808;
+            color=!gesture_status[5]?24'h303844:GRAY_PREVIEW?{gray_pixel,gray_pixel,gray_pixel}:gesture_mask[mask_index]?24'hffffff:24'h080808;
             if(x1==0||x1==127||y1==32||y1==159)color=24'h738395;
         end
         if(diagnostic_area)color=diagnostic_ink?24'he0f0ff:24'h081018;

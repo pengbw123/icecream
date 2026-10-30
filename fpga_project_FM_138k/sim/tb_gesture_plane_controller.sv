@@ -11,7 +11,7 @@ module tb_gesture_plane_controller;
     gesture_controller #(.FRESH_CYCLES(200000),.NORMALIZE(1),
         .WEIGHTS("src/generated/gesture_plane/weights.mem"),.BIASES("src/generated/gesture_plane/biases.mem")) dut(clk,cam,reset_n,capture_reset_n,
         camera_ready,camera_fault,config_data,fs,fg,fb,pw,addr,data,
-        allowed,cancel,action_ready,action_valid,action,gesture_status,gesture_detail,,);
+        allowed,cancel,action_ready,action_valid,action,gesture_status,gesture_detail,,,16'd0,);
     reg cfg_write=0;reg [9:0] cfg_address=0;reg [15:0] cfg_value=0;
     wire [31:0] out_data,status,detail;wire out_valid;
     ai_melody_composer #(.CLOCKS_PER_US(1),.GESTURE_ENABLED(1)) composer(
@@ -49,7 +49,7 @@ module tb_gesture_plane_controller;
             end
             @(negedge cam);pw=0;repeat(4)@(negedge cam);boundary(1);
             wait(dut.result_valid);repeat(12)@(negedge clk);
-            wait(!dut.pipeline.source_busy);
+            wait(!dut.g_legacy.pipeline.source_busy);
         end
     endtask
     initial begin

@@ -1,0 +1,62 @@
+{
+  "architecture": "32x32 -> 3x3 stride2 conv4 -> clip127 -> maxpool3 -> 100 -> 4",
+  "labels": [
+    "fist",
+    "palm",
+    "v_sign",
+    "other"
+  ],
+  "weights": 436,
+  "biases": 8,
+  "seed": 3010720,
+  "epochs": 160,
+  "selected_epoch": 48,
+  "validation_accuracy": 0.9592592592592593,
+  "test_accuracy": 0.907608695652174,
+  "test_gesture_accuracy": 0.8870967741935484,
+  "synthetic_other_recall": 0.95,
+  "confusion": [
+    [
+      116,
+      2,
+      6,
+      0
+    ],
+    [
+      18,
+      95,
+      11,
+      0
+    ],
+    [
+      5,
+      0,
+      119,
+      0
+    ],
+    [
+      5,
+      1,
+      3,
+      171
+    ]
+  ],
+  "test_count": 552,
+  "train_gestures": 2160,
+  "validation_gestures": 360,
+  "validation_sequences": [
+    "rock03",
+    "paper06",
+    "testscissors02"
+  ],
+  "real_camera_accuracy": null,
+  "limitations": [
+    "CGI gesture domain; no real camera validation",
+    "Other class uses synthetic negatives; not arbitrary background detection",
+    "Fixed ROI; no hand detector"
+  ],
+  "archives": {
+    "rps.zip": "c2403444395842ad04c53612bad54b574443eae17a0723117a2ff87b9d72194f",
+    "rps-test-set.zip": "c27ab9fa43ce40b2e453de711365b477f4424586edf0388116674fd320f07503"
+  }
+}

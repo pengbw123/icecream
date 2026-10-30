@@ -6,7 +6,7 @@ module ov5640_capture #(parameter integer WIDTH=320,HEIGHT=240,WARMUP_FRAMES=4,
     output reg pixel_write,output reg [14:0] pixel_address,
     output reg [7:0] pixel_data,output reg frame_start,frame_good,frame_bad,
     output reg frame_toggle,bad_toggle,
-    input wire debug_ack,output reg debug_request,output reg [71:0] debug_packet,output wire [7:0] capture_status
+    input wire debug_ack,output reg debug_request,output reg [71:0] debug_packet,output wire [7:0] capture_status,output reg [15:0] pixel_rgb565
 );
     reg [7:0] data_q,high_byte;reg href_q,vsync_q,href_prev,vsync_prev;
     reg seen_sync,phase,bad;
@@ -21,7 +21,7 @@ module ov5640_capture #(parameter integer WIDTH=320,HEIGHT=240,WARMUP_FRAMES=4,
         if(!reset_n)begin
             data_q<=0;high_byte<=0;href_q<=0;vsync_q<=0;href_prev<=0;vsync_prev<=0;
             seen_sync<=0;phase<=0;bad<=0;line_bytes<=0;column<=0;rows<=0;pixels<=0;warmup<=0;
-            pixel_write<=0;pixel_address<=0;pixel_data<=0;frame_start<=0;frame_good<=0;frame_bad<=0;frame_toggle<=0;bad_toggle<=0;
+            pixel_write<=0;pixel_address<=0;pixel_data<=0;pixel_rgb565<=0;frame_start<=0;frame_good<=0;frame_bad<=0;frame_toggle<=0;bad_toggle<=0;
             min_bytes<=2047;max_bytes<=0;debug_ack_sync<=0;debug_request<=0;debug_packet<=0;
         end else begin
             data_q<=data;href_q<=href;vsync_q<=vsync;href_prev<=href_q;vsync_prev<=vsync_q;
@@ -55,7 +55,7 @@ module ov5640_capture #(parameter integer WIDTH=320,HEIGHT=240,WARMUP_FRAMES=4,
                             if(column>=CROP_X&&column<CROP_X+CROP_WIDTH&&rows<HEIGHT&&
                                column%SAMPLE_X==CROP_X%SAMPLE_X&&rows%SAMPLE_Y==0)begin
                                 pixel_write<=1;pixel_address<=pixels;
-                                pixel_data<={rgb565[15:13],rgb565[10:8],rgb565[4:3]};
+                                pixel_rgb565<=rgb565;pixel_data<={rgb565[15:13],rgb565[10:8],rgb565[4:3]};
                                 pixels<=pixels+1'b1;
                             end
                         end

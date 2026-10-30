@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
 module tb_ov5640_capture_tft;
+ wire [15:0] pixel_rgb565;
     reg pclk=0;always #5.9 pclk=~pclk;
     reg reset_n=0,href=0,vsync=0;reg [7:0] data=0;
     wire pixel_write,frame_start,frame_good,frame_bad,frame_toggle,bad_toggle;
@@ -19,6 +20,7 @@ module tb_ov5640_capture_tft;
             // Independent geometric oracle: exactly x80,84,..716 and y0,4,..476.
             ex=80+(n%160)*4;ey=(n/160)*4;
             expected=source_pixel(current_tag,ex,ey);
+            if(pixel_rgb565!==expected)$fatal(1,"Full precision RGB565 tap mismatch");
             if(n>=19200||pixel_address!==n||pixel_data!=={expected[15:13],expected[10:8],expected[4:3]})
                 $fatal(1,"TFT crop/order/byte mismatch index%0d address%0d got%h source(%0d,%0d)",n,pixel_address,pixel_data,ex,ey);
             n=n+1;total=total+1;

@@ -29,7 +29,7 @@ static void composer_enter(void){
     composer_session=1;composer_publish();composer_last_status=~0u;
 }
 static __attribute__((noinline)) void composer_text(u8 c,u8 r,const char *s){pair_text(c,r,s,5,0);}
-static const char *gesture_name(u32 n){return n==0?"FIST":n==1?"PALM":"V SIGN";}
+static const char *gesture_name(u32 n){return n==0?"FIST":n==1?"PALM":n==2?"V SIGN":"OTHER";}
 static void draw_gesture_status(void){u32 st=UI[63],n=st>>16;
     rect_cells(2,12,96,5,5);
     composer_text(4,12,!(st&4u)?"UNAVAILABLE":!(st&1u)?"RECOGNITION OFF":!(st&8u)||(st&16u)?"CAMERA NOT READY":!(st&32u)?"WAITING FOR FRAME":(st&64u)?"TRACKING":"UNKNOWN / UNSTABLE");
