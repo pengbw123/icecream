@@ -64,7 +64,7 @@ static void draw_perf_controls(void){
         text(2,20,"50",2,0);text(16,20,"200",2,0);text(32,20,"1k",2,0);text(48,20,"5k",2,0);text(61,20,"20k",2,0);
         text(68,6,"0",2,0);text(68,10,"-24",2,0);text(68,15,"-48",2,0);text(68,19,"-72",2,0);
     }
-    text(76,5,composer_session?"COMPOSER":ai_on?"AI BASS":arp_on?"ARP ON":"",2,0);
+    text(76,5,composer_session?"AI MELODY":ai_on?"AI BACKING":arp_on?"ARP ON":"",2,0);
     text(76,6,"VOLUME",2,0);
     nb[0]=(char)('0'+vol_local/100);nb[1]=(char)('0'+(vol_local/10)%10);nb[2]=(char)('0'+vol_local%10);nb[3]=0;
     text_r(98,6,nb,1,0);
@@ -194,7 +194,7 @@ static const char *setup_value(u8 n){if(n==0)return bg_labels[bg_pick];if(n==1)r
 static void draw_theme(void){u8 i;button_box(2,5,46,3,"ARPEGGIATOR >",arp_on);button_box(52,5,46,3,"STEP SEQUENCER >",0);
     for(i=0;i<5;i++)row_box(2,(u8)(8+i*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
     for(i=5;i<10;i++)row_box(52,(u8)(8+(i-5)*3),46,3,setup_labels[i],setup_value(i),sel_row==i);
-    button_box(2,23,22,3,"METERS >",0);button_box(26,23,22,3,"AI BASS >",ai_on);row_box(52,23,46,3,setup_labels[10],setup_value(10),sel_row==10);
+    button_box(2,23,22,3,"METERS >",0);button_box(26,23,22,3,"AI BACKING >",ai_on);button_box(52,23,22,3,"AI MELODY >",composer_session);row_box(76,23,22,3,setup_labels[10],setup_value(10),sel_row==10);
 }
 static const char *selected_label(void){if(page==1){static const char *const a[4]={"ALGORITHM","FEEDBACK","OSC SYNC","TRANSPOSE"};return a[sel_row];}
     if(page==2)return osc_labels[sel_row];if(page==3)return sel_row<4?"RATE":"LEVEL";
@@ -289,9 +289,10 @@ static int menu_press(int x,int y){int i,n;
     if(page==PAGE_COMPOSER){composer_press(x,y);return 1;}
     if(page==PAGE_AI&&x>=624&&x<784&&y>=80&&y<128){page_enter(PAGE_COMPOSER);return 1;}
     if(page==PAGE_AI){ai_press(x,y);return 1;}
+    if(page==7&&x>=416&&x<592&&y>=368&&y<416){page_enter(PAGE_COMPOSER);return 1;}
     if(page==7&&x>=208&&x<384&&y>=368&&y<416){page_enter(PAGE_AI);return 1;}
     if(page==PAGE_METRICS){metrics_press(x,y);return 1;}
-    if(page==7&&x>=16&&x<384&&y>=368&&y<416){page_enter(PAGE_METRICS);return 1;}
+    if(page==7&&x>=16&&x<192&&y>=368&&y<416){page_enter(PAGE_METRICS);return 1;}
     if(page==PAGE_SEQ){seq_press(x,y);return 1;}
     if(page==7&&x>=416&&x<784&&y>=80&&y<128){page_enter(PAGE_SEQ);return 1;}
     if(page==PAGE_ARP){arp_press(x,y);return 1;}
@@ -327,7 +328,7 @@ static int menu_press(int x,int y){int i,n;
     else if(page==5){if(x>=16&&x<240&&y>=96&&y<384){fx_sel=(u8)((y-96)/48);sel_row=3;if(x>=176)adj_fx(1,1);}
         else if(x>=256&&x<784&&y>=128&&y<176&&fx_type_reg[fx_sel]!=255){n=(x-256)/176;fx_write(fx_type_reg[fx_sel],(u16)n);}
         else if(x>=256&&x<784&&y>=192&&y<368){i=(y-192)/64;if(i<3&&fx_p_reg[fx_sel][i]!=255)sel_row=(u8)(3+i);}}
-    else if(page==7&&x>=416&&x<784&&y>=368&&y<416)sel_row=10;
+    else if(page==7&&x>=608&&x<784&&y>=368&&y<416)sel_row=10;
     else if(page==7&&y>=128&&y<368){if(x>=16&&x<384)sel_row=(u8)((y-128)/48);
         else if(x>=416&&x<784&&y<368){sel_row=(u8)(5+(y-128)/48);if(sel_row==9){page_enter(PAGE_LESSON);return 1;}if(sel_row==7){visual_mode=2;page_enter(0);publish();return 1;}}}
     draw_page();return 1;

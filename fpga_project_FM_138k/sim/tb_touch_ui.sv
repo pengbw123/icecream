@@ -282,6 +282,8 @@ module tb_touch_ui;
             if(frame_kind==109)begin px=750;py=296;end
             if(frame_kind==110)begin px=360;py=248;end
             if(frame_kind==111)begin px=704;py=104;end
+            if(frame_kind==135)begin px=500;py=390;end
+            if(frame_kind==136)begin px=696;py=288;end
             if(frame_kind==131)begin px=696;py=336;end
             if(frame_kind==132)begin px=192;py=152;end
             if(frame_kind==133)begin px=600;py=152;end
@@ -409,10 +411,8 @@ module tb_touch_ui;
         if($test$plusargs("gesture"))begin
             if(gesture_config!==0)$fatal(1,"Gesture controls must default OFF");
             #10000000;touch_kind=17;wait(menu_page==7);#10000000;
-            touch_kind=0;#8000000;touch_kind=103;wait(menu_page==13);#10000000;
-            touch_kind=0;#8000000;touch_kind=111;wait(menu_page==14);#10000000;
-            touch_kind=0;#8000000;touch_kind=115;#10000000;
-            touch_kind=0;#8000000;touch_kind=131;#10000000;
+            touch_kind=0;#8000000;touch_kind=135;wait(menu_page==14);#10000000;
+            touch_kind=0;#8000000;touch_kind=136;#10000000;
             touch_kind=0;#8000000;touch_kind=133;#10000000;
             if(gesture_config!==0)$fatal(1,"Control armed while recognition OFF");
             touch_kind=0;#8000000;touch_kind=132;wait(gesture_config==1);#10000000;
@@ -428,15 +428,15 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);#10000000;
             if(gesture_config!==3||!composer_status[0])$fatal(1,"Page change lost armed composer");
             touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#10000000;
-            touch_kind=0;#8000000;touch_kind=103;wait(menu_page==13);#10000000;
-            touch_kind=0;#8000000;touch_kind=111;wait(menu_page==14);#10000000;
+            touch_kind=0;#8000000;touch_kind=135;wait(menu_page==14);#10000000;
             touch_kind=0;#8000000;touch_kind=132;wait(gesture_config==0);#10000000;
             touch_kind=0;#8000000;touch_kind=132;wait(gesture_config==1);#10000000;
             touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==3);#10000000;
             touch_kind=0;#8000000;touch_kind=115;#10000000;
-            touch_kind=0;#8000000;touch_kind=122;wait(menu_page==13);#10000000;
+            touch_kind=0;#8000000;touch_kind=115;#10000000;
+            touch_kind=0;#8000000;touch_kind=122;wait(menu_page==7);#10000000;
             if(gesture_config!==1||composer_status[0]||composer_ons)$fatal(1,"Mode exit did not disarm or UI leaked notes");
-            $display("PASS real RV32I/I2C gesture page: OFF defaults, recognition/control isolation, status, cross-page persistence, mode exit disarm");$finish;
+            $display("PASS real RV32I/I2C direct AI melody/gesture navigation: OFF defaults, recognition/control isolation, status, cross-page persistence, mode exit disarm");$finish;
         end
         if($test$plusargs("composer"))begin
             #10000000;touch_kind=17;wait(menu_page==7);#10000000;
@@ -464,7 +464,7 @@ module tb_touch_ui;
             if(!test_composer.rhythm_valid)$fatal(1,"Touch TAP did not record rhythm");
             touch_kind=120;wait(test_composer.ending);touch_kind=0;wait(!test_composer.running);#1000000;
             if(test_composer.active||composer_ons<4||test_composer.misses)$fatal(1,"Composer audio state/end/deadline");
-            touch_kind=115;#8000000;touch_kind=0;#8000000;touch_kind=122;wait(menu_page==13);#8000000;
+            touch_kind=115;#8000000;touch_kind=0;#8000000;touch_kind=122;wait(menu_page==7);#8000000;
             if(composer_status[3:0]!=0)$fatal(1,"EXIT did not flush composer");
             $display("PASS real RV32I/I2C composer: entry/backing patch, XY, three-note theme, live BPM/key/form edits, count-in/touch rhythm, cadence END, exit and zero missed steps");$finish;
         end

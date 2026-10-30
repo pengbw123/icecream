@@ -23,7 +23,7 @@ static void ai_start(void){u8 saved;composer_stop();saved=seq_is_active()?seq_sa
 }
 static void draw_ai_status(void){u32 st=UI[60];
     rect_cells(0,20,100,2,5);
-    pair_text(2,20,"AI BASS",5,0);pair_text(14,20,(st&8u)?"PANIC / STOPPED":!(st&1u)?"STOPPED":(st&512u)?"PLAYING":"WAITING",5,0);
+    pair_text(2,20,"AI BACKING",5,0);pair_text(16,20,(st&8u)?"PANIC / STOPPED":!(st&1u)?"STOPPED":(st&512u)?"PLAYING":"WAITING",5,0);
     pair_text(50,20,"MISSED STEPS",5,0);pair_text(65,20,(st>>16)>999?"999+":u3d(st>>16),5,0);
     pair_text(2,21,"CHORD",5,0);pair_text(14,21,ai_keys[((st>>4)&15u)<12?((st>>4)&15u):0],5,0);
     pair_text(24,21,(st&256u)?"MINOR":"MAJOR",5,0);pair_text(50,21,"LH < SPLIT / RH >= SPLIT",5,0);
@@ -31,7 +31,7 @@ static void draw_ai_status(void){u32 st=UI[60];
 static void draw_ai(void){
     button_box(2,5,18,3,ai_on?"STOP":"START",ai_on);
     row_box(22,5,54,3,"BACKING",ai_patch.patch.magic==SLOT_MAGIC?ai_patch.patch.name:"LIVE AT START",0);
-    button_box(78,5,20,3,"COMPOSE >",0);
+    button_box(78,5,20,3,"AI MELODY >",0);
     arp_row(2,8,"BPM",u3d(ai_bpm));arp_row(52,8,"KEY",ai_keys[ai_key]);
     arp_row(2,11,"DENSITY",ai_sparse?"SPARSE":"NORMAL");arp_row(52,11,"DYN LEVEL",u3d(ai_velocity));
     arp_row(2,14,"HARMONY",ai_harmony==2?"LEFT HAND":ai_harmony==1?"I-vi-IV-V":"STATIC");arp_row(52,14,"STATIC TYPE",ai_minor?"MINOR":"MAJOR");

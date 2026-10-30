@@ -65,7 +65,7 @@ static void draw_composer(void){u32 st=UI[61];
     button_box(2,5,16,3,(st&2u)?"STOP":"START",st&2u);
     button_box(19,5,16,3,"THEME",st&16u);button_box(36,5,16,3,"REC RHYTHM",st&32u);
     button_box(53,5,14,3,"LOCK",st&384u);button_box(68,5,14,3,"END",st&512u);
-    button_box(83,5,15,3,composer_settings==2?"SETTINGS":composer_settings?"SURFACE":"SETTINGS",composer_settings);
+    button_box(83,5,15,3,composer_settings?"SURFACE":"SETTINGS",composer_settings);
     rect_cells(0,8,100,11,0);
     if(composer_settings==2){u32 gs=UI[63];
         button_box(2,8,46,3,(gs&1u)?"RECOGNITION ON":"RECOGNITION OFF",gs&1u);
@@ -82,9 +82,10 @@ static void draw_composer(void){u32 st=UI[61];
         rect_cells(2,9,65,9,5);composer_text(4,9,"HIGHER");composer_text(4,17,"LOWER");
         composer_text(26,9,"MELODY SCULPT");composer_text(50,17,"DENSER >");
         composer_x=34;composer_y=13;composer_marker();
-        button_box(69,9,14,3,"VARIATION",0);button_box(84,9,14,3,"REPEAT",0);
-        button_box(69,12,29,3,"CONTRAST PHRASE",0);
-        button_box(69,15,14,3,"TAP",0);button_box(84,15,14,3,"NEW",0);
+        button_box(69,8,14,3,"VARIATION",0);button_box(84,8,14,3,"REPEAT",0);
+        button_box(69,11,29,3,"CONTRAST PHRASE",0);
+        button_box(69,14,14,3,"TAP",0);button_box(84,14,14,3,"NEW",0);
+        button_box(69,17,29,2,"GESTURES >",0);
     }
     draw_composer_status();
 }
@@ -108,7 +109,7 @@ static void composer_press(int x,int y){int row,local,d=0;u8 action=0;
     if(y>=80&&y<128){
         if(x>=16&&x<144)action=1;else if(x>=152&&x<280)action=9;
         else if(x>=288&&x<416)action=10;else if(x>=424&&x<536)action=8;
-        else if(x>=544&&x<656)action=7;else if(x>=664&&x<784){composer_settings=composer_settings==2?1:!composer_settings;draw_composer();return;}
+        else if(x>=544&&x<656)action=7;else if(x>=664&&x<784){composer_settings=!composer_settings;draw_composer();return;}
     }else if(composer_settings==2){
         if(y>=272&&y<304&&x>=16&&x<384){
             UI[63]=(UI[63]&1u)|((u32)composer_gesture_mode<<2);composer_gesture_mode^=1;backing_word(0x3c7,composer_gesture_mode);
@@ -121,7 +122,7 @@ static void composer_press(int x,int y){int row,local,d=0;u8 action=0;
     }else if(composer_settings){
         if(y>=320&&y<352&&x>=608&&x<784){composer_settings=2;draw_composer();return;}
         if(y>=272&&y<304){if(x>=16&&x<192)action=12;else if(x>=208&&x<384)action=13;
-            else if(x>=416&&x<592)action=11;else if(x>=608&&x<784){composer_stop();page_enter(PAGE_AI);return;}}
+            else if(x>=416&&x<592)action=11;else if(x>=608&&x<784){composer_stop();page_enter(7);return;}}
         else if(y>=128&&y<272&&((x>=16&&x<384)||(x>=416&&x<784))){
             row=((y-128)/48)*2+(x>=416);local=x-(x>=416?416:16);
             if(local>=128&&local<176)d=-1;else if(local>=320&&local<368)d=1;
@@ -130,9 +131,10 @@ static void composer_press(int x,int y){int row,local,d=0;u8 action=0;
         }
     }else{
         if(x>=16&&x<536&&y>=144&&y<288){composer_drag(x,y);held_kind=4;return;}
-        if(y>=144&&y<192){if(x>=552&&x<664)action=4;else if(x>=672&&x<784)action=5;}
-        else if(y>=192&&y<240&&x>=552&&x<784)action=6;
-        else if(y>=240&&y<288){if(x>=552&&x<664)action=15;else if(x>=672&&x<784)action=14;}
+        if(x>=552&&x<784&&y>=272&&y<304){composer_settings=2;draw_composer();return;}
+        if(y>=128&&y<176){if(x>=552&&x<664)action=4;else if(x>=672&&x<784)action=5;}
+        else if(y>=176&&y<224&&x>=552&&x<784)action=6;
+        else if(y>=224&&y<272){if(x>=552&&x<664)action=15;else if(x>=672&&x<784)action=14;}
     }
     if(action){composer_command(action);composer_last_status=~0u;}
 }
