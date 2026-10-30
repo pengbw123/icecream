@@ -272,7 +272,7 @@ module tb_touch_ui;
             if(frame_kind==97)begin px=700;py=408;end
             if(frame_kind==98)begin px=550;py=320;end
             if(frame_kind==100)begin px=664;py=248;end
-            if(frame_kind==101)begin px=600;py=390;end
+            if(frame_kind==101)begin px=700;py=390;end
             if(frame_kind==103)begin px=300;py=390;end
             if(frame_kind==104)begin px=80;py=104;end
             if(frame_kind==105)begin px=360;py=152;end
