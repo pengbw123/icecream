@@ -1,0 +1,17 @@
+{
+  "training_command": "python tools/gesture/train_gray_cnn.py --epochs 160",
+  "production_compile_commit": "525f505",
+  "real_camera_verified": false,
+  "dataset_license": "CC BY 2.0 (Laurence Moroney Rock Paper Scissors CGI)",
+  "model_files": {
+    "biases.mem": "c1f975d713622bcce7c63e89cc6054037a84996517fe06a007dd30b3d6c9799e",
+    "export_validation.json": "3c8d9534303dd6e40a29f5e47820a89e72fc342c6bcb8c2c3cf7dc7148670d97",
+    "test_features.mem": "66950b885af29a45ef7104eb8a7cb07f477f1e6214cc8bb8e287b5dca9785d99",
+    "test_labels.mem": "999006f5a7249111d2c53a8ab36cd2ee6e6e5acc727cb0f037d3a375ce2e502a",
+    "test_scores.mem": "b863ef46a62019167b0ac8de712372899d66e2888963d8613ddb98432e2cf5ef",
+    "training_report.json": "f6ea63717a2992fdf011babb11db3f72e93d5db7bf5ef1c3a07c99cb0c78f300",
+    "weights.mem": "c495ae85c54487c71cfbf4ac9957040d194bb112c6c5d5506f606f073636240e"
+  },
+  "hash_convention": "UTF-8 LF",
+  "selected_epoch": 48
+}

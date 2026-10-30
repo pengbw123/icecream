@@ -19,7 +19,8 @@ def main():
     for name,data,width in [('rgb565',packed,4),('gray',gray,2),('scores',scores,8)]:
         (out/(name+'.mem')).write_text(''.join(f'{int(v)&((1<<(4*width))-1):0{width}x}\n' for v in data.flat))
     sorted_scores=np.sort(scores,axis=1);pred=scores.argmax(1);gap=sorted_scores[:,-1]-sorted_scores[:,-2]
-    ids=[int(np.flatnonzero((pred==c)&(gap>=2048))[0]) for c in range(4)]
+    labels=mem('test_labels')
+    ids=[int(np.flatnonzero((pred==c)&(labels==c)&(gap>=2048))[0]) for c in range(4)]
     (out/'ids.mem').write_text(''.join(f'{v:04x}\n' for v in ids))
     report=dict(images=len(x),scores=int(got.size),all_bit_exact=True,accumulator_bound=int(bound),integration_ids=ids,real_camera_verified=False)
     (folder/'export_validation.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
