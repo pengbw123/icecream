@@ -1,5 +1,7 @@
 # 2026-10-30 32x32灰度算法基础
 
+本文保留基础阶段记录。后续完整灰度CNN接入、验证和发布状态见GESTURE_GRAY_CNN.md；下文“未接入”描述只适用于基础阶段。
+
 ## 已完成范围
 
 新增独立RTL前端 `gesture_gray_frontend`，由 `gesture_gray_roi` 和 `gesture_gray_mailbox` 组成；已加入Gowin工程文件列表，尚未实例化到生产顶层。当前下载位流和原三类识别/手势音乐控制不变。没有新增训练好的CNN，也没有声称解决复杂背景识别。
