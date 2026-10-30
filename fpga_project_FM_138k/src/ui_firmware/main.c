@@ -24,7 +24,7 @@ static int xy_delay=24;
 static u16 glide_ms=170;
 static u8 touch_velocity=100, headphone_select=0,glide_on=0,arp_on;
 static int slot_note[16];
-static u16 control_down;
+static u16 control_down,keyboard_blocked;
 static int control_x[16],control_y[16];
 /* RV32I has no divide instruction; coordinates use this integer helper. */
 u32 __udivsi3(u32 n,u32 d){u32 q=0,bit=1;if(!d)return ~0u;
@@ -1187,7 +1187,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         else{x=(int)(raw_x*800/x_res);y=(int)(raw_y*480/y_res);}
         if(x>799)x=799;if(y>479)y=479;
         note=-1;
-        if((page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER)&&!dialog&&x>=0&&x<800&&y>=352&&y<480){
+        if((page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER)&&!dialog&&!(keyboard_blocked&(1u<<id))&&x>=0&&x<800&&y>=352&&y<480){
             static const u8 whites[15]={0,2,4,5,7,9,11,12,14,16,17,19,21,23,24};
             static const u8 edges[10]={1,2,4,5,6,8,9,11,12,13};
             static const u8 blacks[10]={1,3,6,8,10,13,15,18,20,22};
@@ -1260,6 +1260,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
             held_x=px[id];
         }
     }else control_down&=(u16)~(1u<<id);
+    keyboard_blocked&=seen; /* Page-navigation touches remain consumed until release. */
     if(held_id!=0xFF&&!(seen&(1u<<held_id))){held_id=0xFF;held_kind=0;}
     if(ctrl_hold&&!(seen&(1u<<ctrl_hold_id)))ctrl_hold=0;
     return n;
@@ -1281,7 +1282,7 @@ int main(void){int i,result,errors=0;u32 retry=0;u32 last_status=0xFFFFFFFFu;
     delay_us(10000);present=detect();publish();
     for(;;){if(present){result=poll_touch();if(result!=-2)errors=0;
         else if(result==-2&&++errors>=40){puts("GT I2C lost\r\n");release_all();
-            control_down=0;ctrl_hold=0;held_id=0xFF;held_kind=0;
+            control_down=0;keyboard_blocked=0;ctrl_hold=0;held_id=0xFF;held_kind=0;
             present=0;publish();retry=now();}
         {
             u32 st=UI[4];

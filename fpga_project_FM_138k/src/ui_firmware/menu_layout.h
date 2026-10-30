@@ -246,7 +246,7 @@ static void perf_control(int x,int y,u8 id){u8 k=0;u32 t=now();
     if(!k)return;if(ctrl_last[k]&&(u32)(t-ctrl_last[k])<300000u)return;
     ctrl_last[k]=t;perf_step(k);ctrl_hold=k;ctrl_hold_id=id;ctrl_hold_t=t;ctrl_hold_count=0;
 }
-static void page_enter(u8 p){if(p==page&&p!=0)return;release_all();ctrl_hold=0;held_id=255;held_kind=0;
+static void page_enter(u8 p){if(p==page&&p!=0)return;keyboard_blocked|=control_down;release_all();ctrl_hold=0;held_id=255;held_kind=0;
     if(page==PAGE_LESSON){UI[28]=0;octave=lesson_saved_octave;
         if(lesson_saved_glide)set_glide(1);}
     if(p==PAGE_LESSON){composer_stop();ai_stop();seq_stop();lesson_saved_octave=octave;octave=0;

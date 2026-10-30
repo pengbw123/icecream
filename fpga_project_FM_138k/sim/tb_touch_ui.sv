@@ -435,7 +435,7 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=115;#10000000;
             touch_kind=0;#8000000;touch_kind=115;#10000000;
             touch_kind=0;#8000000;touch_kind=122;wait(menu_page==7);#10000000;
-            if(gesture_config!==1||composer_status[0]||composer_ons)$fatal(1,"Mode exit did not disarm or UI leaked notes");
+            if(gesture_config!==1||composer_status[0]||composer_ons||event_count)$fatal(1,"Mode exit did not disarm or UI leaked notes");
             $display("PASS real RV32I/I2C direct AI melody/gesture navigation: OFF defaults, recognition/control isolation, status, cross-page persistence, mode exit disarm");$finish;
         end
         if($test$plusargs("composer"))begin
