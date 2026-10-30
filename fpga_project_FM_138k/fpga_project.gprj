@@ -7,6 +7,7 @@
     <FileList>
         <File path="src/gesture/gesture_gray_cnn.v" type="file.verilog" enable="1"/>
         <File path="src/gesture/gesture_gray_pipeline.v" type="file.verilog" enable="1"/>
+        <File path="src/gesture/gesture_gray_preview.v" type="file.verilog" enable="1"/>
         <File path="src/generated/gesture_gray/weights.mem" type="file.other" enable="1"/>
         <File path="src/generated/gesture_gray/biases.mem" type="file.other" enable="1"/>
         <File path="src/gesture/gesture_gray_frontend.v" type="file.verilog" enable="1"/>

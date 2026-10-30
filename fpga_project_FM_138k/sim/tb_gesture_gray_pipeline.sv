@@ -7,7 +7,7 @@ module tb_gesture_gray_pipeline;
  wire rv,accepted,tracking,av,busy;wire [1:0] cls,stable;wire [14:0] energy;
  wire [15:0] margin;wire [3:0] action,reason;wire [255:0] mask;wire [2047:0] preview;
  gesture_gray_pipeline #(.TIMEOUT_CYCLES(100000)) dut(clk,cam,reset_n,enable,control,cancel,ready,
-  fs,fg,fb,pw,address,pixel,rv,accepted,cls,energy,margin,tracking,stable,av,action,busy,mask,preview,reason);
+  fs,fg,fb,pw,address,pixel,rv,accepted,cls,energy,margin,tracking,stable,av,action,busy,mask,preview,reason,,,);
  reg [15:0] images[0:565247],ids[0:3];reg [7:0] grays[0:565247];reg [31:0] scores[0:2207];
  integer results=0,actions=0,expected=0,sum=0;integer best,runner;reg signed [32:0] gap;
  always @(posedge clk)if(av&&ready)begin actions=actions+1;if(!control)$fatal(1,"disabled control leaked");end

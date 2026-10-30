@@ -1,5 +1,5 @@
 // Full gray camera frontend -> CNN -> four-class margin gate -> vote/actions.
-module gesture_gray_pipeline #(parameter integer TIMEOUT_CYCLES=50000000)(
+module gesture_gray_pipeline #(parameter integer TIMEOUT_CYCLES=50000000,VECTOR_PREVIEW=1)(
  input wire clk,camera_clk,reset_n,enable,control,cancel,ready,
  input wire frame_start,frame_good,frame_bad,pixel_write,
  input wire [14:0] pixel_address,input wire [15:0] pixel_rgb565,
@@ -7,9 +7,11 @@ module gesture_gray_pipeline #(parameter integer TIMEOUT_CYCLES=50000000)(
  output reg [14:0] energy,output reg [15:0] margin,
  output wire tracking,output wire [1:0] stable_class,
  output wire action_valid,output wire [3:0] action,output wire busy,
- output reg [255:0] mask,output reg [2047:0] preview,output reg [3:0] reason
+ output reg [255:0] mask,output reg [2047:0] preview,output reg [3:0] reason,
+ output wire sample_write,output wire [9:0] sample_index,output wire [7:0] sample_value
 );
  wire fw,start,done,mail_busy;wire [9:0] fi;wire [7:0] fv;wire [17:0] sum;
+ assign sample_write=fw;assign sample_index=fi;assign sample_value=fv;
  wire [1:0] cls;wire signed [31:0] s0,s1,s2,s3;wire [15:0] cycles;
  gesture_gray_frontend frontend(clk,camera_clk,reset_n,enable,frame_start,frame_good,frame_bad,
   pixel_write,pixel_address,pixel_rgb565,mail_busy,fw,start,fi,fv,sum,done);
@@ -21,7 +23,7 @@ module gesture_gray_pipeline #(parameter integer TIMEOUT_CYCLES=50000000)(
   if(!reset_n)begin assembling_mask<=0;assembling_preview<=0;end
   else if(fw&&fi[5]&&fi[0])begin
    assembling_mask[mi]<=({1'b0,fv}+9'd8)<{1'b0,average};
-   assembling_preview[{mi,3'b000}+:8]<=fv;
+   if(VECTOR_PREVIEW)assembling_preview[{mi,3'b000}+:8]<=fv;
   end
  end
  reg [2:0] valid;

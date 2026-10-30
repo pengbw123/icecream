@@ -5,7 +5,7 @@ module tb_gesture_gray_gate;
  wire rv,accepted,tr,av,busy;wire [1:0] cls,stable;wire [14:0] en;wire [15:0] margin;
  wire [3:0] act,reason;wire [255:0] mask;wire [2047:0] preview;
  gesture_gray_pipeline dut(clk,clk,reset_n,enable,1'b0,1'b0,1'b1,1'b0,1'b0,1'b0,1'b0,15'd0,16'd0,
-  rv,accepted,cls,en,margin,tr,stable,av,act,busy,mask,preview,reason);
+  rv,accepted,cls,en,margin,tr,stable,av,act,busy,mask,preview,reason,,,);
  reg signed [31:0] vals[0:3];reg signed [63:0] gap;integer best,second;
  task check(input integer n0,n1,n2,n3);
   begin

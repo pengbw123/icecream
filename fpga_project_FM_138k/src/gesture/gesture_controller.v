@@ -1,7 +1,7 @@
 // System-clock telemetry and opt-in composer adapter around the camera tap.
 // Camera reconfiguration resets the CDC and NN, but not menu configuration.
 module gesture_controller #(
-    parameter integer FRESH_CYCLES=50000000,NORMALIZE=1,TEMPORAL=1,GRAY=0,
+    parameter integer FRESH_CYCLES=50000000,NORMALIZE=1,TEMPORAL=1,GRAY=0,VECTOR_PREVIEW=1,
     parameter WEIGHTS="src/generated/gesture_plane/weights.mem",
     parameter BIASES="src/generated/gesture_plane/biases.mem"
 )(
@@ -14,7 +14,9 @@ module gesture_controller #(
     output reg action_valid,output reg [3:0] action,
     output wire [31:0] status,detail,
     output reg [255:0] debug_mask,output reg [3:0] debug_reason,
-    input wire [15:0] pixel_rgb565,output reg [2047:0] debug_gray
+    input wire [15:0] pixel_rgb565,output reg [2047:0] debug_gray,
+    output wire gray_sample_write,output wire [9:0] gray_sample_index,output wire [7:0] gray_sample_value,
+    output wire gray_result_valid
 );
     wire result_valid,busy,tracking;
     wire [1:0] class_id,stable_class;
@@ -29,11 +31,11 @@ module gesture_controller #(
     wire network_ready=queue_room||!control_active||cancel;
     wire [2047:0] gray_preview;
     generate if(GRAY)begin:g_gray
-        gesture_gray_pipeline #(.TIMEOUT_CYCLES(FRESH_CYCLES)) pipeline(
+        gesture_gray_pipeline #(.TIMEOUT_CYCLES(FRESH_CYCLES),.VECTOR_PREVIEW(VECTOR_PREVIEW)) pipeline(
             clk,camera_clk,reset_n&&capture_reset_n,config_data[0],config_data[1],cancel,network_ready,
             frame_start,frame_good,frame_bad,pixel_write,pixel_address,pixel_rgb565,
             result_valid,filtered_accepted,class_id,energy,filtered_margin,tracking,stable_class,
-            network_action_valid,network_action,busy,input_mask,gray_preview,reject_reason);
+            network_action_valid,network_action,busy,input_mask,gray_preview,reject_reason,gray_sample_write,gray_sample_index,gray_sample_value);
         assign s0=0;assign s1=0;assign s2=0;assign cycles=0;
     end else begin:g_legacy
     gesture_pipeline #(.CANCEL_ENABLED(1),.TIMEOUT_CYCLES(FRESH_CYCLES),.NORMALIZE(NORMALIZE),.TEMPORAL(TEMPORAL),
@@ -46,8 +48,9 @@ module gesture_controller #(
         .tracking(tracking),.stable_class(stable_class),.action_valid(network_action_valid),
         .action_ready(network_ready),.action(network_action),.inference_busy(busy),.inference_cycles(cycles),.result_energy(energy),
         .result_margin(filtered_margin),.result_accepted(filtered_accepted),.input_mask(input_mask),.reject_reason(reject_reason));
-        assign gray_preview=0;
+        assign gray_preview=0;assign gray_sample_write=0;assign gray_sample_index=0;assign gray_sample_value=0;
     end endgenerate
+    assign gray_result_valid=result_valid;
     wire position_valid;wire [3:0] position_action;
     gesture_position position(.clk(clk),.reset_n(reset_n&&capture_reset_n),
         .enable(control_active&&config_data[2]),.cancel(cancel),

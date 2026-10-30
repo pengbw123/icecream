@@ -14,14 +14,16 @@ module tb_gesture_gray_video;
     reg [2047:0] reference_gray;initial reference_gray=gray_pattern();
     initial source_data={gray_pattern(),4'd0,pattern(),64'h12348001_0000046d};
     wire [2371:0] video_data;
+    wire [7:0] gray_address;reg [7:0] ram_data;
+    always @(posedge pixel_clk)ram_data<=video_data[324+gray_address*8+:8];
     wire frame_latch,stale;wire [7:0] r,g,b;wire de,hs,vs;
     gesture_video_snapshot #(.WIDTH(2372)) snapshot(clk,pixel_clk,reset_n,frame_latch,source_data,video_data);
-    camera_hdmi_video #(.GESTURE_ENABLED(1),.GRAY_PREVIEW(1)) video(.pixel_clk(pixel_clk),.reset_n(reset_n),
+    camera_hdmi_video #(.GESTURE_ENABLED(1),.GRAY_PREVIEW(1),.GRAY_RAM(1)) video(.pixel_clk(pixel_clk),.reset_n(reset_n),
         .config_ready(1'b1),.config_fault(3'd0),.buffer_valid(1'b1),.present_pulse(1'b1),.pixel_data(8'd0),
         .bad_toggle(1'b0),.drop_toggle(1'b0),.camera_pclk(clk),.camera_href(1'b0),.camera_vsync(1'b0),
         .chip_id(16'h5640),.debug_request(1'b0),.debug_packet(72'd0),.capture_status(8'd0),
         .gesture_status(video_data[31:0]),.gesture_detail(video_data[63:32]),
-        .gesture_gray(video_data[2371:324]),.gesture_mask(video_data[319:64]),.gesture_reason(video_data[323:320]),
+        .gesture_gray(2048'd0),.gray_read_address(gray_address),.gray_read_data(ram_data),.gray_valid(1'b1),.gesture_mask(video_data[319:64]),.gesture_reason(video_data[323:320]),
         .frame_latch(frame_latch),.red(r),.green(g),.blue(b),.de(de),.hsync(hs),.vsync(vs),.stream_stale(stale));
     integer hits=0;reg [9:0] x,y;
     reg check=0;

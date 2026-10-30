@@ -13,6 +13,7 @@ try {
     & $Python tools/gesture/check_gray_cnn.py
     if($LASTEXITCODE -ne 0){throw 'CNN export failed'}
     $cases=@(
+        @{Name='tb_gesture_gray_preview';Files=@('src/gesture/gesture_gray_preview.v')},
         @{Name='tb_gesture_gray_gate';Files=@('src/gesture/gesture_gray_frontend.v','src/gesture/gesture_gray_roi.v','src/gesture/gesture_gray_mailbox.v','src/gesture/gesture_gray_cnn.v','src/gesture/gesture_gray_pipeline.v','src/gesture/gesture_vote_events.v')},
         @{Name='tb_gesture_gray_cnn';Files=@('src/gesture/gesture_gray_cnn.v')},
         @{Name='tb_gesture_gray_pipeline';Files=@('src/gesture/gesture_gray_frontend.v','src/gesture/gesture_gray_roi.v','src/gesture/gesture_gray_mailbox.v','src/gesture/gesture_gray_cnn.v','src/gesture/gesture_gray_pipeline.v','src/gesture/gesture_vote_events.v')},
