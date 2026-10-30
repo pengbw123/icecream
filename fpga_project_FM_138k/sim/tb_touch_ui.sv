@@ -168,7 +168,7 @@ module tb_touch_ui;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
-    initial if($test$plusargs("gesture")||$test$plusargs("algo_preview")||$test$plusargs("ai")||$test$plusargs("composer")||$test$plusargs("rename")||$test$plusargs("sd")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
+    initial if($test$plusargs("gesture")||$test$plusargs("nav_exit")||$test$plusargs("algo_preview")||$test$plusargs("ai")||$test$plusargs("composer")||$test$plusargs("rename")||$test$plusargs("sd")||$test$plusargs("poly32")||$test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
     integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -371,9 +371,9 @@ module tb_touch_ui;
     always @(posedge clk)if(valid&&arp_test_ready&&event_word[31]&&event_word[23:20]==9)seq_ons<=seq_ons+1;
     always @(posedge clk)if(valid&&arp_test_ready)begin
         $display("UI MIDI %h at %t",event_word,$time);
-        if($test$plusargs("gesture")&&(event_word[23:20]==8||event_word[23:20]==9))
+        if(($test$plusargs("gesture")||$test$plusargs("nav_exit"))&&(event_word[23:20]==8||event_word[23:20]==9))
             $fatal(1,"Navigation emitted an accidental keyboard note %h",event_word);
-        if($test$plusargs("gesture")||$test$plusargs("ai")||$test$plusargs("composer")||$test$plusargs("arp")||$test$plusargs("seq"))begin
+        if($test$plusargs("gesture")||$test$plusargs("nav_exit")||$test$plusargs("ai")||$test$plusargs("composer")||$test$plusargs("arp")||$test$plusargs("seq"))begin
             if(event_word[23:16]==8'hb0&&event_word[14:8]==22&&!$test$plusargs("glide_delay"))model_glide<=event_word[6:0]!=0;
         end else if($test$plusargs("lesson"))begin
             if(event_word!==32'h00b04000&&event_word!==32'h00903064&&event_word!==32'h00803000)
@@ -409,6 +409,20 @@ module tb_touch_ui;
         if($test$plusargs("algo_preview"))begin
             #10000000;touch_kind=12;wait(menu_page==1);#30000000;
             $display("PASS ALGO rectangle menu capture from real firmware");$finish;
+        end
+        if($test$plusargs("nav_exit"))begin
+            if(gesture_config!==0)$fatal(1,"Gesture controls must default OFF");
+            #10000000;touch_kind=17;wait(menu_page==7);#10000000;
+            touch_kind=0;#8000000;touch_kind=135;wait(menu_page==14);#10000000;
+            if(!composer_status[0])$fatal(1,"Direct melody entry failed");
+            touch_kind=0;#8000000;touch_kind=136;#10000000;
+            touch_kind=0;#8000000;touch_kind=132;wait(gesture_config==1);#10000000;
+            touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==3);#10000000;
+            touch_kind=0;#8000000;touch_kind=115;#10000000;
+            touch_kind=0;#8000000;touch_kind=115;#10000000;
+            touch_kind=0;#8000000;touch_kind=122;wait(menu_page==7);#10000000;
+            if(gesture_config!==1||composer_status[0]||composer_ons)$fatal(1,"Exit did not disarm/flush composer");
+            $display("PASS direct AI melody/gesture navigation: OFF defaults, recognition/control switches, SURFACE return, EXIT to SETUP, disarm/flush and no keyboard notes during held navigation touches");$finish;
         end
         if($test$plusargs("gesture"))begin
             if(gesture_config!==0)$fatal(1,"Gesture controls must default OFF");
