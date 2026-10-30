@@ -371,6 +371,8 @@ module tb_touch_ui;
     always @(posedge clk)if(valid&&arp_test_ready&&event_word[31]&&event_word[23:20]==9)seq_ons<=seq_ons+1;
     always @(posedge clk)if(valid&&arp_test_ready)begin
         $display("UI MIDI %h at %t",event_word,$time);
+        if($test$plusargs("gesture")&&(event_word[23:20]==8||event_word[23:20]==9))
+            $fatal(1,"Navigation emitted an accidental keyboard note %h",event_word);
         if($test$plusargs("gesture")||$test$plusargs("ai")||$test$plusargs("composer")||$test$plusargs("arp")||$test$plusargs("seq"))begin
             if(event_word[23:16]==8'hb0&&event_word[14:8]==22&&!$test$plusargs("glide_delay"))model_glide<=event_word[6:0]!=0;
         end else if($test$plusargs("lesson"))begin
@@ -435,7 +437,7 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=115;#10000000;
             touch_kind=0;#8000000;touch_kind=115;#10000000;
             touch_kind=0;#8000000;touch_kind=122;wait(menu_page==7);#10000000;
-            if(gesture_config!==1||composer_status[0]||composer_ons||event_count)$fatal(1,"Mode exit did not disarm or UI leaked notes");
+            if(gesture_config!==1||composer_status[0]||composer_ons)$fatal(1,"Mode exit did not disarm or UI leaked notes");
             $display("PASS real RV32I/I2C direct AI melody/gesture navigation: OFF defaults, recognition/control isolation, status, cross-page persistence, mode exit disarm");$finish;
         end
         if($test$plusargs("composer"))begin

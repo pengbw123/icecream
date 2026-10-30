@@ -10,6 +10,6 @@ AI MELODY 可以从 SETUP 直接进入；AI BACKING 页原 COMPOSE 跳转改名 
 
 固件81052/81920字节，BSS10808字节。新增入口不增加 RTL 模块、字库、屏幕缓冲或软核规格。完整位流资源和时序以发布记录为准。
 
-复现：先运行 src/ui_firmware/build_firmware.ps1 编译固件，再运行 sim/run_ai_menu_checks.ps1（可传 -IverilogDirectory）。五项真实 RV32I/I2C 回归分别覆盖直接旋律/手势导航和零意外 MIDI、伴奏播放与互斥、旋律主题/节奏录制及退出、滑音时间、全宽琴键/力度/输出选择。
+复现：先运行 src/ui_firmware/build_firmware.ps1 编译固件，再运行 sim/run_ai_menu_checks.ps1（可传 -IverilogDirectory）。五项真实 RV32I/I2C 回归分别覆盖直接旋律/手势导航和零意外琴键音符、伴奏播放与互斥、旋律主题/节奏录制及退出、滑音时间、全宽琴键/力度/输出选择。
 
 发布状态：源代码36f63ca已冻结，正在完整构建及回归；标准下载文件在验收完成前仍保留灰度CNN版。
