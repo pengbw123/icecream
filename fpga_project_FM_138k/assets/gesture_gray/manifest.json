@@ -1,0 +1,29 @@
+{
+  "stage": "gray frontend foundation only",
+  "production_integrated": false,
+  "bitstream_changed": false,
+  "trained_cnn": false,
+  "post_route_timing_verified": false,
+  "device": "GW5AT-LV138PG484AC1/I0 B",
+  "synthesis": {
+    "bsram": 1,
+    "registers": 167,
+    "lut": 172,
+    "alu": 78,
+    "dsp": 0
+  },
+  "simulation": {
+    "rgb565_colors": 65536,
+    "stream_samples": 9216,
+    "pclk_mhz": 84.7457627118644,
+    "system_mhz": 50
+  },
+  "production_bitstream_sha256": "569F13D4F466B02229F8FD4E59283CDC18AB32B290C67A79125A6346FE21579C",
+  "files": {
+    "src\\gesture\\gesture_gray_frontend.v": "19d608245e2aa19f7df4c616269177a845f14ffe9ac57eaec034a734d8dd88fc",
+    "src\\gesture\\gesture_gray_mailbox.v": "5549c7abea3e59ac3af81b0fbb5962b0e732bc81efae56b93afef01bfff93aaa",
+    "src\\gesture\\gesture_gray_roi.v": "5803b844789a541ebe4486cbf88221d66f23f860ee177a89f4061ef0bfa7b22f",
+    "sim\\tb_gesture_gray.sv": "ef9d7cff148e88294c73ef7e16912eaa66269d560343f191af4d899bc53a03a8",
+    "tools\\gesture\\gray_reference.py": "2629513d09c8cb83ec49fac34f2c38ecd18f3772bb36971bee67056aba630ec7"
+  }
+}

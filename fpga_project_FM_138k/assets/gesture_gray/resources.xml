@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Module name="gesture_gray_frontend" Register="3" Lut="1" T_Register="167(3)" T_Alu="78(0)" T_Lut="172(1)" T_Bsram="1(0)">
+ <SubModule name="roi" Register="83" Alu="78" Lut="76" T_Register="83(83)" T_Alu="78(78)" T_Lut="76(76)"/>
+ <SubModule name="mailbox" Register="81" Lut="95" Bsram="1" T_Register="81(81)" T_Lut="95(95)" T_Bsram="1(1)"/>
+</Module>

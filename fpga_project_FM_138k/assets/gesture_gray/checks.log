@@ -1,0 +1,9 @@
+PASS gray reference: exhaustive 65536 RGB565 levels, endpoints, 32x32 coordinates and graded brightness
+src/gesture/gesture_gray_frontend.v:4: warning: timescale for gesture_gray_frontend inherited from another file.
+sim/tb_gesture_gray.sv:1: ...: The inherited timescale is here.
+src/gesture/gesture_gray_roi.v:4: warning: timescale for gesture_gray_roi inherited from another file.
+sim/tb_gesture_gray.sv:1: ...: The inherited timescale is here.
+src/gesture/gesture_gray_mailbox.v:4: warning: timescale for gesture_gray_mailbox inherited from another file.
+sim/tb_gesture_gray.sv:1: ...: The inherited timescale is here.
+PASS gray frontend: 9216 exact samples, 84.75MHz PCLK/50MHz system, sums, busy drop, missing/bad/disable, stopped PCLK, reset recovery
+sim/tb_gesture_gray.sv:70: $finish called at 4422197500 (1ps)
