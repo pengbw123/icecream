@@ -1,0 +1,2 @@
+PASS TFT capture: 800x480 at 84.75MHz, central 640x480 crop, 4x4 decimation, 249600 exact samples, ten-frame warmup, full-source geometry, odd-row rejection and warmup restart
+sim/tb_ov5640_capture_tft.sv:57: $finish called at 118770610800 (1ps)

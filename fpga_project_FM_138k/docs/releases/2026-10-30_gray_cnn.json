@@ -1,0 +1,122 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "production_commit": "18b9fb213964d345f79621eee245ec56bf3cddd0",
+  "bitstream": "impl/pnr/fm_138k_rgb_hdmi.fs",
+  "bitstream_time": "2026-10-30T23:43:08.392638+08:00",
+  "bytes": 42234791,
+  "sha256": "43ADDC2B29B28A0FF1F2A8F7B2090FD83611FD75CAE95311B753C52F15BA3562",
+  "resources": {
+    "logic": 69601,
+    "logic_total": 138240,
+    "ff": 39089,
+    "ff_total": 139095,
+    "bsram": 329,
+    "bsram_total": 340,
+    "dsp": 83,
+    "dsp_total": 298
+  },
+  "resource_delta": {
+    "logic": -3023,
+    "ff": -4005,
+    "bsram": -2,
+    "dsp": -2
+  },
+  "fmax_mhz": {
+    "clk_50m": 50.353,
+    "camera_pclk_85m": 89.142,
+    "pixel_33m": 36.129,
+    "hdmi_pixel_25m": 70.522,
+    "hdmi_serial_125m": 225.726
+  },
+  "all_setup_hold_tns_zero": true,
+  "clocks_or_constraints_relaxed": false,
+  "modules_removed": false,
+  "firmware_changed": true,
+  "weights_changed": true,
+  "preprocessor_changed": true,
+  "preprocessor": "RGB565 continuous 32x32 grayscale; no binary segmentation for classification",
+  "classification": {
+    "classes": 4,
+    "cnn_weights": 436,
+    "cnn_biases": 8,
+    "conv_channels": 4,
+    "mac_reused": true,
+    "cycles": 18909,
+    "margin_threshold": 2048,
+    "other_class_never_controls": true
+  },
+  "temporal_filter": {
+    "window": 5,
+    "acquire": 3,
+    "switch": 4,
+    "release_rejects": 3,
+    "expire_unmatched": 5,
+    "timeout_seconds": 1
+  },
+  "debug_display": {
+    "gray_preview_width": 16,
+    "gray_preview_height": 16,
+    "gray_model_width": 32,
+    "gray_model_height": 32,
+    "scale": 8,
+    "position": [
+      0,
+      32
+    ],
+    "packet_bits": 324,
+    "gray_ram_bits": 4096,
+    "gray_ram_banks": 2,
+    "blank_only_updates": true,
+    "gray_status_same_inference_guaranteed": false
+  },
+  "camera_configuration_changed": false,
+  "recognition_default": false,
+  "control_default": false,
+  "hardware_previous_tft_profile_capture_verified": true,
+  "hardware_current_gesture_verified": false,
+  "automatically_programmed": false,
+  "cnn_oracle_images": 552,
+  "cnn_scores_checked": 2208,
+  "pipeline_results_checked": 26,
+  "synthetic_other_recall": 0.95,
+  "real_camera_accuracy": null,
+  "gesture_regression_cases": 17,
+  "ui_real_firmware_mode_switch_verified": true,
+  "composer_legacy_regression": true,
+  "camera_regression_cases": 6,
+  "hdmi_camera_pixels_checked": 2087228,
+  "gray_preview_pixels_checked": 1280,
+  "gray_renderer_interior_pixels_checked": 15876,
+  "sensor_config_preserved": true,
+  "gesture_perform": {
+    "bar_steps": 16,
+    "cache_words": 32,
+    "xy_zones": 3,
+    "boundary_quantized": true
+  },
+  "limitations": [
+    "Fixed central ROI; arbitrary clutter and real-subject accuracy unverified",
+    "OTHER training uses synthetic negatives and does not cover arbitrary clutter",
+    "CGI and synthetic probes are not real-person validation"
+  ],
+  "isolated_snapshot": "tmp\\camera_build_18b9fb2",
+  "rollback_bitstream": "impl\\pnr\\backup\\fm_138k_rgb_hdmi_2026-10-30_pre_gray_cnn.fs",
+  "rollback_sha256": "569F13D4F466B02229F8FD4E59283CDC18AB32B290C67A79125A6346FE21579C",
+  "archived_logs": {
+    "assets\\gesture_gray_cnn\\build_gray_cnn_18b9fb2.log": "8E3A51E5417ACA40BFAD48FA637FAE17869B02C8603EBE3AC0EDC2023D429AB9",
+    "assets\\gesture_gray_cnn\\gray_18b9fb2_checks.log": "6CF8CDB2036BE5C460C1ACB4A9490A4D022331806A7E6F38747579C53A49AA62",
+    "assets\\gesture_gray_cnn\\gray_firmware.log": "C82CE5368F33D6A6F5EE1EE1477864EFABE81ED6749A0FCFE401DDFF5F3C12BA",
+    "assets\\gesture_gray_cnn\\gray_ui.log": "2C5CA456E42557F6FBD663047BE08AED38F34EAB03E1564E1F5BC0ECC5D95B8F",
+    "assets\\gesture_gray_cnn\\model_manifest.json": "EFD4DAEF6C20D26F3A79C9DD383FAB609C184241530551A1677DF56B6A17C1B2",
+    "assets\\gesture_gray_cnn\\stress.json": "850914C593DEE80CE235E4AD0879685956BCBB70CE453228B693B9EC69300A68",
+    "assets\\gesture_gray_cnn\\tft_tb_camera_diagnostics.log": "A768D57D26517F91B132A7E23CF00ECC9CF78868FD438E44EF712C44FE34C628",
+    "assets\\gesture_gray_cnn\\tft_tb_camera_pipeline.log": "94DA23DF5C58814744D569B66ADF8B0C6035F501ABEE5FC1CFB105FFDE11F997",
+    "assets\\gesture_gray_cnn\\tft_tb_camera_recovery.log": "2A8DAE8EC0B3B8B54AAE244F531A719603AD2E4D94EC1235AAE2F8927AE1D064",
+    "assets\\gesture_gray_cnn\\tft_tb_ov5640_capture.log": "E64F058601CDE494C003A692D7AFC74B53182053A6405DDBCDBA9570EFB36279",
+    "assets\\gesture_gray_cnn\\tft_tb_ov5640_capture_tft.log": "FC3C7279B9E72D1547E45B22E9409F8874F6A9DC9AB96B01BCE13C44CC93C1D7",
+    "assets\\gesture_gray_cnn\\tft_tb_ov5640_config.log": "4EEEBC422033F4391DC1F85DE2EE26FE8421F76EBC8A6D7B8BEFA32B69ED2D7C",
+    "assets\\gesture_gray_cnn\\timing.log": "414C19249A0E2AF276551D61D9B1ECD4E22448094D5C2D780440430E73EAAE72",
+    "assets\\gesture_gray_cnn\\training.log": "261BB47AFD92787D500C91F2AC184AB387E95B31BDD4DB7FFDAB5CD66A12B0A9"
+  }
+}
