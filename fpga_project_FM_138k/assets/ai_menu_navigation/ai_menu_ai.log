@@ -1,0 +1,11 @@
+WARNING: src/usb_midi/rtl/rv32i.v:447: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+WARNING: src/usb_midi/rtl/rv32i.v:421: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+UI MIDI 00b01600 at          97661150000
+UI MIDI 00903064 at         127218750000
+UI MIDI 00803000 at         136904990000
+UI MIDI 00b01600 at         265305950000
+UI MIDI 00b01600 at         279653150000
+UI MIDI 00b01600 at         324724030000
+UI MIDI 00b01600 at         325237550000
+PASS real UI AI entry/start/stop, compiled backing snapshot, LIVE independence, tempo/key/density edits, ARP mutual exclusion and learned MIDI
+sim/tb_touch_ui.sv:502: $finish called at 330335050000 (1ps)

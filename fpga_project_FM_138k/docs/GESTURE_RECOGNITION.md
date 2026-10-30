@@ -1,6 +1,16 @@
 # 神经网络手势识别
 
-## 2026-10-30 灰度CNN手势版（当前下载版）
+## 2026-10-31 AI菜单入口优化（当前下载版）
+
+- 编译源码`36f63ca`；位流北京时间`2026-10-31T00:36:02.305729+08:00`，SHA256 `4F369D5142FAD66536DC8BAAE0B36713AF82540DC23844F73B04174FF183A688`。标准`impl/pnr/fm_138k_rgb_hdmi.fs`已更新，未自动烧录。
+- SETUP并列AI BACKING（AI伴奏）与AI MELODY（AI旋律），不必先进入伴奏才能到旋律。旋律操作面直接进入GESTURES，手势页SURFACE直接返回操作面，EXIT MODE回SETUP。入口176×48，实固件800×480预览见assets/ai_menu_navigation/setup_800x480.png。
+- 修复按住导航按钮后，新页面钢琴区域误发音：切页触点抬起前不参与琴键映射。外部MIDI不受此触屏状态影响。
+- 五项真实RV32I/I2C回归通过：直接旋律/手势导航且零意外琴键音符、AI伴奏、旋律主题/节奏录制、滑音时间、全宽琴键/力度/输出选择。固件81052/81920字节，BSS10808字节。
+- RTL、模型、摄像头配置和时序约束与上一灰度版逐文件核对相同；本轮继承灰度CNN回归及局限，不重复声称新的模型准确率或实机验收。RECOGNITION和CONTROL仍默认关闭。
+- 完整布局布线通过，全部约束时钟setup/hold TNS为0；逻辑69601/138240、寄存器39089/139095、BSRAM329/340、DSP83/298。
+- 说明AI_MENU_NAVIGATION.md；发布记录releases/2026-10-31_ai_navigation.json；回退`impl\pnr\backup\fm_138k_rgb_hdmi_2026-10-31_pre_ai_navigation.fs`。
+
+## 2026-10-30 灰度CNN手势版（历史下载版）
 
 - 编译源码`18b9fb2`；位流北京时间`2026-10-30T23:43:08.392638+08:00`，SHA256 `43ADDC2B29B28A0FF1F2A8F7B2090FD83611FD75CAE95311B753C52F15BA3562`。标准`impl/pnr/fm_138k_rgb_hdmi.fs`已更新，未自动烧录。
 - 生产摄像头RGB565抽头→32x32连续灰度→跨时钟邮箱→纯RTL量化CNN（436权重/8偏置）→四类分差判定→原投票/音乐控制。FIST/PALM/V/OTHER中OTHER禁止发命令；分类不再依赖二值轮廓。BASIC/PERFORM及默认OFF保留。

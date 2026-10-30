@@ -1,0 +1,6 @@
+WARNING: src/usb_midi/rtl/rv32i.v:447: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+WARNING: src/usb_midi/rtl/rv32i.v:421: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+UI MIDI 00b01600 at          78117230000
+UI MIDI 00b01600 at         194020030000
+PASS direct AI melody/gesture navigation: OFF defaults, recognition/control switches, SURFACE return, EXIT to SETUP, disarm/flush and no keyboard notes during held navigation touches
+sim/tb_touch_ui.sv:425: $finish called at 204140330000 (1ps)

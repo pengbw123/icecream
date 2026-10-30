@@ -1,0 +1,4 @@
+WARNING: src/usb_midi/rtl/rv32i.v:447: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+WARNING: src/usb_midi/rtl/rv32i.v:421: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+PASS real UI GLIDE MS selection, tap adjustment, slider, raw reciprocal upload and enable isolation
+sim/tb_touch_ui.sv:513: $finish called at 128557630000 (1ps)

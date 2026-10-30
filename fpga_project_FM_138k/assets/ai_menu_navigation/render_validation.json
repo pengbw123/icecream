@@ -1,0 +1,39 @@
+{
+  "size": [
+    800,
+    480
+  ],
+  "capture_time_ns": 62000000,
+  "source": "real RV32I firmware + Goodix I2C regression logs, +ai scenario",
+  "cells_sha256": "9D207173F72D98D70BA04F05E4BC4416474F3F1CDE27F6A246C28585901F8028",
+  "palette_sha256": "7E8CEE77422935681C26DA5568EA99B895D52192EC064536EF8D9FFD47110041",
+  "render_command": "python tools/render_ui_capture.py --prefix ai_ --time 62000000 --page 7 --out tmp/ai_menu_setup_800x480.png",
+  "button_rects_xywh": {
+    "METERS": [
+      16,
+      368,
+      176,
+      48
+    ],
+    "AI BACKING": [
+      208,
+      368,
+      176,
+      48
+    ],
+    "AI MELODY": [
+      416,
+      368,
+      176,
+      48
+    ],
+    "GLIDE MS": [
+      608,
+      368,
+      176,
+      48
+    ]
+  },
+  "labels_not_clipped": true,
+  "hardware_screenshot": false
+}

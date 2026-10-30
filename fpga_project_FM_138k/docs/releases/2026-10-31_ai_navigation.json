@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-31",
+  "timezone": "Asia/Shanghai",
+  "production_commit": "36f63ca746fa88fcfb66bdf10ba90985987c21e2",
+  "bitstream": "impl/pnr/fm_138k_rgb_hdmi.fs",
+  "bitstream_time": "2026-10-31T00:36:02.305729+08:00",
+  "bytes": 42234791,
+  "sha256": "4F369D5142FAD66536DC8BAAE0B36713AF82540DC23844F73B04174FF183A688",
+  "resources": {
+    "logic": 69601,
+    "logic_total": 138240,
+    "ff": 39089,
+    "ff_total": 139095,
+    "bsram": 329,
+    "bsram_total": 340,
+    "dsp": 83,
+    "dsp_total": 298
+  },
+  "resource_delta": {
+    "logic": 0,
+    "ff": 0,
+    "bsram": 0,
+    "dsp": 0
+  },
+  "fmax_mhz": {
+    "clk_50m": 50.353,
+    "camera_pclk_85m": 89.142,
+    "pixel_33m": 36.129,
+    "hdmi_pixel_25m": 70.522,
+    "hdmi_serial_125m": 225.726
+  },
+  "all_setup_hold_tns_zero": true,
+  "clocks_or_constraints_relaxed": false,
+  "modules_removed": false,
+  "firmware_changed": true,
+  "firmware_bytes": 81052,
+  "firmware_limit": 81920,
+  "firmware_bss_bytes": 10808,
+  "rtl_unchanged": true,
+  "weights_changed": false,
+  "camera_configuration_changed": false,
+  "preprocessor_changed": false,
+  "recognition_default": false,
+  "control_default": false,
+  "ui_real_firmware_navigation_cases": 5,
+  "navigation": [
+    "SETUP -> AI BACKING",
+    "SETUP -> AI MELODY",
+    "AI MELODY surface -> GESTURES",
+    "GESTURES -> SURFACE",
+    "EXIT MODE -> SETUP"
+  ],
+  "navigation_touch_consumed_until_release": true,
+  "existing_backing_modes_and_glide_preserved": true,
+  "inherited_model_camera_validation": "docs/releases/2026-10-30_gray_cnn.json",
+  "hardware_current_ui_verified": false,
+  "automatically_programmed": false,
+  "isolated_snapshot": "tmp\\camera_build_36f63ca",
+  "rollback_bitstream": "impl\\pnr\\backup\\fm_138k_rgb_hdmi_2026-10-31_pre_ai_navigation.fs",
+  "rollback_sha256": "43ADDC2B29B28A0FF1F2A8F7B2090FD83611FD75CAE95311B753C52F15BA3562",
+  "archived_logs": {
+    "assets\\ai_menu_navigation\\ai_menu_ai.log": "1365E8F880B312173A77ED283726B7DADEAF0A65E16F410C3B539B92FD574E48",
+    "assets\\ai_menu_navigation\\ai_menu_composer.log": "FD148D7208ACED5184B043DE62ECBBEA483FCC673931939E263F015A604E186B",
+    "assets\\ai_menu_navigation\\ai_menu_firmware.log": "B14592CCEEEC29927FD3F2EA79F2D721DCC8845163C32440E2D79FC25DA758C1",
+    "assets\\ai_menu_navigation\\ai_menu_glide_time.log": "90E376661A34190D68D10FBFD33160A4AC8ED921BFEEDA41DDFEB8126B26365E",
+    "assets\\ai_menu_navigation\\ai_menu_keyboard.log": "EDDD476A5EAA3B033071FE290246B29370AB25148D410F6FFA6A66C000EF5ACB",
+    "assets\\ai_menu_navigation\\ai_menu_nav_exit.log": "98345D97A6416778E633F5B9F2A2C3ED3C38AA7C65F098330CBF1307CC97A07D",
+    "assets\\ai_menu_navigation\\build_ai_menu_36f63ca.log": "166145C464A267A4929AFC3A20681BF3BA2747C70485E3D9C627AB448E1BA710",
+    "assets\\ai_menu_navigation\\render_validation.json": "2A41546851FA917FB2318145689864FBDEFD3C40380FA7BEF6008C86012D7134",
+    "assets\\ai_menu_navigation\\setup_800x480.png": "F1983CFC46D49C8AD3E77D1F48E8CC31D2982353F41EE0FB74B4B872829BBA3A",
+    "assets\\ai_menu_navigation\\timing.log": "414C19249A0E2AF276551D61D9B1ECD4E22448094D5C2D780440430E73EAAE72"
+  }
+}
