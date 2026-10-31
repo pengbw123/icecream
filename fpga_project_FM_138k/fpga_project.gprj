@@ -51,6 +51,7 @@
         <File path="src/ch376/midi_event_arbiter3.v" type="file.verilog" enable="1"/>
         <File path="src/ch376/midi_input_queue.v" type="file.verilog" enable="1"/>
         <File path="src/audio_performance_monitor.v" type="file.verilog" enable="1"/>
+        <File path="src/audio_note_latency.v" type="file.verilog" enable="1"/>
         <File path="src/step_sequencer.v" type="file.verilog" enable="1"/>
         <File path="src/midi_arpeggiator.v" type="file.verilog" enable="1"/>
         <File path="src/audio_chorus.v" type="file.verilog" enable="1"/>

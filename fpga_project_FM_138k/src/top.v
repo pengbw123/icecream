@@ -57,7 +57,7 @@ module top #(
     output wire [15:0] readback_data,
     output wire readback_valid,
     input wire perf_snapshot,perf_clear,input wire [4:0] perf_index,
-    input wire perf_bridge_drop,output wire [31:0] perf_data
+    input wire perf_bridge_drop,output wire [31:0] perf_data,output wire latency_marker
 );
     wire clk_usb_48m;
     wire clk_usb_bram_96m;
@@ -474,13 +474,21 @@ module top #(
     );
 
     wire signed [15:0] output_sample;
+    wire latency_frame_load,latency_left_done;wire [31:0] engine_perf_data,latency_perf_data;
+    assign perf_data=perf_index>=18?latency_perf_data:engine_perf_data;
+    audio_note_latency u_note_latency(.clk(clk),.reset_n(audio_reset_n),
+        .enable(!arp_config[0]&&!sequence_active&&!composer_status[0]&&!ai_status[0]&&!arp_suspend),
+        .event_valid(ingress_mux_valid),.event_ready(ingress_buffer_ready),.event_data(ingress_mux_data),
+        .active_voices(active_voice_count),.frame_load(latency_frame_load),.left_word_done(latency_left_done),
+        .sample_value(output_sample),.snapshot(perf_snapshot),.clear_stats(perf_clear),
+        .read_index(perf_index),.read_data(latency_perf_data),.marker(latency_marker));
     audio_performance_monitor #(.VOICE_CAPACITY(FM_VOICE_COUNT)) u_performance(.clk(clk),.reset_n(audio_reset_n),
         .sample_tick(sample_tick),.engine_busy(perf_busy),.sample_pending(perf_pending),
         .render_start(perf_start),.render_done(perf_done),.voice_steal(perf_steal),
         .midi_accept(synth_midi_event_valid&&synth_midi_event_ready),
         .midi_stall(synth_midi_event_valid&&!synth_midi_event_ready),.bridge_drop(perf_bridge_drop),
         .active_voices(active_voice_count),.audio_sample(output_sample),
-        .snapshot(perf_snapshot),.clear_stats(perf_clear),.read_index(perf_index),.read_data(perf_data));
+        .snapshot(perf_snapshot),.clear_stats(perf_clear),.read_index(perf_index),.read_data(engine_perf_data));
     wire [5:0]  fx_cfg_addr;
     wire [15:0] fx_cfg_value;
     wire        fx_cfg_write;
@@ -543,6 +551,7 @@ module top #(
         .clk(clk), .reset_n(audio_reset_n),
         .headphone_select(headphone_select),.headphone_din(headphone_din),
         .sample_left(output_sample), .sample_right(output_sample),
+        .frame_load(latency_frame_load),.left_word_done(latency_left_done),
         .sample_tick(sample_tick), .i2s_bclk(i2s_bclk),
         .i2s_lrclk(i2s_lrclk), .i2s_din(i2s_din)
     );

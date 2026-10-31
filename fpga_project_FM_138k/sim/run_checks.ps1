@@ -64,6 +64,7 @@ try {
         @{ Name='tb_rgb_visualizer'; Sources=@('sim/tb_rgb_visualizer.sv','src/lesson_view.v','src/lesson_score_memory.v','src/rgb_visualizer.v','src/audio_spectrum_snapshot.v','src/audio_xy_scope.v','src/audio_wave_scope.v','src/rtl_performance_text.v','src/rtl_char_display.v','src/ui_eg_curve.v','src/ui_algo_map.v','src/ui_eg_multi.v') }
     )
     foreach ($case in $cases) {
+        if ($case.Sources -contains 'src/top.v') { $case.Sources += 'src/audio_note_latency.v' }
         if ($case.Sources -contains 'src/camera/camera_hdmi_video.v') { $case.Sources += 'src/camera/camera_diagnostics.v' }
         if (($case.Sources -contains 'src/top.v') -or ($case.Sources -contains 'src/touch_ui_controller.v')) { $case.Sources += @('src/ai_melody_composer.v','src/ai_melody_inference.v') }
         if ($case.Name -eq 'tb_touch_ui') { $case.Sources += @('src/ai_bass_accompaniment.v','src/ai_bass_inference.v') }

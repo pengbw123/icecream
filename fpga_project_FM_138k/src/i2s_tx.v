@@ -13,9 +13,12 @@ module i2s_tx #(
     output reg                sample_tick,
     output reg                i2s_bclk,
     output reg                i2s_lrclk,
-    output reg                i2s_din
+    output reg                i2s_din,
+    output wire frame_load,left_word_done
 );
 
+    assign frame_load=reset_n&&bclk_div==BCLK_HALF_DIV-1&&i2s_bclk&&slot_count==63;
+    assign left_word_done=reset_n&&bclk_div==BCLK_HALF_DIV-1&&!i2s_bclk&&slot_count==17;
     reg route_frame;
     reg serial_data;
     assign headphone_din = OUTPUT_SELECT_ENABLED ? (route_frame ? serial_data : 1'b0) : serial_data;

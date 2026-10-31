@@ -116,6 +116,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire [6:0] lesson_address;
     wire sequencer_active;
     wire [31:0] ai_status,composer_status,composer_detail;wire [159:0] arp_config;wire [31:0] arp_status;wire [127:0] arp_notes;
+    wire latency_marker;
     wire [2:0] gesture_config;
     wire [31:0] gesture_status,gesture_detail;
     wire gesture_valid,gesture_ready,gesture_allowed,gesture_cancel;
@@ -145,7 +146,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .fx_write(),.fx_index(),.fx_value(),.fx_read_value(32'd0),.numeric_display()
     );
     top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1),.GESTURE_ENABLED(1)) u_audio (
-        .gesture_valid(gesture_valid),.gesture_action(gesture_action),
+        .latency_marker(latency_marker),.gesture_valid(gesture_valid),.gesture_action(gesture_action),
         .gesture_ready(gesture_ready),.gesture_allowed(gesture_allowed),.gesture_cancel(gesture_cancel),
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),.perf_bridge_drop(bridge_drop),
         .arp_config(arp_config),.arp_suspend(lesson_state[16]||sequencer_active),.sequence_active(sequencer_active),.ai_status(ai_status),.composer_status(composer_status),.composer_detail(composer_detail),.arp_status(arp_status),.arp_notes(arp_notes),
@@ -228,5 +229,5 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
             else if (event_hold!=0) event_hold<=event_hold-1'b1;
         end
     end
-    assign status_led={ch376_fault!=0,ch376_configured,ch376_present,bridge_dropped!=0,touch_present,event_hold!=0,video_lock,heartbeat[25]};
+    assign status_led={ch376_fault!=0,ch376_configured,ch376_present,bridge_dropped!=0,touch_present,event_hold!=0,video_lock,latency_marker};
 endmodule

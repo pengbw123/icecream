@@ -46,6 +46,7 @@ add_file -type verilog "src/midi_note_owners.v"
 # Run this script from the project root so $readmemh relative paths resolve.
 
 add_file -type verilog "src/audio_performance_monitor.v"
+add_file -type verilog "src/audio_note_latency.v"
 add_file -type verilog "src/i2s_tx.v"
 add_file -type verilog "src/es8388_output.v"
 add_file -type verilog "src/uart_rx.v"
