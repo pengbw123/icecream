@@ -4,6 +4,8 @@ module tb_ui_sparse;
     reg [14:0] code_addr=0,data_addr=0;
     reg [3:0] we=0;reg [31:0] data_in=0;
     wire [31:0] code_out,data_out;
+    reg [31:0] expected[0:24575];
+    integer word_index;
     m_lm_mc #(.FIRMWARE_FILE("src/ui_firmware/firmware.hex"),
         .FIRMWARE_HIGH_FILE("src/ui_firmware/firmware_high.hex"),.DATA_BYTES(98304),.DATA_SPARSE(1)) dut(
         .CLK(clk),.w_addr1(code_addr),.r_odata1(code_out),.w_we(we),.w_addr2(data_addr),
@@ -17,7 +19,17 @@ module tb_ui_sparse;
     endtask
     reg [31:0] code_zero,code_high;
     initial begin
-        repeat(3)@(negedge clk);code_zero=code_out;
+        $readmemh("src/ui_firmware/firmware.hex",expected);
+        for(word_index=0;word_index<20480;word_index=word_index+1)begin
+            @(negedge clk);code_addr=word_index;
+            @(posedge clk);#1;
+            if(code_out!==expected[word_index])$fatal(1,"Instruction image mismatch at word %0d",word_index);
+        end
+        for(word_index=0;word_index<4096;word_index=word_index+1)begin
+            rd(word_index,expected[word_index]);
+            rd(16384+word_index,expected[16384+word_index]);
+        end
+        code_addr=0;repeat(3)@(negedge clk);code_zero=code_out;
         code_addr=15'h4000;repeat(3)@(negedge clk);code_high=code_out;
         wr(15'h5000,32'h11223344,15);wr(15'h1000,32'hffffffff,15);rd(15'h1000,0);rd(15'h5000,32'h11223344);
         wr(0,32'h12345678,15);wr(15'h0fff,32'h01020304,15);
@@ -28,6 +40,6 @@ module tb_ui_sparse;
         rd(15'h4000,32'h87aa4321);rd(15'h0fff,32'h010203bb);rd(0,32'h12345678);
         code_addr=0;repeat(3)@(negedge clk);if(code_out!==code_zero)$fatal(1,"Data writes changed instruction ROM");
         code_addr=15'h4000;repeat(3)@(negedge clk);if(code_out!==code_high)$fatal(1,"High data writes changed instruction ROM");
-        $display("PASS sparse 16+32KiB RAM with ignored hole writes and no high-bank alias: bank boundaries, no alias, byte stores, one-clock read and instruction independence");$finish;
+        $display("PASS sparse 16+32KiB RAM: full 80KiB fetch/initialized data parity, ignored hole writes, no alias, byte stores, one-clock read and instruction independence");$finish;
     end
 endmodule

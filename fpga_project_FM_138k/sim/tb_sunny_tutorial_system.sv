@@ -2,6 +2,10 @@
 module tb_sunny_tutorial_system;
     wire external_busy=0;
     parameter integer PHYSICAL_TIMING=0;
+    // Override together with PHYSICAL_TIMING=1 for the full 160-LED profile.
+    // Keep a literal string parameter: Icarus cannot read the padded result
+    // of the old conditional filename expression reliably.
+    parameter MAP_FILE="sim/tutorial_map_test.mem";
     localparam integer CPB=PHYSICAL_TIMING?434:8, LEDS=PHYSICAL_TIMING?160:6;
     localparam integer CLOCK_HZ=PHYSICAL_TIMING?50000000:100000;
     localparam integer BIT_CLOCKS=PHYSICAL_TIMING?63:7;
@@ -23,7 +27,7 @@ module tb_sunny_tutorial_system;
     wire bt_tx,led_data,running,count_in,beat_active,initialized,mapping_missing,frame_done,reply_overflow;
     sunny_tutorial_system #(.CLK_HZ(CLOCK_HZ),.UART_CLKS_PER_BIT(CPB),.LED_COUNT(LEDS),
         .BIT_CYCLES(BIT_CLOCKS),.T0H_CYCLES(HIGH0),.T1H_CYCLES(HIGH1),.RESET_CYCLES(GAP_CLOCKS),
-        .BUTTON_CYCLES(STABLE_CLOCKS),.MAP_FILE(PHYSICAL_TIMING?"src/generated/tutorial_led_map.mem":"sim/tutorial_map_test.mem")) dut(.*);
+        .BUTTON_CYCLES(STABLE_CLOCKS),.MAP_FILE(MAP_FILE)) dut(.*);
     wire [7:0] rx_byte;
     wire rx_valid;
     uart_rx #(.CLKS_PER_BIT(CPB)) monitor(.clk(clk),.reset_n(reset_n),.rx(bt_tx),
