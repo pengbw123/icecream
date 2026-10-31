@@ -15,7 +15,8 @@ module audio_note_latency #(
  reg pending,word_pending,seen;
  reg [15:0] quiet;
  wire [15:0] magnitude=sample_value[15]?(~sample_value+16'd1):sample_value;
- wire note_on=event_data[31:28]==0&&event_data[23:20]==9&&event_data[6:0]!=0;
+ wire note_on=event_data[31:28]==0&&event_data[23:20]==9&&
+     !event_data[15]&&!event_data[7]&&event_data[6:0]!=0;
  wire fresh_event=event_valid&&!seen;
  reg [31:0] held[0:5];integer i;
  always @(posedge clk or negedge reset_n)begin
@@ -58,7 +59,7 @@ module audio_note_latency #(
   else if(snapshot)begin
    held[0]<=last_latency;held[1]<=max_latency;held[2]<=completed;
    held[3]<=timeouts;held[4]<=skipped;
-   held[5]<={28'd0,enable,quiet>=QUIET_FRAMES,word_pending,pending};
+   held[5]<={26'd0,magnitude<=THRESHOLD,active_voices==0,enable,quiet>=QUIET_FRAMES,word_pending,pending};
   end
  end
  always @*read_data=(read_index>=18&&read_index<=23)?held[read_index-18]:32'd0;

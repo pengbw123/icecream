@@ -2,10 +2,10 @@
   "images": 552,
   "scores": 2208,
   "all_bit_exact": true,
-  "accumulator_bound": 1621654,
+  "accumulator_bound": 1629366,
   "integration_ids": [
     124,
-    0,
+    2,
     248,
     372
   ],

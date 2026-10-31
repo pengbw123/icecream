@@ -155,7 +155,8 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .patch_read_data(readback_data),.patch_read_valid(readback_valid),
         .fx_write(),.fx_index(),.fx_value(),.fx_read_value(32'd0),.numeric_display()
     );
-    top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1),.GESTURE_ENABLED(1),.EXTERNAL_SCORE_ENABLED(1)) u_audio (
+    top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1),.GESTURE_ENABLED(1),.EXTERNAL_SCORE_ENABLED(1),.BOARD_LATENCY_INPUT(1)) u_audio (
+        .board_latency_valid(merged_valid&&merged_ready),.board_latency_data(merged_event),
         .external_score_active(score_playing||score_flushing),.latency_marker(latency_marker),.gesture_valid(gesture_valid),.gesture_action(gesture_action),
         .gesture_ready(gesture_ready),.gesture_allowed(gesture_allowed),.gesture_cancel(gesture_cancel),
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),.perf_bridge_drop(bridge_drop),

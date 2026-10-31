@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image,ImageEnhance
 from gray_reference import roi_image_features
 from gray_cnn import patches,integer_forward
+from gray_adapt import adapt_gray
 ROOT=Path(__file__).resolve().parents[2]
 
 def dataset(archive):
@@ -54,6 +55,7 @@ def main():
             images=np.where((sx>=0)&(sx<32)&(sy>=0)&(sy<32),images[:,sy.clip(0,31),sx.clip(0,31)],1)
             images=np.clip((images-.5)*rng.uniform(.7,1.2)+.5,0,1)*rng.uniform(.65,1.05)
             images=np.clip(images+np.linspace(*rng.uniform(-.12,.12,2),32)[None,None,:],0,1)
+            images=adapt_gray(np.clip(np.rint(images*254),0,255).astype(np.uint8)).astype(np.float32)/254
             p=patches(images);a,b,c,d=params;pre=p@a+b;z=np.clip(pre,0,1)
             blocks=z.reshape(-1,5,3,5,3,4).transpose(0,5,1,3,2,4).reshape(-1,100,9)
             ix=blocks.argmax(2);h=blocks.max(2);scores=h@c+d
@@ -69,14 +71,14 @@ def main():
             np.clip(a,-1.98,1.98,out=a);np.clip(c,-1.98,1.98,out=c)
         w=np.clip(np.rint(np.r_[params[0].T.ravel(),params[2].T.ravel()]*64),-127,127).astype(np.int64)
         bias=np.rint(np.r_[params[1]*127*128,params[3]*127*64]).astype(np.int64)
-        pred=integer_forward(val,w,bias).argmax(1);acc=float((pred==vy).mean())
+        pred=integer_forward(adapt_gray(val),w,bias).argmax(1);acc=float((pred==vy).mean())
         if acc>best:best=acc;saved=(w.copy(),bias.copy(),epoch+1)
         if epoch%10==0:print('epoch',epoch+1,'validation',acc,'best',best,flush=True)
     w,b,chosen=saved;test,ty,tn=dataset('rps-test-set.zip');test=np.concatenate([test,negatives(np.random.default_rng(999),180)]);ty=np.r_[ty,np.full(180,3)]
-    scores=integer_forward(test,w,b);pred=scores.argmax(1);conf=np.zeros((4,4),int);np.add.at(conf,(ty,pred),1)
+    raw_test=test.copy();test=adapt_gray(test);scores=integer_forward(test,w,b);pred=scores.argmax(1);conf=np.zeros((4,4),int);np.add.at(conf,(ty,pred),1)
     out=args.out;out.mkdir(parents=True,exist_ok=True)
-    for name,data,width in [('weights',w,2),('biases',b,8),('test_features',test,2),('test_scores',scores,8),('test_labels',ty,2)]:
+    for name,data,width in [('raw_test_features',raw_test,2),('weights',w,2),('biases',b,8),('test_features',test,2),('test_scores',scores,8),('test_labels',ty,2)]:
         (out/(name+'.mem')).write_text(''.join(f'{int(q)&((1<<(width*4))-1):0{width}x}\n' for q in data.flat))
-    report=dict(architecture='32x32 -> 3x3 stride2 conv4 -> clip127 -> maxpool3 -> 100 -> 4',labels=['fist','palm','v_sign','other'],weights=436,biases=8,seed=3010720,epochs=args.epochs,selected_epoch=chosen,validation_accuracy=best,test_accuracy=float((pred==ty).mean()),test_gesture_accuracy=float((pred[:372]==ty[:372]).mean()),synthetic_other_recall=float((pred[372:]==3).mean()),confusion=conf.tolist(),test_count=len(test),train_gestures=len(ti),validation_gestures=len(vi),validation_sequences=old['validation_sequences'],real_camera_accuracy=None,limitations=['CGI gesture domain; no real camera validation','Other class uses synthetic negatives; not arbitrary background detection','Fixed ROI; no hand detector'],archives={n:hashlib.sha256((ROOT/'tmp/gesture_data'/n).read_bytes()).hexdigest() for n in ['rps.zip','rps-test-set.zip']})
+    report=dict(preprocessing='corner-plane max2x2 / min-black / minspan32 / Q16 reciprocal; gray_adapt.py',architecture='32x32 -> 3x3 stride2 conv4 -> clip127 -> maxpool3 -> 100 -> 4',labels=['fist','palm','v_sign','other'],weights=436,biases=8,seed=3010720,epochs=args.epochs,selected_epoch=chosen,validation_accuracy=best,test_accuracy=float((pred==ty).mean()),test_gesture_accuracy=float((pred[:372]==ty[:372]).mean()),synthetic_other_recall=float((pred[372:]==3).mean()),confusion=conf.tolist(),test_count=len(test),train_gestures=len(ti),validation_gestures=len(vi),validation_sequences=old['validation_sequences'],real_camera_accuracy=None,limitations=['CGI gesture domain; no real camera validation','Other class uses synthetic negatives; not arbitrary background detection','Fixed ROI; no hand detector'],archives={n:hashlib.sha256((ROOT/'tmp/gesture_data'/n).read_bytes()).hexdigest() for n in ['rps.zip','rps-test-set.zip']})
     (out/'training_report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2),flush=True)
 if __name__=='__main__':main()

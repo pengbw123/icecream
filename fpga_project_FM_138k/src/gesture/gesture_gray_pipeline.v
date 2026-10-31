@@ -15,7 +15,9 @@ module gesture_gray_pipeline #(parameter integer TIMEOUT_CYCLES=50000000,VECTOR_
  wire [1:0] cls;wire signed [31:0] s0,s1,s2,s3;wire [15:0] cycles;
  gesture_gray_frontend frontend(clk,camera_clk,reset_n,enable,frame_start,frame_good,frame_bad,
   pixel_write,pixel_address,pixel_rgb565,mail_busy,fw,start,fi,fv,sum,done);
- gesture_gray_cnn cnn(clk,reset_n,fw,fi,fv,start,busy,done,cls,s0,s1,s2,s3,cycles);
+ wire nw,ns;wire [9:0] ni;wire [7:0] nv;
+ gesture_gray_adapt adapt(clk,reset_n,fw,fi,fv,start,nw,ni,nv,ns);
+ gesture_gray_cnn cnn(clk,reset_n,nw,ni,nv,ns,busy,done,cls,s0,s1,s2,s3,cycles);
  reg [255:0] assembling_mask;reg [2047:0] assembling_preview;
  wire [7:0] average=sum[17:10];
  wire [7:0] mi={fi[9:6],fi[4:1]};

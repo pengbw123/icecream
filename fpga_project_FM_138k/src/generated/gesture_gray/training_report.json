@@ -1,4 +1,5 @@
 {
+  "preprocessing": "corner-plane max2x2 / min-black / minspan32 / Q16 reciprocal; gray_adapt.py",
   "architecture": "32x32 -> 3x3 stride2 conv4 -> clip127 -> maxpool3 -> 100 -> 4",
   "labels": [
     "fist",
@@ -10,34 +11,34 @@
   "biases": 8,
   "seed": 3010720,
   "epochs": 160,
-  "selected_epoch": 48,
-  "validation_accuracy": 0.9592592592592593,
-  "test_accuracy": 0.907608695652174,
-  "test_gesture_accuracy": 0.8870967741935484,
+  "selected_epoch": 114,
+  "validation_accuracy": 0.9648148148148148,
+  "test_accuracy": 0.875,
+  "test_gesture_accuracy": 0.8387096774193549,
   "synthetic_other_recall": 0.95,
   "confusion": [
     [
-      116,
-      2,
-      6,
-      0
-    ],
-    [
-      18,
-      95,
-      11,
-      0
-    ],
-    [
-      5,
+      113,
       0,
-      119,
+      2,
+      9
+    ],
+    [
+      12,
+      83,
+      29,
       0
     ],
     [
-      5,
-      1,
+      2,
+      0,
+      116,
+      6
+    ],
+    [
+      6,
       3,
+      0,
       171
     ]
   ],

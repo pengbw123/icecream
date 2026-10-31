@@ -13,6 +13,7 @@ module top #(
     parameter integer FX2_ENABLED = 0,
     parameter integer GESTURE_ENABLED = 0,
     parameter integer EXTERNAL_SCORE_ENABLED=0,
+    parameter integer BOARD_LATENCY_INPUT=0,
     // USB key velocity calibration endpoints: 0x00 -> 0, 80 -> 127.
     // Compile-time knobs; pads (channel 10) and UART are not rescaled.
     parameter [6:0] USB_KEY_VELOCITY_MIN = 7'h00,
@@ -58,7 +59,8 @@ module top #(
     output wire [15:0] readback_data,
     output wire readback_valid,
     input wire perf_snapshot,perf_clear,input wire [4:0] perf_index,
-    input wire perf_bridge_drop,output wire [31:0] perf_data,output wire latency_marker,input wire external_score_active
+    input wire perf_bridge_drop,output wire [31:0] perf_data,output wire latency_marker,input wire external_score_active,
+    input wire board_latency_valid,input wire [31:0] board_latency_data
 );
     wire clk_usb_48m;
     wire clk_usb_bram_96m;
@@ -477,9 +479,15 @@ module top #(
     wire signed [15:0] output_sample;
     wire latency_frame_load,latency_left_done;wire [31:0] engine_perf_data,latency_perf_data;
     assign perf_data=perf_index>=18?latency_perf_data:engine_perf_data;
+    // On ACG720 the start event is captured before the board input FIFO,
+    // with USB transport metadata stripped, for both keyboard and touch.
+    wire latency_event_valid=BOARD_LATENCY_INPUT ?
+        (board_latency_valid||(uart_midi_event_valid&&uart_midi_event_ready)) : ingress_mux_valid;
+    wire [31:0] latency_event_data=BOARD_LATENCY_INPUT ?
+        (board_latency_valid?board_latency_data:uart_midi_event_data) : ingress_mux_data;
     audio_note_latency u_note_latency(.clk(clk),.reset_n(audio_reset_n),
         .enable(!(EXTERNAL_SCORE_ENABLED&&external_score_active)&&!arp_config[0]&&!sequence_active&&!composer_status[0]&&!ai_status[0]&&!arp_suspend),
-        .event_valid(ingress_mux_valid),.event_ready(ingress_buffer_ready),.event_data(ingress_mux_data),
+        .event_valid(latency_event_valid),.event_ready(BOARD_LATENCY_INPUT?1'b1:ingress_buffer_ready),.event_data(latency_event_data),
         .active_voices(active_voice_count),.frame_load(latency_frame_load),.left_word_done(latency_left_done),
         .sample_value(output_sample),.snapshot(perf_snapshot),.clear_stats(perf_clear),
         .read_index(perf_index),.read_data(latency_perf_data),.marker(latency_marker));

@@ -12,6 +12,7 @@ import numpy as np
 from PIL import Image
 
 from gray_cnn import load, integer_forward
+from gray_adapt import adapt_gray
 from gray_reference import frame_features, rgb888_to_rgb565, roi_image_features
 
 
@@ -38,7 +39,7 @@ def main():
     with Image.open(args.image) as image:
         gray = features(image, args.format)
     weights, biases = load(Path(__file__).resolve().parents[2]/'src/generated/gesture_gray')
-    scores = integer_forward(gray[None], weights, biases)[0]
+    scores = integer_forward(adapt_gray(gray[None]), weights, biases)[0]
     # Stable sorting preserves hardware's lower-index tie winner.
     order = np.argsort(-scores, kind='stable')
     best = int(order[0])

@@ -40,11 +40,12 @@ static void draw_metrics_values(void){u32 v=metrics[13];
     row_box(52,17,46,3,"BRIDGE DROPS",metrics_u32(metrics[11]),metrics[11]!=0);
     row_box(52,20,46,3,"MIDI ACCEPTED",metrics_u32(metrics[12]),0);
     row_box(52,23,46,3,"ONSET SKIPPED",metrics_u32(metrics[22]),0);
+    text(3,26,(metrics[23]&1u)?"MEASURING       ":!(metrics[23]&8u)?"MODE BLOCKED    ":!(metrics[23]&16u)?"WAIT VOICES=0   ":!(metrics[23]&4u)?"WAIT QUIET      ":"READY: ONE NOTE ",2,0);
 }
 static void draw_metrics(void){
     text(3,5,"AUDIO PERFORMANCE / RTL COUNTERS",2,0);
     text(3,6,"50 MHz / 48.828 kHz /",2,0);text(24,6,metrics_u32(UI[59]),2,0);text(27,6,"VOICES",2,0);
-    text(53,5,"RENDER: COMPUTE / READY: TICK TO RESULT",2,0);
+    text(53,5,"RENDER: COMPUTE / NOTE: INPUT TO I2S",2,0);
     text(53,6,"QUIET LIVE NOTE -> I2S / NOT ANALOG LATENCY",2,0);
     draw_metrics_values();
     button_box(2,27,24,3,"< SETUP",0);

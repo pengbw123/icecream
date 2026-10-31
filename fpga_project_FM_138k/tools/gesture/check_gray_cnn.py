@@ -3,6 +3,7 @@ from pathlib import Path
 import json,sys
 import numpy as np
 from gray_cnn import load,integer_forward
+from gray_adapt import adapt_gray
 from gray_reference import rgb888_to_rgb565,rgb565_gray
 ROOT=Path(__file__).resolve().parents[2]
 def main():
@@ -13,8 +14,9 @@ def main():
     w,b=load(folder);got=integer_forward(x,w,b);assert np.array_equal(got,expected)
     bound=100*127*127+max(abs(b));assert bound<2**31
     # Camera replay vectors exercise quantization, CDC, CNN and reject logic.
-    rgb=np.repeat(x[...,None],3,axis=-1);packed=rgb888_to_rgb565(rgb)
-    gray=rgb565_gray(packed);scores=integer_forward(gray,w,b)
+    raw=mem('raw_test_features').reshape(-1,32,32)
+    rgb=np.repeat(raw[...,None],3,axis=-1);packed=rgb888_to_rgb565(rgb)
+    gray=rgb565_gray(packed);scores=integer_forward(adapt_gray(gray),w,b)
     out=ROOT/'tmp/gray_cnn_vectors';out.mkdir(exist_ok=True)
     for name,data,width in [('rgb565',packed,4),('gray',gray,2),('scores',scores,8)]:
         (out/(name+'.mem')).write_text(''.join(f'{int(v)&((1<<(4*width))-1):0{width}x}\n' for v in data.flat))
