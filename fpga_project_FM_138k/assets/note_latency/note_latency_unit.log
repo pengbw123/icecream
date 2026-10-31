@@ -1,0 +1,2 @@
+PASS note latency: real I2S last-bit endpoint, exact clocks, stalled event dedup, nonquiet reject, timeout, overlap cancellation, clear and coherent snapshots (10 checks)
+sim/tb_audio_note_latency.sv:40: $finish called at 62581000 (1ps)

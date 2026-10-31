@@ -1,0 +1,2 @@
+PASS I2S exclusive speaker/headphone, stereo bits, padding and frame-boundary switching
+sim/tb_i2s_output_select.sv:29: $finish called at 30791000 (1ps)

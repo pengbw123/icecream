@@ -1,0 +1,2 @@
+PASS production AI->merge->owners->FM32->I2S:           5 AI notes,         231/        260 nonzero frames, 30 LIVE voices, LIVE preset isolation, scoped STOP, no missed samples
+sim/tb_ai_bass_audio.sv:77: $finish called at 5336500000 (1ps)
