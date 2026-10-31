@@ -1,8 +1,8 @@
 # 数字链路延迟与示波器端到端测量
 
-本模块不是“按键到耳朵”全链路自动测量。起点：LIVE NoteOn第一次出现在top.v数字入口仲裁输出，尚未进入内部弹性缓存，包含该点之后的等待；不含CH376/USB包解析与上游FIFO、物理键盘/触屏扫描。终点：最终音频超过32LSB后的第一帧I2S左声道字，其最后一位的采样上升沿。包括合成、效果、主音量、帧等待和左声道串行发送；不包含DAC和模拟滤波。不是给每个并发音符添加时间标签的因果跟踪器。
+本模块不是物理按键到耳朵的完整自动测量。ACG720起点为板级USB/触屏/桥接仲裁接受LIVE NoteOn、进入输入FIFO之前；PC UART起点为接受事件时。包含板内FIFO与后续等待，不含键盘/触屏扫描、USB轮询及CH376解包前段。终点是最终音频超过32LSB后的第一帧I2S左声道最后一位采样沿。包括合成、效果、音量与I2S发送，不含DAC和模拟滤波；不对每个并发音符做因果归属。
 
-SETUP→METERS：NOTE>I2S us NOW/MAX显示整数微秒最近/最大值；ONSET OK/TIMEOUT为成功和超时/模式中断数；ONSET SKIPPED是未满足条件的新NoteOn数量。原READY（音频tick到计算完成）和采样周期行被替换，旧MMIO0..17布局保留，新增18..23为最近时钟数、最大时钟数、成功数、超时数、跳过数、状态。CLEAR同时清理两组统计；清理中的测量取消。状态bit0等待起音、bit1已锁存候选帧、bit2安静资格、bit3测量允许。
+SETUP→METERS：NOTE>I2S us NOW/MAX显示整数微秒最近/最大值；ONSET OK/TIMEOUT为成功和超时/模式中断数；ONSET SKIPPED是未满足条件的新NoteOn数量。原READY（音频tick到计算完成）和采样周期行被替换，旧MMIO0..17布局保留，新增18..23为最近时钟数、最大时钟数、成功数、超时数、跳过数、状态。CLEAR同时清理两组统计；清理中的测量取消。状态bit0等待起音、bit1已锁存候选帧、bit2安静资格、bit3测量允许、bit4活动声部为0、bit5当前幅度低于门限。
 
 资格：连续32帧绝对值≤32且活跃声部为0；关闭ARP、SEQ、AI伴奏、AI旋律和练习模式；蓝牙曲谱播放/收尾期间也禁止测量，结束自动恢复。只弹一个LIVE音符，等待充分静音后再弹。连奏、和弦不作为可归属单音测量；等待期间再来NoteOn会取消当前测量。250ms未出现合格起音记超时。静音、低音量、慢起音会影响结果，数字值不得冒充纯算法耗时。
 
@@ -42,3 +42,6 @@ python tools/multitone_probe.py --voices 32 --port COM6 --prepared-sine --second
 - 全部约束时钟setup/hold TNS为0；逻辑70122/138240，寄存器39430/139095，BSRAM329/340，DSP83/298。模型、摄像头配置及引脚约束不变。
 - 测量流程及多频现场验证见NOTE_LATENCY.md。tools/multitone_probe.py提供4/8/16/32音的PC串口测试序列，需要先准备单载波正弦音色；不是预录音频，也不是已完成板载一键测试模式。
 - 记录releases/2026-10-31_note_latency.json，回退`impl\pnr\backup\fm_138k_rgb_hdmi_2026-10-31_pre_note_latency.fs`。本轮无真实延迟测量数据。
+
+
+2026-10-31更新：同一M22引脚的高电平宽度即NOTE>I2S计数对应时间，50MHz时钟每拍20ns。METERS新增就绪提示，单音测量前等待READY: ONE NOTE；MODE BLOCKED需关闭自动演奏，WAIT VOICES=0需松键/松延音踏板并等尾音，WAIT QUIET需等待输出安静。超时脉冲可长达250ms，必须结合OK/TIMEOUT判断，不能将超时宽度当成正常延迟。完整模拟输出5ms指标仍需按上述双通道方法实测。

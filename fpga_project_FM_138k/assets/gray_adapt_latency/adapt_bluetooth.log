@@ -1,0 +1,69 @@
+WARNING: src/usb_midi/rtl/rv32i.v:450: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:4095].
+WARNING: src/usb_midi/rtl/rv32i.v:423: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+PASS sparse 16+32KiB RAM: full 80KiB fetch/initialized data parity, ignored hole writes, no alias, byte stores, one-clock read and instruction independence
+sim/tb_ui_sparse.sv:43: $finish called at 574240000 (1ps)
+SCORE_ARBITER_TEST_OK usb=60 player=52 alt_errors=0
+sim/tb_score_arbiter.sv:280: $finish called at 8260000 (1ps)
+SCORE_PLAYER_TEST_OK ram=2048 max_events=2048 clk_hz=50000000 replies=2115 max_latency=25
+sim/tb_score_player.sv:613: $finish called at 16364840000 (1ps)
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=2048 count=1 last_index=0 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=4096 count=1 last_index=0 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=8192 count=1 last_index=0 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=3 count=1 last_index=0 final_CC=2
+CAPACITY_BOUNDARY_REJECT_OK capacity=3 count=2048
+CAPACITY_BOUNDARY_REJECT_OK capacity=3 count=3140
+CAPACITY_BOUNDARY_REJECT_OK capacity=3 count=4095
+CAPACITY_BOUNDARY_REJECT_OK capacity=3 count=4096
+CAPACITY_BOUNDARY_REJECT_OK capacity=3 count=4097
+CAPACITY_BOUNDARY_REJECT_OK capacity=3 count=8191
+CAPACITY_BOUNDARY_REJECT_OK capacity=3 count=8192
+CAPACITY_BOUNDARY_REJECT_OK capacity=3 count=8193
+SCORE_CAPACITY_PROFILE_OK capacity=3
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=2048 count=2048 last_index=2047 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=4096 count=2048 last_index=2047 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=8192 count=2048 last_index=2047 final_CC=2
+CAPACITY_BOUNDARY_REJECT_OK capacity=2048 count=3140
+CAPACITY_BOUNDARY_REJECT_OK capacity=2048 count=4095
+CAPACITY_BOUNDARY_REJECT_OK capacity=2048 count=4096
+CAPACITY_BOUNDARY_REJECT_OK capacity=2048 count=4097
+CAPACITY_BOUNDARY_REJECT_OK capacity=2048 count=8191
+CAPACITY_BOUNDARY_REJECT_OK capacity=2048 count=8192
+CAPACITY_BOUNDARY_REJECT_OK capacity=2048 count=8193
+SCORE_CAPACITY_PROFILE_OK capacity=2048
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=4096 count=3140 last_index=3139 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=8192 count=3140 last_index=3139 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=4096 count=4095 last_index=4094 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=8192 count=4095 last_index=4094 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=4096 count=4096 last_index=4095 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=8192 count=4096 last_index=4095 final_CC=2
+CAPACITY_BOUNDARY_REJECT_OK capacity=4096 count=4097
+CAPACITY_BOUNDARY_REJECT_OK capacity=4096 count=8191
+CAPACITY_BOUNDARY_REJECT_OK capacity=4096 count=8192
+CAPACITY_BOUNDARY_REJECT_OK capacity=4096 count=8193
+SCORE_CAPACITY_PROFILE_OK capacity=4096
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=8192 count=4097 last_index=4096 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=8192 count=8191 last_index=8190 final_CC=2
+CAPACITY_BOUNDARY_PLAY_CRC_OK capacity=8192 count=8192 last_index=8191 final_CC=2
+CAPACITY_BOUNDARY_REJECT_OK capacity=8192 count=8193
+SCORE_CAPACITY_PROFILE_OK capacity=8192
+SCORE_CAPACITY_ALL_PROFILES_OK
+sim/tb_score_capacity.sv:115: $finish called at 22757620000 (1ps)
+SUNNY_TIMELINE_OK notes=343 assertions=578273 rates=50/100/150 count-in/preview/gate/beat/end/stop
+sim/tb_sunny_tutorial_player.sv:85: $finish called at 115656971000 (1ps)
+SUNNY_SYSTEM_OK physical_timing=0 UART/magic/CRC/isolation/map/scan/count-in/green/stop/live-keys/buttons frames=73
+sim/tb_sunny_tutorial_system.sv:142: $finish called at 1532132000 (1ps)
+SUNNY_COMPILED_DEFAULTS_OK speed=75 count-in=2 transpose=10 compiled-map reset
+sim/tb_sunny_compiled_defaults.sv:43: $finish called at 2228151000 (1ps)
+SUNNY_WAIT_KEY_OK notes=343 checks=1044 wrong/held/repeat/multi-source/transpose/count-in/stop/end
+sim/tb_sunny_wait_for_key.sv:79: $finish called at 41194271000 (1ps)
+SCORE_TUTORIAL_138K_OK physical=0 checks=32 cap/CRC/notes/transpose/NAK/mutex/S0/S1/stalled-stop/end/invalidate
+sim/tb_138k_score_tutorial.sv:124: $finish called at 1078112000 (1ps)
+PASS imported Bluetooth integration: 8192 events/32 voices, busy NAK, edge-triggered mode cancellation, stalled event stability, bounded cleanup and replay
+sim/tb_score_guard.sv:86: $finish called at 721172000 (1ps)
+SCORE_WINDOW_138K_OK events=1574 groups=200 checks=3162 physical=0 clock=100000 cpb=8 Android-bytes CRC/drop/RAM
+sim/tb_138k_score_window.sv:82: $finish called at 32679292000 (1ps)
+SCORE_WINDOW_138K_OK events=32 groups=7 checks=78 physical=1 clock=50000000 cpb=434 Android-bytes CRC/drop/RAM
+sim/tb_138k_score_window.sv:82: $finish called at 57163632000 (1ps)
+PASS production score tags->owners->FM32: polyphonic playback, same-note human ownership, BACKING preserved, glide restored, global panic, no missed samples
+sim/tb_score_audio.sv:76: $finish called at 4072460000 (1ps)
+PASS Bluetooth/score/LED migration RTL regression

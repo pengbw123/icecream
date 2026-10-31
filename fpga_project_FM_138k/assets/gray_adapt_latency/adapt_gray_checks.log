@@ -1,0 +1,18 @@
+PASS gray reference: exhaustive 65536 RGB565 levels, endpoints, 32x32 coordinates and graded brightness
+PASS gray frontend: 9216 exact samples, 84.75MHz PCLK/50MHz system, sums, busy drop, missing/bad/disable, stopped PCLK, reset recovery
+sim/tb_gesture_gray.sv:70: $finish called at 4422197500 (1ps)
+{"images": 552, "scores": 2208, "all_bit_exact": true, "accumulator_bound": 1629366, "integration_ids": [124, 2, 248, 372], "real_camera_verified": false}
+PASS gray adapt: 552 frames / 565248 values exact Python parity; corners, global black, gain floor, clamp, ordered replay
+sim/tb_gesture_gray_adapt.sv:22: $finish called at 90472880000 (1ps)
+PASS production gray controller: 26 exact RGB565/CDC/CNN results, 4-class margins, true gray preview, position mask, opt-in commands, OTHER/rearm/manual priority and stopped-clock timeout
+sim/tb_gesture_gray_controller.sv:68: $finish called at 22529155900 (1ps)
+PASS RAM gray preview: 1280 exact pixels, double-bank CDC, no tearing, skipped/partial frames and reset recovery
+sim/tb_gesture_gray_preview.sv:39: $finish called at 229320000 (1ps)
+PASS gray gate: 106 four-class signed vectors, margin boundary/ties/extremes, saturation, OTHER rejection and disable
+sim/tb_gesture_gray_gate.sv:32: $finish called at 12900000 (1ps)
+PASS gray CNN: 552 images, 2208 scores bit exact, 483 correct, fixed 18909 cycles, busy writes ignored and mid-job reset
+sim/tb_gesture_gray_cnn.sv:29: $finish called at 220483520000 (1ps)
+PASS gray pipeline: 26 exact RGB565/CDC/CNN results, 4-class margins, true gray preview, position mask, opt-in commands, OTHER/rearm/manual priority and stopped-clock timeout
+sim/tb_gesture_gray_pipeline.sv:56: $finish called at 22529155900 (1ps)
+PASS gesture_video: coherent 2372-bit gray/status snapshot, all displayed gray sample pixels and ordering, no active-frame tearing, ROI alignment, reason text, OFF restoration
+sim/tb_gesture_gray_video.sv:60: $finish called at 112064901000 (1ps)

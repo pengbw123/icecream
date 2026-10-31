@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 // Production top: real command decoder, AI, merge, owners, 32-voice FM and I2S.
 // Only tempo's clocks/us parameter is accelerated; I2S stays 1024 clocks/sample.
-module tb_keyboard_latency_audio;
+module tb_keyboard_latency_audio #(parameter integer BOARD_FX=0);
     reg clk=0;always #10 clk=~clk;
     reg key_s2=1,ui_command_valid=0,external_midi_event_valid=0;
     reg [7:0] ui_command=0;reg [63:0] ui_payload=0;
@@ -19,7 +19,7 @@ module tb_keyboard_latency_audio;
     wire ui_command_ready,external_midi_event_ready;
     wire [31:0] ai_status;wire [15:0] readback_data;wire readback_valid;
     wire signed [15:0] pcm;wire tick;
-    top #(.FM_VOICE_COUNT(32),.BOARD_LATENCY_INPUT(1)) dut(.clk(clk),.key_s2(key_s2),
+    top #(.FM_VOICE_COUNT(32),.BOARD_LATENCY_INPUT(1),.FM_AUDIO_ONLY(!BOARD_FX),.FX2_ENABLED(BOARD_FX),.OUTPUT_SELECT_ENABLED(1)) dut(.clk(clk),.key_s2(key_s2),
         .arp_config(160'd0),.arp_suspend(1'b0),.sequence_active(1'b0),.arp_status(),.arp_notes(),.ai_status(ai_status),
         .headphone_select(1'b0),.headphone_din(),.uart_rx_pin(1'b1),
         .ui_command_valid(ui_command_valid),.ui_command(ui_command),.ui_payload(ui_payload),.ui_command_ready(ui_command_ready),

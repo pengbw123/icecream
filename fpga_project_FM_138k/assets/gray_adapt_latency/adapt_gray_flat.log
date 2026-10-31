@@ -1,0 +1,1 @@
+PASS all 256 constant gray levels normalize to white and classify OTHER; bounded flat-frame gain

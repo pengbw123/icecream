@@ -1,0 +1,53 @@
+{
+  "note": "Public held-out synthetic transformations; not real-camera validation. No test-set model selection.",
+  "results": {
+    "original": {
+      "old": {
+        "correct": 330,
+        "correct_accepted": 300,
+        "synthetic_other_false_accept": 6
+      },
+      "adapt": {
+        "correct": 312,
+        "correct_accepted": 304,
+        "synthetic_other_false_accept": 8
+      }
+    },
+    "exposure50": {
+      "old": {
+        "correct": 324,
+        "correct_accepted": 277,
+        "synthetic_other_false_accept": 2
+      },
+      "adapt": {
+        "correct": 312,
+        "correct_accepted": 304,
+        "synthetic_other_false_accept": 7
+      }
+    },
+    "lowcontrast": {
+      "old": {
+        "correct": 244,
+        "correct_accepted": 214,
+        "synthetic_other_false_accept": 1
+      },
+      "adapt": {
+        "correct": 313,
+        "correct_accepted": 302,
+        "synthetic_other_false_accept": 6
+      }
+    },
+    "uneven": {
+      "old": {
+        "correct": 317,
+        "correct_accepted": 289,
+        "synthetic_other_false_accept": 5
+      },
+      "adapt": {
+        "correct": 307,
+        "correct_accepted": 297,
+        "synthetic_other_false_accept": 7
+      }
+    }
+  }
+}

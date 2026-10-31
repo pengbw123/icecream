@@ -1,5 +1,7 @@
 # ACG720 138K · FM 合成器 / RGB 触摸屏
 
+当前下载版加入灰度光照自适应与统一USB/触屏音符到I2S标记脉冲；见 [更新说明](docs/GRAY_ADAPT_AND_MIDI_LATENCY.md)。数字脉冲不是完整模拟端到端延迟证明。
+
 AI/协作者接手本工程请先读 [工程交接说明](docs/AI_HANDOFF.md)，它记录当前工作树、模块关系、硬件排查经验和未完成事项。
 改 UI 固件读 [UI 软核与菜单固件说明](docs/UI_FIRMWARE_GUIDE.md)；多阶段的改造进度看
 [菜单改造进度账本](docs/PRO_MENU_PROGRESS.md)；实际怎么操作看 [触摸屏使用说明](docs/USER_MANUAL_UI.md)。

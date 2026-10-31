@@ -1,0 +1,79 @@
+epoch 1 validation 0.37037037037037035 best 0.37037037037037035
+epoch 11 validation 0.587037037037037 best 0.5888888888888889
+epoch 21 validation 0.7518518518518519 best 0.7518518518518519
+epoch 31 validation 0.8944444444444445 best 0.8944444444444445
+epoch 41 validation 0.8962962962962963 best 0.924074074074074
+epoch 51 validation 0.9388888888888889 best 0.9407407407407408
+epoch 61 validation 0.95 best 0.9537037037037037
+epoch 71 validation 0.9518518518518518 best 0.9574074074074074
+epoch 81 validation 0.9555555555555556 best 0.9574074074074074
+epoch 91 validation 0.9574074074074074 best 0.9592592592592593
+epoch 101 validation 0.9592592592592593 best 0.9629629629629629
+epoch 111 validation 0.9592592592592593 best 0.9629629629629629
+epoch 121 validation 0.9592592592592593 best 0.9648148148148148
+epoch 131 validation 0.9611111111111111 best 0.9648148148148148
+epoch 141 validation 0.9574074074074074 best 0.9648148148148148
+epoch 151 validation 0.9611111111111111 best 0.9648148148148148
+{
+  "preprocessing": "corner-plane max2x2 / min-black / minspan32 / Q16 reciprocal; gray_adapt.py",
+  "architecture": "32x32 -> 3x3 stride2 conv4 -> clip127 -> maxpool3 -> 100 -> 4",
+  "labels": [
+    "fist",
+    "palm",
+    "v_sign",
+    "other"
+  ],
+  "weights": 436,
+  "biases": 8,
+  "seed": 3010720,
+  "epochs": 160,
+  "selected_epoch": 114,
+  "validation_accuracy": 0.9648148148148148,
+  "test_accuracy": 0.875,
+  "test_gesture_accuracy": 0.8387096774193549,
+  "synthetic_other_recall": 0.95,
+  "confusion": [
+    [
+      113,
+      0,
+      2,
+      9
+    ],
+    [
+      12,
+      83,
+      29,
+      0
+    ],
+    [
+      2,
+      0,
+      116,
+      6
+    ],
+    [
+      6,
+      3,
+      0,
+      171
+    ]
+  ],
+  "test_count": 552,
+  "train_gestures": 2160,
+  "validation_gestures": 360,
+  "validation_sequences": [
+    "rock03",
+    "paper06",
+    "testscissors02"
+  ],
+  "real_camera_accuracy": null,
+  "limitations": [
+    "CGI gesture domain; no real camera validation",
+    "Other class uses synthetic negatives; not arbitrary background detection",
+    "Fixed ROI; no hand detector"
+  ],
+  "archives": {
+    "rps.zip": "c2403444395842ad04c53612bad54b574443eae17a0723117a2ff87b9d72194f",
+    "rps-test-set.zip": "c27ab9fa43ce40b2e453de711365b477f4424586edf0388116674fd320f07503"
+  }
+}

@@ -1,0 +1,4 @@
+WARNING: src/usb_midi/rtl/rv32i.v:450: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:4095].
+WARNING: src/usb_midi/rtl/rv32i.v:423: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+PASS real RV32I latency UI: 24-word MMIO, nonzero last/max us conversion, skipped counter, clear/snapshot, exit and MIDI isolation
+sim/tb_touch_ui.sv:581: $finish called at 130499130000 (1ps)
