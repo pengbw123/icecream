@@ -23,6 +23,8 @@ $cases=@(
     @{Name='tb_sunny_wait_for_key';Files=$guide},
     @{Name='tb_138k_score_tutorial';Files=$guide},
     @{Name='tb_score_guard';Files=$guide},
+    @{Name='tb_138k_score_window';Files=$guide;Args=@('+PACKETS=sim/fixtures/android_truth_part2_words.mem')},
+    @{Name='tb_138k_score_window';Files=$guide;Compile=@('-Ptb_138k_score_window.PHYSICAL_TIMING=1');Args=@('+PACKETS=sim/fixtures/android_truth_part2_words.mem')},
     @{Name='tb_score_audio';Files=$audio}
 )
 Push-Location $root
@@ -30,9 +32,12 @@ try {
     New-Item -ItemType Directory -Force tmp | Out-Null
     foreach($case in $cases){
         $out='tmp/import_'+$case.Name+'.vvp'
-        & $iv @('-g2012','-s',$case.Name,'-o',$out,('sim/'+$case.Name+'.sv')) @($case.Files)
+        $compileArgs=@('-g2012','-s',$case.Name,'-o',$out,('sim/'+$case.Name+'.sv'))
+        if($case.Compile){$compileArgs+=@($case.Compile)}
+        $compileArgs+=@($case.Files)
+        & $iv @compileArgs
         if($LASTEXITCODE -ne 0){throw ('Compile failed: '+$case.Name)}
-        & $vvp $out
+        if($case.Args){ & $vvp $out @($case.Args) }else{ & $vvp $out }
         if($LASTEXITCODE -ne 0){throw ('Simulation failed: '+$case.Name)}
     }
     Write-Output 'PASS Bluetooth/score/LED migration RTL regression'

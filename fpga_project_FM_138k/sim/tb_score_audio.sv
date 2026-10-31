@@ -60,6 +60,7 @@ module tb_score_audio;
         midi(8'hb0,22,1);repeat(20000)@(negedge clk);
         if(!dut.u_fm_poly_synth.mono_mode)$fatal(1,"Glide not enabled by real decoder");
         score_active=1;repeat(20000)@(negedge clk);
+        if(dut.u_note_latency.enable!==1'b0)$fatal(1,"Score playback contaminated human latency measurement");
         if(dut.u_fm_poly_synth.mono_mode||dut.portamento_time==0)$fatal(1,"Score mask lost stored glide / remained mono");
         tag=8'h88;midi(8'h90,60,90);midi(8'h90,64,90);gates(2,0);
         // Human overlaps score pitch: note owner must not cut the score note.
@@ -67,6 +68,7 @@ module tb_score_audio;
         tag=8'h40;midi(8'h90,48,90);gates(2,1);
         tag=8'h88;midi(8'hb0,64,0);midi(8'hb0,123,0);gates(0,1);
         score_active=0;repeat(20000)@(negedge clk);
+        if(dut.u_note_latency.enable!==1'b1)$fatal(1,"Human latency measurement not restored");
         if(!dut.u_fm_poly_synth.mono_mode||dut.portamento_time==0)$fatal(1,"User glide not restored");
         gates(0,1);
         tag=0;midi(8'hb0,123,0);gates(0,0);
