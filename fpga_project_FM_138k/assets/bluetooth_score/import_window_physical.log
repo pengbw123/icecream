@@ -1,0 +1,2 @@
+SCORE_WINDOW_138K_OK events=32 groups=7 checks=78 physical=1 clock=50000000 cpb=434 Android-bytes CRC/drop/RAM
+sim/tb_138k_score_window.sv:82: $finish called at 57163632000 (1ps)

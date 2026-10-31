@@ -4,33 +4,26 @@ AI/协作者接手本工程请先读 [工程交接说明](docs/AI_HANDOFF.md)，
 改 UI 固件读 [UI 软核与菜单固件说明](docs/UI_FIRMWARE_GUIDE.md)；多阶段的改造进度看
 [菜单改造进度账本](docs/PRO_MENU_PROGRESS.md)；实际怎么操作看 [触摸屏使用说明](docs/USER_MANUAL_UI.md)。
 
-本工程从 25K FM 分支迁移到 GW5AT-LV138PG484AC1/I0-B。保持 16 复音、6 算子、ROM1A 32 音色及原 FM 算法；本次不改动音色计算内核。当前以音色核原声输出，Chorus/Reverb 暂时旁路，方便后续 Dexed 对照。
+当前主工程为 GW5AT-LV138PG484AC1/I0-B：32复音、6算子FM、128套DX7默认音色、LIVE/BACKING两Part，带SD用户音色与六类效果器。当前状态及实机验证界限以交接文档最新条目为准。
 
 ## 当前链路
 
-USB-MIDI 键盘 → 独立 Primer25K 中转 → 1 Mbaud UART → 138K FM → I2S。
-也可通过板载 CH340（115200）使用原串口编辑器/演奏软件，或直接使用屏幕虚拟琴键。
+USB-MIDI键盘 → CH376S SPI主机 → 138K FM → I2S，可选MAX98357或ES8388耳机输出。也可使用CH340串口或RGB屏幕琴键；25K中转仅作为默认关闭的兼容路径。
 
-- J1 40pin FPC：800×480 RGB565，显示完全由 RTL 生成，无 DDR 帧缓存。
-- 可切换波形/延迟李萨如图、峰值/削波、6 算子包络、音色名称/算法编号/声部数、25 键高亮。
-- 小音量波形/XY 默认自动放大，右下角 AUTO 可关闭；不改变音频，电平条仍显示真实幅度。见 [显示自动增益](docs/VISUAL_AUTO_GAIN.md)。
-- 小型 RV32I 负责 GT9147/GT911 触摸、页面逻辑、参数回读/下发和字符层写入，不负责像素绘制。
-- 顶部页签常驻：`1 PERF` 演奏、`2 ALGO` 算法/路由图、`3 OSC` 六算子参数、`4 EG` 音量/音高包络、
-  `5 LFO` 低频调制、`6 FX`（阶段 3）、`7 NAME` 命名与 8 个用户槽、`8 UTIL` 主题切换。
-- 演奏页：波形/XY、电平/削波、6 算子包络柱、25 键键盘，右侧 PRESET/VOLUME/OCTAVE/PANIC/VIEW/XY/AUTO 快捷键。
-- 参数编辑：点行选中、`-/+` 步进（按住 1.5 秒后连发）、左右拖动滑条；改完立即生效。
-- WS2812：25 灯固定对应 C3～C5（MIDI 48～72），颜色随力度变化。
-- HDMI 已从活动工程中排除；尚未加入 FFT、效果器（阶段 3）和掉电保存。
+- J1 RGB565触屏800×480，RTL生成像素，RV32I只处理触摸、菜单和参数；底部全宽琴键，力度及声音输出口可在SETUP设置。
+- 页签：PLAY、ALGO、OSC、EG、LFO、FX、PATCH、SETUP。支持波形/李萨如/频谱、算子包络及性能/数字起音延迟统计。
+- ARP、音序、屏幕辅助演奏、AI伴奏和AI旋律；P4 OV5640采集，HDMI显示摄像头预览，灰度CNN手势可影响AI旋律。识别/控制默认关闭。
+- 新增独立JDY蓝牙串口、手机25键灯位校准、160灯指引与等键练习、8192事件RAM曲谱上传/回放。接线及验收见 [蓝牙曲谱移植](docs/BLUETOOTH_SCORE_PORT.md)；配套 [Android源码](../android_control/README.md)。这些模式与已有自动演奏互斥，不删除原功能。
 
 ## 编译与烧录
 
 在本目录执行：
 ```powershell
-& 'D:\Gowin\Gowin_V1.9.12.03_x64\IDE\bin\gw_sh.exe' build_cli.tcl
+& 'D:\Gowin\Gowin_V1.9.12.03_x64\IDE\bin\gw_sh.exe' build_cli_hdmi.tcl
 ```
 
-新的 138K 文件是 **impl/pnr/fm_138k_rgb.fs**。不要烧录复制目录中遗留的 fpga_project.fs。
-IDE 工程为 fpga_project.gprj，顶层 top_138k；CPU/SSPI 引脚须启用作为 GPIO。
+新的 138K 文件是 **impl/pnr/fm_138k_rgb_hdmi.fs**。不要烧录复制目录中遗留的 fpga_project.fs。
+IDE 工程为 fpga_project.gprj，顶层 top_138k_hdmi；CPU/SSPI 引脚须启用作为 GPIO。
 UI 固件已包含 firmware.hex；改 C 代码后运行 src/ui_firmware/build_firmware.ps1 再综合。
 
 完整实现报告与限制见 [迁移总结](docs/ACG720_138K_SUMMARY.md)。
@@ -46,7 +39,8 @@ UI 固件已包含 firmware.hex；改 C 代码后运行 src/ui_firmware/build_fi
 |---|---|
 | TFT V3.0 RGB + 触摸 | J1 原生 40pin FPC；确认同向/异向排线和 1 脚方向 |
 | MAX98357 BCLK / LRC / DIN | P7-1 A13 / P7-2 A14 / P7-3 A15 |
-| 25K 中转 TX 输入 | P7-4 A16 ← 25K Dock J3-15 F1 |
+| 25K 中转 TX 输入（默认关闭） | P7-4 A16 ← 25K Dock J3-15 F1 |
+| JDY TX / RX | 模块TX→P7-9 E13；模块RX←P7-10 E14，3.3V逻辑 |
 | WS2812 数据 | P7-6 A19 → 建议 74AHCT125 电平转换 → 灯条 DIN |
 | 公共地 | P7-12 或 P7-28 GND |
 | 复位 | S4，B21，低有效 |
@@ -63,5 +57,5 @@ UI 固件已包含 firmware.hex；改 C 代码后运行 src/ui_firmware/build_fi
 读取 0x814E 就绪位、读取全部触点、最后清就绪位；没有新帧时保留现有按键，不误当松键。
 不再自动向 GT 写入猜测的配置表。若识别正常却不出触点，保留串口日志排查，不能只凭 I2C 地址响应认定触摸正常。
 
-本版本已完成综合、布局布线、时序及引脚级仿真，**尚未在真实 138K + 屏幕上验证**。
+本轮蓝牙集成已通过RTL/软件回归及完整时序验收，手机蓝牙、灯位与声音仍待实机验证；此前功能实测状态见交接文档。
 Dexed 逐位还原任务没有结束，见 docs/DX7_COMPATIBILITY.md；本次显示迁移不宣称完整音色 PCM 已逐位一致。

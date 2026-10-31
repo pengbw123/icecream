@@ -1,0 +1,4 @@
+WARNING: src/usb_midi/rtl/rv32i.v:450: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:4095].
+WARNING: src/usb_midi/rtl/rv32i.v:423: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+PASS sparse 16+32KiB RAM: full 80KiB fetch/initialized data parity, ignored hole writes, no alias, byte stores, one-clock read and instruction independence
+sim/tb_ui_sparse.sv:43: $finish called at 574240000 (1ps)

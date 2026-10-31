@@ -1,0 +1,5 @@
+WARNING: src/usb_midi/rtl/rv32i.v:450: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:4095].
+WARNING: src/usb_midi/rtl/rv32i.v:423: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
+UI MIDI 00b01600 at          97682590000
+PASS composer preview from real firmware
+sim/tb_touch_ui.sv:463: $finish called at 138305610000 (1ps)

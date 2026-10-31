@@ -1,0 +1,15 @@
+{
+  "f9d3b20": {
+    "low_mem_SDPB": 32,
+    "high_mem_SDPB": 16
+  },
+  "1a5ab49": {
+    "high_mem_SDPB": 16,
+    "low_mem_SDPB": 8,
+    "score_ram_SDPB": 24
+  },
+  "saved_ui_bsram": 24,
+  "new_score_bsram": 24,
+  "firmware_hex_sha256": "829a6fb2a3f7a09f65e79c999a29d9f29013768e9379d5742555533dced7547e",
+  "source_snapshot": "tmp/camera_build_1a5ab49"
+}
