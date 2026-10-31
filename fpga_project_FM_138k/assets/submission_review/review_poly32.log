@@ -1,0 +1,3 @@
+POLY32 max response=457 clocks
+PASS 32 voices: 192 independent slots, full count, pedal, high-slot render, dense burst, deadlines, steals and silence
+sim/tb_fm_readback.sv:580: $finish called at 3590000000 (1ps)

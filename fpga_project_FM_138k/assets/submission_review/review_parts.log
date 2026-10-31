@@ -1,0 +1,2 @@
+PASS dual part 32 voices / 432 dense events / fixed 1024-clock sample cadence: no deadline misses or dropped samples
+sim/tb_fm_readback.sv:624: $finish called at 11457682000 (1ps)
