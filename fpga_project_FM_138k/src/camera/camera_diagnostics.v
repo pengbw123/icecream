@@ -139,7 +139,13 @@ module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000,GESTURE_
             if(col==12)character="E";
             if(col==13)character=":";
             if(col>=14&&col<=17)character=hex_char({1'b0,gesture_detail[14:0]}>>((17-col)*4));
-            if(col>=18&&col<=20)character=" ";
+            // Raw winner is useful even when confidence/voting rejects it.
+            // R:F/P/V/O = fist/palm/V/other; M remains a hexadecimal gap.
+            if(col==18)character="R";
+            if(col==19)character=":";
+            if(col==20)case(gesture_status[9:8])
+                0:character="F";1:character="P";2:character="V";3:character="O";
+            endcase
             if(col>=24&&col<=27)character=hex_char(gesture_detail[31:16]>>((27-col)*4));
             if(col>=32&&col<40)character=reason_text>>((39-col)*8);
             if(prefetch_y>=160&&prefetch_y<192&&col<8)character=(GRAY_PREVIEW?64'h4752415920313658:64'h4e4e20494e505554)>>((7-col)*8); // NN INPUT

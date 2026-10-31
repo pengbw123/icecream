@@ -1,6 +1,6 @@
 // XiaoMeiGe ACG720, GW5AT-LV138PG484AC1/I0.
 // PC: CH340 at 115200 baud. Keyboard: external CH376S, SPI mode 0.
-module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0) (
+module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0,GESTURE_GRAY=1) (
     input wire clk,
     input wire reset_button_n,
     input wire uart_rx_pin,
@@ -224,7 +224,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     );
     wire hdmi_video_lock;
     wire camera_ready,camera_stale;wire [2:0] camera_fault;
-    camera_hdmi_tx #(.GESTURE_ENABLED(1)) u_hdmi (
+    camera_hdmi_tx #(.GESTURE_ENABLED(1),.GESTURE_GRAY(GESTURE_GRAY)) u_hdmi (
         .gesture_config(gesture_config),.gesture_allowed(gesture_allowed),.gesture_cancel(gesture_cancel),
         .gesture_action_valid(gesture_valid),.gesture_action_ready(gesture_ready),.gesture_action(gesture_action),
         .gesture_status(gesture_status),.gesture_detail(gesture_detail),

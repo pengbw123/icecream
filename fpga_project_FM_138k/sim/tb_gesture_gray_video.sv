@@ -51,6 +51,8 @@ module tb_gesture_gray_video;
         wait(video.vcount==448&&video.hcount==0);#1;
         if(video.u_diagnostics.character!=="N")$fatal(1,"gesture label alignment");
         wait(video.hcount==3*16);#1;if(video.u_diagnostics.character!=="V")$fatal(1,"stable V name");
+        wait(video.hcount==18*16);#1;if(video.u_diagnostics.character!=="R")$fatal(1,"raw label missing");
+        wait(video.hcount==20*16);#1;if(video.u_diagnostics.character!=="V")$fatal(1,"raw winner mismatch");
         wait(video.hcount==32*16);#1;if(video.u_diagnostics.character!=="O")$fatal(1,"OTHER reason label");
         source_data=0;wait(frame_latch);wait(video_data==0);
         wait(video.vcount==352&&video.hcount==20);#1;

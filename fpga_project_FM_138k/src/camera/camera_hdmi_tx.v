@@ -1,5 +1,5 @@
 // Temporary HDMI camera monitor; the RGB UI/audio chain stays independent.
-module camera_hdmi_tx #(parameter integer GESTURE_ENABLED=0)(
+module camera_hdmi_tx #(parameter integer GESTURE_ENABLED=0,GESTURE_GRAY=1)(
     input wire clk,reset_n,input wire camera_pclk,camera_href,camera_vsync,
     input wire [7:0] camera_data,inout wire camera_scl,camera_sda,
     output wire camera_xclk,camera_reset_n,camera_pwdn,
@@ -53,7 +53,7 @@ module camera_hdmi_tx #(parameter integer GESTURE_ENABLED=0)(
     wire [7:0] gray_read_address,gray_read_data;wire gray_valid;
     generate if(GESTURE_ENABLED)begin:g_gesture
         wire [255:0] mask;wire [3:0] reason;wire sw,rv;wire [9:0] si;wire [7:0] sv;
-        gesture_controller #(.GRAY(1),.VECTOR_PREVIEW(0)) u_gesture(.clk(clk),.camera_clk(camera_pclk),.reset_n(sys_reset_sync[2]),
+        gesture_controller #(.GRAY(GESTURE_GRAY),.VECTOR_PREVIEW(0)) u_gesture(.clk(clk),.camera_clk(camera_pclk),.reset_n(sys_reset_sync[2]),
             .capture_reset_n(capture_common_n),.camera_ready(config_ready),.camera_fault(config_fault),
             .config_data(gesture_config),.frame_start(frame_start),.frame_good(frame_good),.frame_bad(frame_bad),
             .pixel_write(pixel_write),.pixel_address(pixel_address),.pixel_data(pixel_data),
@@ -69,7 +69,7 @@ module camera_hdmi_tx #(parameter integer GESTURE_ENABLED=0)(
         assign gesture_action_valid=0;assign gesture_action=0;assign gesture_status=0;assign gesture_detail=0;
         assign gesture_video_data=0;assign gray_read_data=0;assign gray_valid=0;
     end endgenerate
-    camera_hdmi_video #(.GESTURE_ENABLED(GESTURE_ENABLED),.GRAY_PREVIEW(1),.GRAY_RAM(1)) u_video(.pixel_clk(pixel_clk),.reset_n(video_reset_sync[2]),
+    camera_hdmi_video #(.GESTURE_ENABLED(GESTURE_ENABLED),.GRAY_PREVIEW(GESTURE_GRAY),.GRAY_RAM(GESTURE_GRAY)) u_video(.pixel_clk(pixel_clk),.reset_n(video_reset_sync[2]),
         .gesture_status(gesture_video_data[31:0]),.gesture_detail(gesture_video_data[63:32]),
         .gesture_gray(2048'd0),.gray_read_address(gray_read_address),.gray_read_data(gray_read_data),.gray_valid(gray_valid),.gesture_mask(gesture_video_data[319:64]),.gesture_reason(gesture_video_data[323:320]),
         .config_ready(config_ready),.config_fault(config_fault),.buffer_valid(buffer_valid),
