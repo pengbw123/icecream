@@ -4,7 +4,7 @@
 
 MIDI SHA256：`88d9f4b77672ae3b548b3dd624fddcdf976414a4078c61072b62150a0206eb57`
 
-MEM SHA256：`aa4beb65477d9b8ce0c065d2124d082f7143f65d2831b37be5c28b3d063e3c13`
+MEM SHA256：`8d1f090246413aba120820bd6706021e51dc5fb9398efee15dd124f883bbc2a0`
 
 重新生成：先按 Android `test-score.ps1 -JdkDirectory <JDK目录>` 编译测试类，再运行 `com.gowin.instrument.ScoreFixture <输出目录> <该MIDI路径>`。把导出的 `.hex` 每行用 `bytes.fromhex(line)[::-1].hex()` 转换为 MEM 行；不能直接把以 A55A 开头的线上字节串作为 `$readmemh` 整数，否则字节顺序反转。
 

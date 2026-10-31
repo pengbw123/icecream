@@ -32,8 +32,9 @@ try {
     New-Item -ItemType Directory -Force tmp | Out-Null
     foreach($case in $cases){
         $out='tmp/import_'+$case.Name+'.vvp'
-        $compileArgs=@('-g2012','-s',$case.Name,'-o',$out,('sim/'+$case.Name+'.sv'))
+        $compileArgs=@('-g2012','-s',$case.Name,'-o',$out)
         if($case.Compile){$compileArgs+=@($case.Compile)}
+        $compileArgs+=('sim/'+$case.Name+'.sv')
         $compileArgs+=@($case.Files)
         & $iv @compileArgs
         if($LASTEXITCODE -ne 0){throw ('Compile failed: '+$case.Name)}
