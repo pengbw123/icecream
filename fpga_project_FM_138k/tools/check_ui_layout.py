@@ -1,4 +1,4 @@
-"""Verify the UI's Harvard BSS alias without increasing its 96KiB RAM."""
+"""Verify the UI's 96KiB address window with 48KiB sparse physical DATA RAM."""
 import argparse,struct
 from pathlib import Path
 
@@ -18,6 +18,9 @@ def check(path):
     assert 0x10020000<=bss[3]<=bss[3]+bss[5]<=0x10030000,'BSS must use low-data alias'
     assert (bss[3]&0x1ffff)+bss[5]<=byname['.rodata'][3]-0x10000000,'BSS would overwrite constants'
     assert image-0x10000000<=81920,'Instruction ROM overflow'
+    assert bss[5]<=16384,'Sparse UI data RAM: BSS exceeds 16KiB'
+    assert byname['.rodata'][3]>=0x10010000,'Sparse UI data RAM: constants below high bank'
+    assert byname['.data'][3]>=0x10010000,'Sparse UI data RAM: initialized data below high bank'
     stack=0x10018000-image;assert stack>=12288,'Stack headroom below 12KiB'
     print('PASS UI layout: {} image bytes, {} BSS bytes in data alias, {} stack bytes; constants/instructions isolated'.format(image-0x10000000,bss[5],stack))
 

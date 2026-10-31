@@ -183,7 +183,8 @@ endmodule
 module RV32I #(
     parameter FIRMWARE_FILE = "src/usb_midi/firmware/firmware.hex",
     parameter FIRMWARE_HIGH_FILE = "",
-    parameter integer DATA_BYTES = `D_UC_LM_SIZE
+    parameter integer DATA_BYTES = `D_UC_LM_SIZE,
+    parameter integer DATA_SPARSE = 0
 ) (
     input  wire         CLK,          // clock
 `ifdef USB_USE_DUAL_CLOCK_BRAM_HACK
@@ -367,7 +368,7 @@ module RV32I #(
     // BRAM local memory
     // UI BSS deliberately uses the 0x10020000 data alias of the low bank.
     // Instruction ROM is independent; only low17 address bits reach RAM.
-    m_lm_mc #(.FIRMWARE_FILE(FIRMWARE_FILE),.FIRMWARE_HIGH_FILE(FIRMWARE_HIGH_FILE),.DATA_BYTES(DATA_BYTES)) lm_mc
+    m_lm_mc #(.FIRMWARE_FILE(FIRMWARE_FILE),.FIRMWARE_HIGH_FILE(FIRMWARE_HIGH_FILE),.DATA_BYTES(DATA_BYTES),.DATA_SPARSE(DATA_SPARSE)) lm_mc
     (
         CLK, 
 `ifdef USB_USE_DUAL_CLOCK_BRAM_HACK
@@ -395,7 +396,8 @@ endmodule
 module m_lm_mc #(
     parameter FIRMWARE_FILE = "src/usb_midi/firmware/firmware.hex",
     parameter FIRMWARE_HIGH_FILE = "",
-    parameter integer DATA_BYTES = `D_UC_LM_SIZE
+    parameter integer DATA_BYTES = `D_UC_LM_SIZE,
+    parameter integer DATA_SPARSE = 0
 )(
     input  wire                         CLK,
 
@@ -440,21 +442,22 @@ module m_lm_mc #(
     generate if(DATA_BYTES==98304)begin:g_data_96k
         // A single 24576-word array is rounded up by Gowin to 128KiB.
         // Explicit power-of-two banks physically remove the unused 32KiB.
-        reg [31:0] low_mem[0:16383];
+        localparam integer LOW_WORDS=DATA_SPARSE?4096:16384;
+        reg [31:0] low_mem[0:LOW_WORDS-1];
         reg [31:0] high_mem[0:8191];
         reg [31:0] low_read,high_read;reg high_select;
         initial begin
-            $readmemh(FIRMWARE_FILE,low_mem,0,16383);
+            $readmemh(FIRMWARE_FILE,low_mem,0,LOW_WORDS-1);
             $readmemh(FIRMWARE_HIGH_FILE,high_mem,0,4095);
         end
         always @(posedge CLK)begin
             if(|w_we)begin
-                if(!w_addr2[14])begin
-                    if(w_we[0])low_mem[w_addr2[13:0]][7:0]<=w_idata[7:0];
-                    if(w_we[1])low_mem[w_addr2[13:0]][15:8]<=w_idata[15:8];
-                    if(w_we[2])low_mem[w_addr2[13:0]][23:16]<=w_idata[23:16];
-                    if(w_we[3])low_mem[w_addr2[13:0]][31:24]<=w_idata[31:24];
-                end else if(!w_addr2[13])begin
+                if(!w_addr2[14]&&(!DATA_SPARSE||w_addr2[13:12]==0))begin
+                    if(w_we[0])low_mem[w_addr2[$clog2(LOW_WORDS)-1:0]][7:0]<=w_idata[7:0];
+                    if(w_we[1])low_mem[w_addr2[$clog2(LOW_WORDS)-1:0]][15:8]<=w_idata[15:8];
+                    if(w_we[2])low_mem[w_addr2[$clog2(LOW_WORDS)-1:0]][23:16]<=w_idata[23:16];
+                    if(w_we[3])low_mem[w_addr2[$clog2(LOW_WORDS)-1:0]][31:24]<=w_idata[31:24];
+                end else if(w_addr2[14]&&!w_addr2[13])begin
                     if(w_we[0])high_mem[w_addr2[12:0]][7:0]<=w_idata[7:0];
                     if(w_we[1])high_mem[w_addr2[12:0]][15:8]<=w_idata[15:8];
                     if(w_we[2])high_mem[w_addr2[12:0]][23:16]<=w_idata[23:16];
@@ -462,7 +465,7 @@ module m_lm_mc #(
                 end
             end else begin
                 high_select<=w_addr2[14];
-                low_read<=low_mem[w_addr2[13:0]];
+                low_read<=DATA_SPARSE&&w_addr2[13:12]!=0?32'd0:low_mem[w_addr2[$clog2(LOW_WORDS)-1:0]];
                 high_read<=high_mem[w_addr2[12:0]];
             end
         end

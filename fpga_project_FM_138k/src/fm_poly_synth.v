@@ -1704,7 +1704,7 @@ module fm_poly_synth #(
                                 end
                                 if (pending_event[14:8] == 7'd123 || pending_event[14:8]==7'd120)begin
                                     if(!pending_part)mono_held<=0;
-                                    for (i = 0; i < VOICE_COUNT; i = i + 1) if(!pending_part || voice_part[i])begin
+                                    for (i = 0; i < VOICE_COUNT; i = i + 1) if(pending_event[27] ? voice_part[i]==pending_part : (!pending_part || voice_part[i]))begin
                                         voice_gate[i] <= 1'b0;
                                         voice_key_down[i] <= 1'b0;
                                         if(pending_event[14:8]==7'd120)voice_active[i]<=0;

@@ -604,6 +604,24 @@ module tb_fm_readback #(parameter integer TEST_VOICES=2,parameter integer TEST_C
             $display("PASS real FM telemetry: voices=%0d render=%0d response=%0d frames=%0d steals=1",TEST_VOICES,perf_render_expected,perf_response_expected,TEST_VOICES+1);$finish;
         end
 
+        if($test$plusargs("score_scope"))begin
+            copy_backing();test_tag=32'h40000000;key_event(8'h90,60,100);
+            test_tag=32'h88000000;key_event(8'h90,64,100);
+            key_event(8'hb0,123,0);
+            for(integer k=0;k<TEST_VOICES;k=k+1)
+                if(u_synth.voice_active[k]&&u_synth.voice_part[k]&&!u_synth.voice_gate[k])$fatal(1,"Score cleanup released backing");
+            begin : check_back_alive
+                integer found;found=0;
+                for(integer z=0;z<TEST_VOICES;z=z+1)begin
+                    if(u_synth.voice_part[z]&&u_synth.voice_gate[z])found=found+1;
+                    if(!u_synth.voice_part[z]&&u_synth.voice_gate[z])$fatal(1,"Score Live cleanup incomplete");
+                end
+                if(found!=1)$fatal(1,"No preserved BACKING voice");
+            end
+            test_tag=0;key_event(8'hb0,123,0);
+            for(integer k=0;k<TEST_VOICES;k=k+1)if(u_synth.voice_gate[k])$fatal(1,"Human panic lost global cleanup");
+            $display("PASS imported score scoped cleanup preserves BACKING; human panic still global");$finish;
+        end
         if($test$plusargs("parts_dense"))begin
             copy_backing();poly_clock=1;
             for(poly_v=0;poly_v<32;poly_v=poly_v+1)begin

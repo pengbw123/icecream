@@ -6,6 +6,8 @@ module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0) (
     input wire uart_rx_pin,
     output wire uart_tx_pin,
     input wire bridge_uart_rx_pin,
+    input wire bluetooth_rx_pin,output wire bluetooth_tx_pin,
+    input wire tutorial_start_n,tutorial_stop_n,
     output wire ch376_cs_n,ch376_sck,ch376_mosi,
     input wire ch376_miso,ch376_int_n,
     output wire sd_cs_n,sd_clk,sd_mosi,input wire sd_miso,
@@ -91,7 +93,10 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire [63:0] ui_command_payload;
     wire [15:0] readback_data;
     wire readback_valid;
-    wire [31:0] usb_event,merged_event,input_event;
+    wire [31:0] usb_event,merged_event,input_event,live_input_event;
+    wire live_input_valid,live_input_ready;
+    wire [31:0] score_event;wire score_valid,score_ready,score_playing,score_flushing;
+    wire tutorial_running,tutorial_count_in,tutorial_beat,tutorial_initialized,tutorial_missing,tutorial_frame_done,tutorial_reply_overflow;
     wire usb_valid,usb_ready,merged_valid,merged_ready,input_valid;
     wire ch376_present,ch376_configured;
     wire [7:0] ch376_fault;
@@ -109,7 +114,12 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .event_data(merged_event),.event_valid(merged_valid),.event_ready(merged_ready));
     midi_input_queue u_input_queue(.clk(clk),.reset_n(reset_n),
         .in_data(merged_event),.in_valid(merged_valid),.in_ready(merged_ready),
-        .out_data(input_event),.out_valid(input_valid),.out_ready(external_ready));
+        .out_data(live_input_event),.out_valid(live_input_valid),.out_ready(live_input_ready));
+    score_event_arbiter u_score_merge(.clk(clk),.reset_n(reset_n),
+        .usb_event_valid(live_input_valid),.usb_event_data(live_input_event),.usb_event_ack(live_input_ready),
+        .player_event_valid(score_valid),.player_event_data({8'h88,score_event[23:0]}),
+        .player_event_urgent(score_flushing),.player_event_ack(score_ready),
+        .midi_event_data(input_event),.midi_event_valid(input_valid),.midi_event_ready(external_ready));
     wire [31:0] lesson_state,lesson_data;
     wire lesson_bank,lesson_write;
     wire [7:0] lesson_count;
@@ -145,8 +155,8 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .patch_read_data(readback_data),.patch_read_valid(readback_valid),
         .fx_write(),.fx_index(),.fx_value(),.fx_read_value(32'd0),.numeric_display()
     );
-    top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1),.GESTURE_ENABLED(1)) u_audio (
-        .latency_marker(latency_marker),.gesture_valid(gesture_valid),.gesture_action(gesture_action),
+    top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1),.GESTURE_ENABLED(1),.EXTERNAL_SCORE_ENABLED(1)) u_audio (
+        .external_score_active(score_playing||score_flushing),.latency_marker(latency_marker),.gesture_valid(gesture_valid),.gesture_action(gesture_action),
         .gesture_ready(gesture_ready),.gesture_allowed(gesture_allowed),.gesture_cancel(gesture_cancel),
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),.perf_bridge_drop(bridge_drop),
         .arp_config(arp_config),.arp_suspend(lesson_state[16]||sequencer_active),.sequence_active(sequencer_active),.ai_status(ai_status),.composer_status(composer_status),.composer_detail(composer_detail),.arp_status(arp_status),.arp_notes(arp_notes),
@@ -177,10 +187,19 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .aud_dacdat(aud_dacdat),.codec_scl(codec_scl),.codec_sda(codec_sda),
         .ready(codec_ready),.init_error(codec_init_error)
     );
-    ws2812_keys u_leds (
-        .clk(clk),.reset_n(reset_n),.midi_event_data(event_data),
-        .midi_event_valid(event_valid),.led_data(ws2812_data)
-    );
+    sunny_tutorial_system #(.SCORE_MAX_EVENTS(8192),.SYNTH_VOICE_COUNT(AUDIO_VOICES),.EXTERNAL_GUARD(1)) u_tutorial(
+        .clk(clk),.reset_n(reset_n),.bt_rx(bluetooth_rx_pin),.bt_tx(bluetooth_tx_pin),
+        .start_button_n(tutorial_start_n),.stop_button_n(tutorial_stop_n),
+        .live_midi_event(event_data),.live_midi_valid(event_valid),
+        .key_midi_event(usb_valid&&usb_ready?usb_event:bridge_valid&&bridge_ready?bridge_event:ui_event),
+        .key_midi_valid((usb_valid&&usb_ready)||(bridge_valid&&bridge_ready)||(ui_valid&&ui_ready)),
+        .key_source(usb_valid&&usb_ready?2'd0:bridge_valid&&bridge_ready?2'd1:2'd2),
+        .auto_midi_event(score_event),.auto_midi_valid(score_valid),.auto_midi_ready(score_ready),
+        .auto_playing(score_playing),.auto_flushing(score_flushing),.led_data(ws2812_data),
+        .running(tutorial_running),.count_in(tutorial_count_in),.beat_active(tutorial_beat),
+        .initialized(tutorial_initialized),.mapping_missing(tutorial_missing),
+        .frame_done(tutorial_frame_done),.reply_overflow(tutorial_reply_overflow),
+        .external_busy(arp_config[0]||sequencer_active||composer_status[0]||ai_status[0]||lesson_state[16]));
     wire video_lock;
     rgb_visualizer u_video (
         .lesson_state(lesson_state),.lesson_bank(lesson_bank),.lesson_count(lesson_count),
@@ -229,5 +248,5 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
             else if (event_hold!=0) event_hold<=event_hold-1'b1;
         end
     end
-    assign status_led={ch376_fault!=0,ch376_configured,ch376_present,bridge_dropped!=0,touch_present,event_hold!=0,video_lock,latency_marker};
+    assign status_led={ch376_fault!=0,ch376_configured,ch376_present,bridge_dropped!=0||tutorial_reply_overflow,touch_present,event_hold!=0,video_lock,latency_marker};
 endmodule

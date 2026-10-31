@@ -1,0 +1,2078 @@
+{
+  "source": "retained SunnyDays community melody; local practice only",
+  "source_midi_sha256": "e47d713af800059995d31e65d7db0be38aa4ca447266e04f05c2880be0f886fc",
+  "base_bpm": 150,
+  "beat_ms": 400,
+  "grid_ms": 200,
+  "gate_percent": 90,
+  "note_count": 343,
+  "end_ms": 156400,
+  "min_note": 55,
+  "max_note": 74,
+  "default_transpose": -2,
+  "default_speed_percent": 100,
+  "default_count_in_beats": 4,
+  "led_count": 160,
+  "mapping_profile_supplied": false,
+  "physical_map_verified": false,
+  "notes": [
+    {
+      "start_ms": 0,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 400,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 800,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 1200,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 2000,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 2400,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 3200,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 3600,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 4000,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 4400,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 4800,
+      "duration_ms": 180,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 5000,
+      "duration_ms": 180,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 5200,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 5600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 6400,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 6800,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 7200,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 7600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 8400,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 8800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 9600,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 10400,
+      "duration_ms": 180,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 10600,
+      "duration_ms": 180,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 10800,
+      "duration_ms": 180,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 11000,
+      "duration_ms": 180,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 11200,
+      "duration_ms": 180,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 11400,
+      "duration_ms": 180,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 11600,
+      "duration_ms": 180,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 12000,
+      "duration_ms": 180,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 12800,
+      "duration_ms": 360,
+      "note": 55,
+      "velocity": 80
+    },
+    {
+      "start_ms": 13200,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 13600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 14000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 14400,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 14800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 15200,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 15800,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 16200,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 16600,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 17000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 17400,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 17800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 18400,
+      "duration_ms": 180,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 18600,
+      "duration_ms": 180,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 18800,
+      "duration_ms": 180,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 19200,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 20200,
+      "duration_ms": 360,
+      "note": 55,
+      "velocity": 80
+    },
+    {
+      "start_ms": 20600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 21000,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 21400,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 21800,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 22200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 22600,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 23000,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 23200,
+      "duration_ms": 180,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 23400,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 23800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 24200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 24600,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 25000,
+      "duration_ms": 180,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 25200,
+      "duration_ms": 180,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 25400,
+      "duration_ms": 180,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 25800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 26400,
+      "duration_ms": 180,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 26600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 26800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 27000,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 27200,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 27400,
+      "duration_ms": 180,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 27800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 28000,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 28400,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 28600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 28800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 29000,
+      "duration_ms": 180,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 29400,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 29600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 30000,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 30200,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 30400,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 30600,
+      "duration_ms": 180,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 31000,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 31200,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 31600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 31800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 32000,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 32200,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 32600,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 32800,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 33200,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 33400,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 33600,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 33800,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 34200,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 34400,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 34800,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 35000,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 35200,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 35600,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 36200,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 36600,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 37000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 38200,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 38400,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 38600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 38800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 39000,
+      "duration_ms": 180,
+      "note": 57,
+      "velocity": 80
+    },
+    {
+      "start_ms": 39600,
+      "duration_ms": 360,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 40000,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 40400,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 40800,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 41200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 41600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 42000,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 43200,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 43400,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 43600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 43800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 44200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 44600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 45800,
+      "duration_ms": 360,
+      "note": 57,
+      "velocity": 80
+    },
+    {
+      "start_ms": 46200,
+      "duration_ms": 360,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 46600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 47000,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 47400,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 47800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 48200,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 48600,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 51000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 51400,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 51800,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 52200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 53000,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 53400,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 53800,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 54200,
+      "duration_ms": 360,
+      "note": 74,
+      "velocity": 80
+    },
+    {
+      "start_ms": 54600,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 55000,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 55400,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 56200,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 56600,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 57000,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 57800,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 58200,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 58600,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 59400,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 59800,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 60200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 60600,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 61000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 61400,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 61800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 63000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 63400,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 63800,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 64200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 65000,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 65400,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 65800,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 66200,
+      "duration_ms": 360,
+      "note": 74,
+      "velocity": 80
+    },
+    {
+      "start_ms": 66600,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 67000,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 67400,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 69000,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 69400,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 69800,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 70200,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 70600,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 71000,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 71400,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 71800,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 72200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 72600,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 73000,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 73400,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 73800,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 74200,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 74800,
+      "duration_ms": 180,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 75000,
+      "duration_ms": 180,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 75800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 76200,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 76600,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 77000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 77800,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 78200,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 78600,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 79000,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 79400,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 79800,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 80200,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 81000,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 81400,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 81800,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 82600,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 83000,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 83400,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 84200,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 84600,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 85000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 85400,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 85800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 86200,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 86600,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 87800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 88200,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 88600,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 89000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 89800,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 90200,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 90600,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 91000,
+      "duration_ms": 360,
+      "note": 74,
+      "velocity": 80
+    },
+    {
+      "start_ms": 91400,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 91800,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 92200,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 93800,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 94200,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 94600,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 95000,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 95400,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 95800,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 96200,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 96600,
+      "duration_ms": 360,
+      "note": 57,
+      "velocity": 80
+    },
+    {
+      "start_ms": 97000,
+      "duration_ms": 360,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 97400,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 97800,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 98200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 98600,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 99800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 100600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 105400,
+      "duration_ms": 180,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 105600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 105800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 106000,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 106200,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 106400,
+      "duration_ms": 180,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 106800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 107000,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 107400,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 107600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 107800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 108000,
+      "duration_ms": 180,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 108400,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 108600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 109000,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 109200,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 109400,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 109600,
+      "duration_ms": 180,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 110000,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 110200,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 110600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 110800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 111000,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 111200,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 111600,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 111800,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 112200,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 112400,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 112600,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 112800,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 113200,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 113400,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 113800,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 114000,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 114200,
+      "duration_ms": 180,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 114600,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 115200,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 115600,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 116000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 117200,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 117400,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 117600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 117800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 118000,
+      "duration_ms": 180,
+      "note": 57,
+      "velocity": 80
+    },
+    {
+      "start_ms": 118600,
+      "duration_ms": 360,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 119000,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 119400,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 119800,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 120200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 120600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 121000,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 122200,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 122400,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 122600,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 122800,
+      "duration_ms": 180,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 123200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 123600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 124800,
+      "duration_ms": 360,
+      "note": 57,
+      "velocity": 80
+    },
+    {
+      "start_ms": 125200,
+      "duration_ms": 360,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 125600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 126000,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 126400,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 126800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 127200,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 127600,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 130000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 130400,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 130800,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 131200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 132000,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 132400,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 132800,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 133200,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 133600,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 134000,
+      "duration_ms": 360,
+      "note": 74,
+      "velocity": 80
+    },
+    {
+      "start_ms": 134400,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 135600,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 136000,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 136800,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 137200,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 137600,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 138400,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 138800,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 139200,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 139600,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 140000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 140400,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 140800,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 142400,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 142800,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 143200,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 143600,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 144400,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 144800,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 145200,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 145600,
+      "duration_ms": 360,
+      "note": 74,
+      "velocity": 80
+    },
+    {
+      "start_ms": 146000,
+      "duration_ms": 360,
+      "note": 71,
+      "velocity": 80
+    },
+    {
+      "start_ms": 146400,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 146800,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 148000,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 148400,
+      "duration_ms": 360,
+      "note": 72,
+      "velocity": 80
+    },
+    {
+      "start_ms": 148800,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 149200,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 149600,
+      "duration_ms": 360,
+      "note": 69,
+      "velocity": 80
+    },
+    {
+      "start_ms": 150000,
+      "duration_ms": 360,
+      "note": 67,
+      "velocity": 80
+    },
+    {
+      "start_ms": 150400,
+      "duration_ms": 360,
+      "note": 65,
+      "velocity": 80
+    },
+    {
+      "start_ms": 150800,
+      "duration_ms": 360,
+      "note": 57,
+      "velocity": 80
+    },
+    {
+      "start_ms": 151200,
+      "duration_ms": 360,
+      "note": 59,
+      "velocity": 80
+    },
+    {
+      "start_ms": 151600,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    },
+    {
+      "start_ms": 152000,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 152400,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 152800,
+      "duration_ms": 360,
+      "note": 62,
+      "velocity": 80
+    },
+    {
+      "start_ms": 154000,
+      "duration_ms": 360,
+      "note": 64,
+      "velocity": 80
+    },
+    {
+      "start_ms": 154800,
+      "duration_ms": 360,
+      "note": 60,
+      "velocity": 80
+    }
+  ]
+}

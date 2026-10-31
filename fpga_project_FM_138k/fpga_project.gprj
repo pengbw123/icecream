@@ -52,6 +52,16 @@
         <File path="src/ch376/midi_input_queue.v" type="file.verilog" enable="1"/>
         <File path="src/audio_performance_monitor.v" type="file.verilog" enable="1"/>
         <File path="src/audio_note_latency.v" type="file.verilog" enable="1"/>
+        <File path="src/led_guide/debounced_press.v" type="file.verilog" enable="1"/>
+        <File path="src/led_guide/score_strip_guide.v" type="file.verilog" enable="1"/>
+        <File path="src/led_guide/sunny_tutorial_player.v" type="file.verilog" enable="1"/>
+        <File path="src/led_guide/sunny_tutorial_system.v" type="file.verilog" enable="1"/>
+        <File path="src/led_guide/ws2812_frame_tx.v" type="file.verilog" enable="1"/>
+        <File path="src/score/score_event_arbiter.v" type="file.verilog" enable="1"/>
+        <File path="src/score/score_player.v" type="file.verilog" enable="1"/>
+        <File path="src/uart_packet_rx.v" type="file.verilog" enable="1"/>
+        <File path="src/uart_status_reply.v" type="file.verilog" enable="1"/>
+        <File path="src/uart_tx.v" type="file.verilog" enable="1"/>
         <File path="src/step_sequencer.v" type="file.verilog" enable="1"/>
         <File path="src/midi_arpeggiator.v" type="file.verilog" enable="1"/>
         <File path="src/audio_chorus.v" type="file.verilog" enable="1"/>
@@ -113,5 +123,8 @@
         <File path="src/generated/lesson_score.mem" type="file.other" enable="1"/>
         <File path="src/generated/lesson_geometry_800.mem" type="file.other" enable="1"/>
         <File path="src/generated/lesson_geometry_640.mem" type="file.other" enable="1"/>
+        <File path="src/generated/sunny_tutorial_meta.vh" type="file.other" enable="1"/>
+        <File path="src/generated/sunny_tutorial_notes.mem" type="file.other" enable="1"/>
+        <File path="src/generated/tutorial_led_map.mem" type="file.other" enable="1"/>
     </FileList>
 </Project>
