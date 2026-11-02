@@ -1,0 +1,12 @@
+{
+  "snapshot": "tmp/gray_macfix_production_build",
+  "sha256": "610db0d65cc770fa3c3c94056380fb60239623ddc621f73990c49adbff01f170",
+  "self_test": false,
+  "setup_hold_tns": 0,
+  "main_fmax_mhz": 50.024,
+  "rgb_fmax_mhz": 33.521,
+  "logic": 81458,
+  "bsram": 335,
+  "dsp": 89,
+  "backup": "impl/pnr/backup/fm_138k_rgb_hdmi_pre_macfix_20261101.fs"
+}

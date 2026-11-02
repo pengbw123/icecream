@@ -1,5 +1,19 @@
 # 给后续 AI 的工程交接说明
 
+## 2026-11-01 CNN乘加修复正式版（当前下载版）
+
+标准位流impl/pnr/fm_138k_rgb_hdmi.fs，SHA256 610db0d65cc770fa3c3c94056380fb60239623ddc621f73990c49adbff01f170。构建完成2026-11-01 20:17，快照tmp/gray_macfix_production_build。SELF_TEST=0，恢复正常判定、投票与动作。全部约束时钟setup/hold TNS=0；主域50.024MHz、RGB33.521MHz，裕量较小。回退impl/pnr/backup/fm_138k_rgb_hdmi_pre_macfix_20261101.fs。用户已验证修复诊断版，正式版待实机验证。未自动烧录。此前构建中记录为历史。
+
+
+## 2026-11-01 灰度 CNN 乘加修复（正式构建中）
+
+- 用户确认修复诊断版实机已能正确识别手势。旧 CNN RTL 与 Gowin 综合后网表结果不一致：样本0网表输出663/117/-1755/429，FIST领先234=00EA，复现实机现象；具体工具内部映射缺陷未细分。
+- 改为显式补码移位加法乘法，乘积寄存后再累加，避开旧融合DSP MAC结构。552图/2208分数RTL正确，完整灰度回归通过；新版单模块综合网表4图/16分数正确，旧版同样测试失败。新推理27409周期=548.18us。
+- 正式工程顶层GESTURE_SELF_TEST=0，恢复接受门限、多帧投票和手势动作。HDMI小图改为归一化后CNN输入的16×16抽样，位置掩码仍使用原始灰度。保留可编译自检参数，默认关闭。
+- 修复诊断版impl/pnr/fm_138k_gray_macfix_selftest.fs，SHA256 00A9A9AA349E0EB51250610C8A6E057EA6EC68E92196E646EC43F084AB48F021，已通过全部时序；该诊断版强制禁用接受与动作，因此NN保持UNKNOWN不代表故障。
+- 正式构建tmp/gray_macfix_production_build，等待完成并检查全部时序后再发布标准FS。当前标准FS尚未替换。详情GESTURE_CNN_MAC_FIX_2026_11_01.md和GESTURE_CNN_SELFTEST.md。
+
+
 ## 2026-10-31 灰度自适应与USB MIDI延迟版（当前下载版）
 
 - 构建源码 `10261d8`；标准位流 `impl/pnr/fm_138k_rgb_hdmi.fs`，时间 `2026-10-31T19:41:30.115293+08:00`，SHA256 `F81BA6D996B481463EC20F8F504A9009EB65E7F1B270402115576059CE2421EB`。未自动烧录、未推送。

@@ -1,6 +1,6 @@
 // 640x480/59.52 Hz at the existing 25 MHz HDMI clock. Registered RGB/sync
 // align with the synchronous framebuffer read; nearest-neighbour 4x preview.
-module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0,GRAY_PREVIEW=0,GRAY_RAM=0)(
+module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0,GRAY_PREVIEW=0,GRAY_RAM=0,GESTURE_SELF_TEST=0)(
     input wire pixel_clk,reset_n,config_ready,input wire [2:0] config_fault,
     input wire buffer_valid,present_pulse,input wire [7:0] pixel_data,
     input wire bad_toggle,drop_toggle,
@@ -25,7 +25,7 @@ module camera_hdmi_video #(parameter integer STALE_FRAMES=60,GESTURE_ENABLED=0,G
     assign read_address=active?row_address+{7'd0,hcount[9:2]}:15'd0;
     assign stream_stale=!buffer_valid||silent_frames>=STALE_FRAMES;
     wire diagnostic_area,diagnostic_ink;
-    camera_diagnostics #(.GESTURE_ENABLED(GESTURE_ENABLED),.GRAY_PREVIEW(GRAY_PREVIEW)) u_diagnostics(.pixel_clk(pixel_clk),.reset_n(reset_n),
+    camera_diagnostics #(.GESTURE_ENABLED(GESTURE_ENABLED),.GRAY_PREVIEW(GRAY_PREVIEW),.GESTURE_SELF_TEST(GESTURE_SELF_TEST)) u_diagnostics(.pixel_clk(pixel_clk),.reset_n(reset_n),
         .gesture_status(gesture_status),.gesture_detail(gesture_detail),
         .gesture_reason(gesture_reason),
         .camera_pclk(camera_pclk),.camera_href(camera_href),.camera_vsync(camera_vsync),

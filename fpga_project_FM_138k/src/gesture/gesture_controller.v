@@ -1,7 +1,7 @@
 // System-clock telemetry and opt-in composer adapter around the camera tap.
 // Camera reconfiguration resets the CDC and NN, but not menu configuration.
 module gesture_controller #(
-    parameter integer FRESH_CYCLES=50000000,NORMALIZE=1,TEMPORAL=1,GRAY=0,VECTOR_PREVIEW=1,
+    parameter integer FRESH_CYCLES=50000000,NORMALIZE=1,TEMPORAL=1,GRAY=0,VECTOR_PREVIEW=1,SELF_TEST=0,
     parameter WEIGHTS="src/generated/gesture_plane/weights.mem",
     parameter BIASES="src/generated/gesture_plane/biases.mem"
 )(
@@ -31,7 +31,7 @@ module gesture_controller #(
     wire network_ready=queue_room||!control_active||cancel;
     wire [2047:0] gray_preview;
     generate if(GRAY)begin:g_gray
-        gesture_gray_pipeline #(.TIMEOUT_CYCLES(FRESH_CYCLES),.VECTOR_PREVIEW(VECTOR_PREVIEW)) pipeline(
+        gesture_gray_pipeline #(.TIMEOUT_CYCLES(FRESH_CYCLES),.VECTOR_PREVIEW(VECTOR_PREVIEW),.SELF_TEST(SELF_TEST)) pipeline(
             clk,camera_clk,reset_n&&capture_reset_n,config_data[0],config_data[1],cancel,network_ready,
             frame_start,frame_good,frame_bad,pixel_write,pixel_address,pixel_rgb565,
             result_valid,filtered_accepted,class_id,energy,filtered_margin,tracking,stable_class,

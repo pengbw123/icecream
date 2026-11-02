@@ -1,7 +1,7 @@
 // Readable bring-up telemetry. Capture uses a held packet/toggle handshake;
 // a Gray counter measures PCLK independently of sensor configuration/reset.
 // Everything shown is latched at HDMI vertical blank, so digits stay coherent.
-module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000,GESTURE_ENABLED=0,GRAY_PREVIEW=0)(
+module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000,GESTURE_ENABLED=0,GRAY_PREVIEW=0,GESTURE_SELF_TEST=0)(
     input wire pixel_clk,reset_n,camera_pclk,camera_href,camera_vsync,config_ready,
     input wire [2:0] config_fault,input wire [15:0] chip_id,
     input wire [7:0] frame_count,error_count,drop_count,capture_status,
@@ -148,7 +148,7 @@ module camera_diagnostics #(parameter integer PIXEL_CLOCKS_PER_MS=25000,GESTURE_
             endcase
             if(col>=24&&col<=27)character=hex_char(gesture_detail[31:16]>>((27-col)*4));
             if(col>=32&&col<40)character=reason_text>>((39-col)*8);
-            if(prefetch_y>=160&&prefetch_y<192&&col<8)character=(GRAY_PREVIEW?64'h4752415920313658:64'h4e4e20494e505554)>>((7-col)*8); // NN INPUT
+            if(prefetch_y>=160&&prefetch_y<192&&col<8)character=(GESTURE_SELF_TEST?64'h53454c4654455354:GRAY_PREVIEW?64'h4752415920313658:64'h4e4e20494e505554)>>((7-col)*8); // SELFTEST / GRAY 16X / NN INPUT
         end
     end
     reg [7:0] font[0:2047] /* synthesis syn_ramstyle="block_ram" */;

@@ -42,7 +42,7 @@ module tb_gesture_gray_controller;
    sum=0;for(integer q=0;q<1024;q=q+1)sum=sum+grays[id*1024+q];
    if(energy!==(sum>>10))$fatal(1,"gray mean");
    for(integer q=0;q<256;q=q+1)begin k=(2*(q/16)+1)*32+2*(q%16)+1;
-    if(preview[q*8+:8]!==grays[id*1024+k])$fatal(1,"gray preview mismatch");
+    if(preview[q*8+:8]!==wrapper.g_gray.pipeline.cnn.image[k])$fatal(1,"normalized gray preview mismatch");
     if(mask[q]!==((grays[id*1024+k]+8)<(sum>>10)))$fatal(1,"position-only mask mismatch");
    end
    if(reason!==(best==3?4'd5:4'd0))$fatal(1,"other reason");

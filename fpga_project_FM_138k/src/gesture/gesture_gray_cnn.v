@@ -20,7 +20,20 @@ module gesture_gray_cnn #(
  reg [3:0] term;reg [6:0] dense_index,hidden_index,max_value;
  reg signed [31:0] acc,best;reg signed [7:0] weight;
  reg [8:0] operand;
- wire signed [17:0] product=$signed({1'b0,operand})*$signed(weight);
+ // Explicit two's-complement shift/add multiplier. Keep the product in its
+ // own register before accumulation, avoiding automatic DSP MAC inference.
+ function signed [17:0] multiply_u9_s8;
+  input [8:0] a; input [7:0] b;
+  reg signed [17:0] v,extended; integer bit_index;
+  begin
+   v=0;extended=$signed({9'd0,a});
+   for(bit_index=0;bit_index<7;bit_index=bit_index+1)
+    if(b[bit_index])v=v+(extended<<<bit_index);
+   if(b[7])v=v-(extended<<<7);
+   multiply_u9_s8=v;
+  end
+ endfunction
+ reg signed [17:0] product;
  wire [4:0] row=({2'd0,py}*5'd3+{2'd0,iy})*5'd2+{2'd0,ky};
  wire [4:0] col=({2'd0,px}*5'd3+{2'd0,ix})*5'd2+{2'd0,kx};
  wire [8:0] wa=channel*9'd9+{5'd0,term};
@@ -30,13 +43,14 @@ module gesture_gray_cnn #(
   if(feature_write&&!busy)image[feature_index]<=feature_value;
   if(!reset_n)begin state<=IDLE;busy<=0;done<=0;class_id<=0;score0<=0;score1<=0;score2<=0;score3<=0;cycles<=0;
    channel<=0;output_id<=0;px<=0;py<=0;ix<=0;iy<=0;kx<=0;ky<=0;term<=0;
-   dense_index<=0;hidden_index<=0;max_value<=0;acc<=0;best<=0;operand<=0;weight<=0;
+   dense_index<=0;hidden_index<=0;max_value<=0;acc<=0;best<=0;operand<=0;weight<=0;product<=0;
   end else begin
    done<=0;if(busy)cycles<=cycles+1'b1;
    case(state)
     IDLE:if(start)begin busy<=1;cycles<=0;channel<=0;px<=0;py<=0;ix<=0;iy<=0;hidden_index<=0;max_value<=0;state<=INIT;end
     INIT:begin acc<=biases[channel];term<=0;kx<=0;ky<=0;state<=LOAD;end
-    LOAD:begin weight<=weights[wa];operand<={1'b0,image[{row,col}]};state<=MAC;end
+    LOAD:begin weight<=weights[wa];operand<={1'b0,image[{row,col}]};state<=11;end
+    11:begin product<=multiply_u9_s8(operand,weight);state<=MAC;end
     MAC:begin acc<=acc+product;
      if(term==8)state<=CONV;else begin term<=term+1'b1;if(kx==2)begin kx<=0;ky<=ky+1'b1;end else kx<=kx+1'b1;state<=LOAD;end
     end
@@ -53,7 +67,8 @@ module gesture_gray_cnn #(
      end
     end
     DENSE:begin acc<=biases[4+output_id];dense_index<=0;state<=9;end
-    9:begin weight<=weights[da];operand<={2'd0,pooled[dense_index]};state<=10;end
+    9:begin weight<=weights[da];operand<={2'd0,pooled[dense_index]};state<=12;end
+    12:begin product<=multiply_u9_s8(operand,weight);state<=10;end
     10:begin acc<=acc+product;
      if(dense_index==99)state<=SCORE;else begin dense_index<=dense_index+1'b1;state<=9;end
     end
