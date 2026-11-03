@@ -8,7 +8,7 @@ module tb_touch_ui;
     wire [31:0] event_word;
     wire signed [3:0] octave;
     wire [6:0] volume;
-    wire visual_mode,spectrum_enable;
+    wire visual_mode,spectrum_enable,linear_enable;
     wire display_auto_gain;
     wire [6:0] xy_delay;
     wire [3:0] menu_page;
@@ -45,12 +45,16 @@ module tb_touch_ui;
     reg pr_valid=0;
     integer cmd_69=0,cmd_60=0,cmd_61=0,cmd_62=0,cmd_63=0,cmd_64=0,cmd_65=0,cmd_70=0,text_cells=0,pal_writes=0;
     wire perf_snap,perf_clear;wire [4:0] perf_index;
-    reg [31:0] perf_model[0:23];integer perf_snaps=0,perf_clears=0,freeze_snaps;
+    reg [31:0] perf_model[0:31];integer perf_snaps=0,perf_clears=0,freeze_snaps;
     integer pm;
-    initial begin for(pm=0;pm<24;pm=pm+1)perf_model[pm]=0;
+    initial begin for(pm=0;pm<32;pm=pm+1)perf_model[pm]=0;
         perf_model[0]=32'h50455231;perf_model[1]=50000000;perf_model[2]=1024;perf_model[3]=1024;
         perf_model[5]={16'd700,16'd600};perf_model[6]={16'd800,16'd650};perf_model[7]={16'd900,16'd700};
         perf_model[8]=2;perf_model[9]=1;perf_model[10]=3;perf_model[11]=4;perf_model[12]=123;
+        if($test$plusargs("midi_probe"))begin
+            perf_model[24]=1;perf_model[12]=2;perf_model[25]=32'h09903c7f;perf_model[26]=0;
+            perf_model[27]=32'h00903c7f;perf_model[28]=32'h00903c7f;
+        end
         if($test$plusargs("latency_ui"))begin perf_model[18]=75000;perf_model[19]=125000;perf_model[20]=7;perf_model[21]=2;perf_model[22]=3;end
         perf_model[13]=$test$plusargs("poly32")?{16'd32,8'd32,8'd32}:{16'd16,8'd16,8'd8};perf_model[14]=1234567890;
     end
@@ -83,7 +87,7 @@ module tb_touch_ui;
         .sd_miso(1'b1),.midi_event_valid(valid),.midi_event_ready(arp_test_ready),.monitor_event($test$plusargs("seq")?event_word:32'd0),
         .monitor_event_valid($test$plusargs("seq")?valid&&arp_test_ready:1'b0),.preset_index($test$plusargs("poly32")?7'd127:performance_case?model_preset:7'd0),.algorithm(5'd4),.active_voices($test$plusargs("poly32")?model_voices:8'd0),
         .touch_present(present),.keyboard_octave(octave),.master_volume(volume),
-        .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),.xy_delay_samples(xy_delay),.display_auto_gain(display_auto_gain),
+        .linear_enable(linear_enable),.visual_mode(visual_mode),.spectrum_enable(spectrum_enable),.xy_delay_samples(xy_delay),.display_auto_gain(display_auto_gain),
         .command_ready(1'b1),.fx_read_value(32'd0),
         .menu_page(menu_page),.patch_read_data(pr_response),.patch_read_valid(pr_valid));
     // Physical UI data RAM is 96KiB; catch stale stack/linker assumptions.
@@ -169,7 +173,7 @@ module tb_touch_ui;
         if(dut.palette_write)pal_writes<=pal_writes+1;
     end
     integer touch_kind=1;
-    initial if($test$plusargs("gesture")||$test$plusargs("nav_exit")||$test$plusargs("algo_preview")||$test$plusargs("ai")||$test$plusargs("composer")||$test$plusargs("rename")||$test$plusargs("sd")||$test$plusargs("poly32")||$test$plusargs("latency_ui")||$test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
+    initial if($test$plusargs("midi_probe")||$test$plusargs("gesture")||$test$plusargs("nav_exit")||$test$plusargs("algo_preview")||$test$plusargs("ai")||$test$plusargs("composer")||$test$plusargs("rename")||$test$plusargs("sd")||$test$plusargs("poly32")||$test$plusargs("latency_ui")||$test$plusargs("metrics")||$test$plusargs("keyboard")||$test$plusargs("spectrum")||$test$plusargs("performance")||$test$plusargs("lesson")||$test$plusargs("arp")||$test$plusargs("seq"))touch_kind=0;
     integer frame_kind=1;reg [3:0] frame_page=0;
     reg slave_low=0;
     assign sda=slave_low?1'b0:1'bz;
@@ -181,7 +185,7 @@ module tb_touch_ui;
         integer px,py;
         begin
             px=frame_kind==1?750:40;py=frame_kind==1?200:470;
-            if(frame_kind==6)begin px=700;py=264;end
+            if(frame_kind==6)begin px=728;py=240;end
             if(frame_kind==7)begin px=736;py=24;end
             if(frame_kind==8)begin px=650;py=312;end
             if(frame_kind==9)begin px=376;py=376;end
@@ -227,8 +231,9 @@ module tb_touch_ui;
             if(frame_kind==49)begin px=600;py=200;end
             if(frame_kind==50)begin px=600;py=248;end
             if(frame_kind==51)begin px=799;py=470;end
-            if(frame_kind==52)begin px=750;py=264;end
-            if(frame_kind==53)begin px=640;py=264;end
+            if(frame_kind==52)begin px=640;py=272;end
+            if(frame_kind==200)begin px=750;py=272;end
+            if(frame_kind==53)begin px=640;py=240;end
             if(frame_kind==54)begin px=200;py=248;end
             if(frame_kind==55)begin px=600;py=296;end
             if(frame_kind==56)begin px=100;py=390;end
@@ -251,7 +256,7 @@ module tb_touch_ui;
             if(frame_kind==74)begin px=360;py=248;end
             if(frame_kind==75)begin px=750;py=248;end
             if(frame_kind==76)begin px=400;py=104;end
-            if(frame_kind==77)begin px=600;py=104;end
+            if(frame_kind==77)begin px=400;py=104;end
             if(frame_kind==78)begin px=80;py=104;end
             if(frame_kind==79)begin px=240;py=104;end
             if(frame_kind==80)begin px=384;py=104;end
@@ -286,8 +291,9 @@ module tb_touch_ui;
             if(frame_kind==135)begin px=500;py=390;end
             if(frame_kind==136)begin px=696;py=288;end
             if(frame_kind==131)begin px=696;py=336;end
-            if(frame_kind==132)begin px=192;py=152;end
-            if(frame_kind==133)begin px=600;py=152;end
+            if(frame_kind==132)begin px=192;py=104;end
+            if(frame_kind==133)begin px=600;py=104;end
+            if(frame_kind==201)begin px=640;py=104;end
             if(frame_kind==134)begin px=200;py=286;end
             if(frame_kind==112)begin px=80;py=104;end
             if(frame_kind==113)begin px=216;py=104;end
@@ -411,49 +417,27 @@ module tb_touch_ui;
             #10000000;touch_kind=12;wait(menu_page==1);#30000000;
             $display("PASS ALGO rectangle menu capture from real firmware");$finish;
         end
-        if($test$plusargs("nav_exit"))begin
+        if($test$plusargs("gesture")||$test$plusargs("nav_exit"))begin
             if(gesture_config!==0)$fatal(1,"Gesture controls must default OFF");
             #10000000;touch_kind=17;wait(menu_page==7);#10000000;
-            touch_kind=0;#8000000;touch_kind=135;wait(menu_page==14);#10000000;
-            if(!composer_status[0])$fatal(1,"Direct melody entry failed");
-            touch_kind=0;#8000000;touch_kind=136;#10000000;
-            touch_kind=0;#8000000;touch_kind=132;wait(gesture_config==1);#10000000;
-            touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==3);#10000000;
-            touch_kind=0;#8000000;touch_kind=115;#10000000;
-            touch_kind=0;#8000000;touch_kind=115;#10000000;
-            touch_kind=0;#8000000;touch_kind=122;wait(menu_page==7);#10000000;
-            if(gesture_config!==1||composer_status[0]||composer_ons)$fatal(1,"Exit did not disarm/flush composer");
-            $display("PASS direct AI melody/gesture navigation: OFF defaults, recognition/control switches, SURFACE return, EXIT to SETUP, disarm/flush and no keyboard notes during held navigation touches");$finish;
-        end
-        if($test$plusargs("gesture"))begin
-            if(gesture_config!==0)$fatal(1,"Gesture controls must default OFF");
-            #10000000;touch_kind=17;wait(menu_page==7);#10000000;
-            touch_kind=0;#8000000;touch_kind=135;wait(menu_page==14);#10000000;
-            touch_kind=0;#8000000;touch_kind=136;#10000000;
-            touch_kind=0;#8000000;touch_kind=133;#10000000;
-            if(gesture_config!==0)$fatal(1,"Control armed while recognition OFF");
-            touch_kind=0;#8000000;touch_kind=132;wait(gesture_config==1);#10000000;
-            touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==3);#10000000;
-            touch_kind=0;#8000000;touch_kind=134;wait(gesture_config==5);#10000000;
-            if(!test_composer.perform_mode)$fatal(1,"PERFORM mode not committed");
-            touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==7);#10000000;
-            touch_kind=0;#8000000;touch_kind=134;wait(gesture_config==1);#10000000;
-            if(test_composer.perform_mode)$fatal(1,"BASIC mode not restored");
-            touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==3);#10000000;
-            gesture_model=32'h0001246c;
-            #120000000;
+            touch_kind=0;#8000000;touch_kind=201;wait(menu_page==15);#12000000;
+            if(composer_status[0]||composer_ons)$fatal(1,"Gesture page entered AI session");
+            touch_kind=0;#8000000;touch_kind=133;#12000000;
+            if(gesture_config!==0)$fatal(1,"Control armed without recognition");
+            touch_kind=0;#8000000;touch_kind=132;wait(gesture_config==1);#12000000;
+            touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==3);#12000000;
+            gesture_model=32'h0001606c;#120000000;
+            if(captured_cells[19*128+20][7:0]!="C"||captured_cells[19*128+21][7:0]!="H")$fatal(1,"CHOP mode label missing");
+            gesture_model=32'h0001a86c;#120000000;
+            if(captured_cells[19*128+20][7:0]!="A")$fatal(1,"ARPEGGIO mode label missing");
             touch_kind=0;#8000000;touch_kind=11;wait(menu_page==0);#10000000;
-            if(gesture_config!==3||!composer_status[0])$fatal(1,"Page change lost armed composer");
+            if(gesture_config!==3||composer_status[0])$fatal(1,"Gesture cross-page persistence failed");
             touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#10000000;
-            touch_kind=0;#8000000;touch_kind=135;wait(menu_page==14);#10000000;
+            touch_kind=0;#8000000;touch_kind=201;wait(menu_page==15);#10000000;
+            touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==1);#10000000;
             touch_kind=0;#8000000;touch_kind=132;wait(gesture_config==0);#10000000;
-            touch_kind=0;#8000000;touch_kind=132;wait(gesture_config==1);#10000000;
-            touch_kind=0;#8000000;touch_kind=133;wait(gesture_config==3);#10000000;
-            touch_kind=0;#8000000;touch_kind=115;#10000000;
-            touch_kind=0;#8000000;touch_kind=115;#10000000;
-            touch_kind=0;#8000000;touch_kind=122;wait(menu_page==7);#10000000;
-            if(gesture_config!==1||composer_status[0]||composer_ons)$fatal(1,"Mode exit did not disarm or UI leaked notes");
-            $display("PASS real RV32I/I2C direct AI melody/gesture navigation: OFF defaults, recognition/control isolation, status, cross-page persistence, mode exit disarm");$finish;
+            if(composer_status[0]||composer_ons)$fatal(1,"Gesture UI affected AI composer");
+            $display("PASS independent gesture UI: direct SETUP entry, recognition/control, actual sound mode labels, cross-page persistence, no AI session or accidental notes");$finish;
         end
         if($test$plusargs("composer"))begin
             #10000000;touch_kind=17;wait(menu_page==7);#10000000;
@@ -568,6 +552,13 @@ module tb_touch_ui;
             if(captured_cells[6*128+24][7:0]!="3"||captured_cells[6*128+25][7:0]!="2")$fatal(1,"Telemetry capacity stale");
             if(event_count!=0)$fatal(1,"Polyphony UI emitted MIDI");
             $display("PASS real UI 31/32 voices, capacity 32, preset 128 isolation and telemetry page");$finish;
+        end
+        if($test$plusargs("midi_probe"))begin
+            #10000000;touch_kind=17;wait(menu_page==7);#10000000;
+            touch_kind=0;#8000000;touch_kind=93;wait(menu_page==12);#12000000;
+            if(captured_cells[18*128+54][7:0]!="U"||captured_cells[21*128+54][7:0]!="U"||captured_cells[24*128+54][7:0]!="A")$fatal(1,"probe labels missing");
+            if(captured_cells[18*128+91][7:0]!="1"||captured_cells[18*128+95][7:0]!="2")$fatal(1,"probe USB/audio counts");
+            $display("PASS real MIDI probe UI: 32-word MMIO, USB/audio counts and raw word labels");$finish;
         end
         if($test$plusargs("latency_ui"))begin
             #10000000;touch_kind=17;wait(menu_page==7);#10000000;
@@ -758,6 +749,10 @@ module tb_touch_ui;
         if($test$plusargs("spectrum"))begin
             #10000000;touch_kind=52;wait(spectrum_enable);#5000000;
             if(visual_mode)$fatal(1,"FFT set XY mode bit");
+            touch_kind=0;#8000000;touch_kind=52;wait(linear_enable);#5000000;
+            if(visual_mode||!spectrum_enable)$fatal(1,"linear FFT flags");
+            touch_kind=0;#8000000;touch_kind=200;wait(visual_mode&&spectrum_enable);#5000000;
+            if(linear_enable)$fatal(1,"VOICES retained linear FFT flag");
             touch_kind=0;#8000000;touch_kind=6;wait(visual_mode);#5000000;
             if(spectrum_enable)$fatal(1,"XY left FFT enabled");
             touch_kind=0;#8000000;touch_kind=53;wait(!visual_mode);#5000000;
@@ -766,9 +761,10 @@ module tb_touch_ui;
             touch_kind=0;#8000000;touch_kind=50;wait(menu_page==0&&spectrum_enable);#5000000;
             touch_kind=0;#8000000;touch_kind=17;wait(menu_page==7);#5000000;
             touch_kind=0;#8000000;touch_kind=54;#5000000;
-            touch_kind=0;#8000000;touch_kind=14;wait(!spectrum_enable);#5000000;
+            repeat(3)begin touch_kind=0;#8000000;touch_kind=14;#5000000;end
+            wait(!spectrum_enable);#5000000;
             if(visual_mode||event_count!=0)$fatal(1,"DISPLAY cycle wrap or spurious MIDI");
-            $display("PASS real UI WAVE/XY/FFT, SETUP spectrum shortcut, DISPLAY cycle and MIDI isolation");$finish;
+            $display("PASS real UI WAVE/XY/FFT/VOICES/LINEAR, SETUP spectrum shortcut, DISPLAY cycle and MIDI isolation");$finish;
         end
         if($test$plusargs("keyboard"))begin
             #10000000;touch_kind=2;wait(event_count==1);#5000000;

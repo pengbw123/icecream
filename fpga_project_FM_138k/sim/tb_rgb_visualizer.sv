@@ -20,14 +20,36 @@ module tb_rgb_visualizer;
     integer quiet_case=0,max_display_height=0,current_height;
     integer messy_case=0;
     reg show_wave=0;
-    wire [3:0] test_page=$test$plusargs("composer")?4'd14:$test$plusargs("ai")?4'd13:$test$plusargs("arp")?4'd10:$test$plusargs("seq")?4'd11:4'd0;
+    wire [3:0] test_page=$test$plusargs("gesture")?4'd15:$test$plusargs("composer")?4'd14:$test$plusargs("ai")?4'd13:$test$plusargs("arp")?4'd10:$test$plusargs("seq")?4'd11:4'd0;
+    integer key_probe;
+    initial begin
+        for(key_probe=0;key_probe<800;key_probe=key_probe+1)begin
+            if(dut.white_key_index(key_probe)!=(key_probe*15)/800)$fatal(1,"Keyboard division mismatch at %d",key_probe);
+            if(dut.white_key_edge(key_probe)!=(key_probe>0&&((key_probe*15)/800!=((key_probe-1)*15)/800)))$fatal(1,"Keyboard edge mismatch at %d",key_probe);
+        end
+        $display("PASS exact keyboard index/borders for all 800 pixels");
+    end
     integer page_probes=0;
     reg spectrum_case=0,spectrum_write=0;
+    reg voices_case=0,linear_case=0;integer voice_probes=0,slot,logo_probes=0,linear_probes=0;reg [15:0] expected_voice_color;
+    reg [1:0] logo_codes[0:1535];
+    reg linear_write=0;reg [8:0] linear_address=0;reg [13:0] linear_data=0;
+    integer lb;reg [6:0] ll;
+    initial begin
+      linear_case=$test$plusargs("linear");$readmemh("assets/branding/gowin_logo_codes.mem",logo_codes);#10000;
+      if(linear_case)forever begin
+        for(lb=0;lb<512;lb=lb+1)begin
+          @(negedge clk);linear_address=lb;ll=lb==44?80:lb==175?60:lb==263?40:0;linear_data={ll,ll};linear_write=1;
+          @(negedge clk);linear_write=0;
+        end
+        #1000000;
+      end
+    end
     reg [5:0] spectrum_address=0;
     reg [13:0] spectrum_data=0;
     integer spectrum_probes=0,sb;reg [6:0] sl;
     initial begin
-        spectrum_case=$test$plusargs("spectrum");
+        spectrum_case=$test$plusargs("spectrum");voices_case=$test$plusargs("voices");
         #10000;
         if(spectrum_case)forever begin
           for(sb=0;sb<64;sb=sb+1)begin
@@ -55,12 +77,12 @@ module tb_rgb_visualizer;
     wire pclk,de,hs,vs,bl,lock;
     wire [4:0] r,b;
     wire [5:0] g;
-    rgb_visualizer dut(
+    rgb_visualizer dut(.active_voice_mask(32'ha55a0005),.linear_enable(linear_case),.linear_write(linear_write),.linear_address(linear_address),.linear_data(linear_data),
         .lesson_state(32'd0),.lesson_bank(1'b0),.lesson_count(8'd42),.lesson_write(1'b0),.lesson_address(7'd0),.lesson_data(32'd0),.clk(clk),.reset_n(reset_n),.sample_tick(tick),.audio_sample(pcm),
         .midi_event_data(event_word),.midi_event_valid(event_valid),.active_voice_count(5'd3),
         .preset_index(7'd10),.algorithm(5'd4),.operator_envelopes(48'hB090603080D0),
         .touch_present(1'b1),.keyboard_octave(4'sd0),.master_volume(7'd96),
-        .visual_mode(!show_wave),.spectrum_enable(spectrum_case),.spectrum_write(spectrum_write),.spectrum_address(spectrum_address),.spectrum_data(spectrum_data),.xy_delay_samples(7'd24),
+        .visual_mode((spectrum_case||linear_case)?1'b0:!show_wave),.spectrum_enable(spectrum_case||voices_case||linear_case),.spectrum_write(spectrum_write),.spectrum_address(spectrum_address),.spectrum_data(spectrum_data),.xy_delay_samples(7'd24),
         .display_auto_gain(1'b1),.menu_page(test_page),.algorithm_flags(48'd0),
         .background_color(24'h080D18),.wave_color(24'h40EAD0),.xy_color(24'hFFB95A),
         .text_write(1'b0),.text_address(12'd0),.text_data(16'd0),
@@ -90,7 +112,7 @@ module tb_rgb_visualizer;
         note_on(48);note_on(52);note_on(55);
         repeat(2)begin wait(dut.frame_latch);@(posedge dut.pclk);wait(!dut.frame_latch);end
         wait(!de);@(posedge de);
-        file_handle=$fopen(test_page==14?"tmp/rgb_composer_preview.ppm":test_page==10?"tmp/rgb_arp_preview.ppm":test_page==11?"tmp/rgb_seq_preview.ppm":spectrum_case?"tmp/rgb_spectrum_preview.ppm":messy_case?"tmp/rgb_messy_preview.ppm":show_wave?"tmp/rgb_wave_preview.ppm"
+        file_handle=$fopen(linear_case?"tmp/rgb_linear_preview.ppm":voices_case?"tmp/rgb_voices_preview.ppm":test_page==15?"tmp/rgb_gesture_preview.ppm":test_page==14?"tmp/rgb_composer_preview.ppm":test_page==10?"tmp/rgb_arp_preview.ppm":test_page==11?"tmp/rgb_seq_preview.ppm":spectrum_case?"tmp/rgb_spectrum_preview.ppm":messy_case?"tmp/rgb_messy_preview.ppm":show_wave?"tmp/rgb_wave_preview.ppm"
             :quiet_case?"tmp/rgb_quiet_preview.ppm":"tmp/rgb_preview.ppm","wb");
         $fwrite(file_handle,"P6\n800 480\n255\n");
         pixels=0;
@@ -110,6 +132,31 @@ module tb_rgb_visualizer;
                         if(probe_x==100&&{r,g,b}!=={5'd1,6'd3,5'd3})$fatal(1,"ARP/SEQ editor background not flat");
                         page_probes=page_probes+1;
                     end
+                end
+                if(test_page==0&&probe_x>=688&&probe_x<752&&probe_y>=80&&probe_y<104)begin
+                    case(logo_codes[(probe_y-80)*64+probe_x-688])
+                     1:expected_voice_color={5'd0,6'd20,5'd16};
+                     2:expected_voice_color={5'd0,6'd40,5'd29};
+                     default:expected_voice_color=16'hffff;
+                    endcase
+                    if({r,g,b}!==expected_voice_color)$fatal(1,"logo pixel %d,%d got %h expected %h",probe_x,probe_y,{r,g,b},expected_voice_color);
+                    logo_probes=logo_probes+1;
+                end
+                if(linear_case&&probe_y==260)begin
+                    if(probe_x==60||probe_x==191||probe_x==279)begin
+                     if({r,g,b}!==WAVE565)$fatal(1,"linear spectrum peak alignment %d",probe_x);
+                     linear_probes=linear_probes+1;
+                    end
+                    if(probe_x==61||probe_x==192||probe_x==280)begin
+                     if({r,g,b}===WAVE565)$fatal(1,"linear spectrum peak not one FFT bin");
+                     linear_probes=linear_probes+1;
+                    end
+                end
+                if(voices_case&&probe_x>=48&&probe_x<528&&probe_y>=128&&probe_y<352&&((probe_x-48)%64)==0&&((probe_y-128)%64)==0)begin
+                    slot=((probe_y-128)/64)*8+(probe_x-48)/64;
+                    expected_voice_color=((32'ha55a0005>>slot)&1)?WAVE565:{dut.ui_panel[23:19],dut.ui_panel[15:10],dut.ui_panel[7:3]};
+                    if({r,g,b}!==expected_voice_color)$fatal(1,"wrong true voice slot %d rgb=%h expected=%h",slot,{r,g,b},expected_voice_color);
+                    voice_probes=voice_probes+1;
                 end
                 if(spectrum_case)begin
                     if((probe_x==91&&probe_y==120)||(probe_x==203&&probe_y==200)||(probe_x==379&&probe_y==280))begin
@@ -143,7 +190,7 @@ module tb_rgb_visualizer;
         end
         if(rows!=479||row_pixels!=800)$fatal(1,"Frame row count %0d",rows);
         for(i=0;i<512;i=i+1)begin
-            if(!spectrum_case&&col_n[i]>0)begin
+            if(!spectrum_case&&!voices_case&&!linear_case&&col_n[i]>0)begin
                 if(col_n[i]!=col_hi[i]-col_lo[i]+1)
                     $fatal(1,"Wave column %0d has holes: n=%0d lo=%0d hi=%0d",
                         i,col_n[i],col_lo[i],col_hi[i]);
@@ -152,6 +199,9 @@ module tb_rgb_visualizer;
             end
         end
         if(test_page!=0&&page_probes!=4)$fatal(1,"ARP/SEQ missing keyboard probes");
+        if(test_page==0&&logo_probes!=1536)$fatal(1,"missing homepage logo pixels");
+        if(linear_case&&linear_probes!=6)$fatal(1,"missing linear FFT probes");
+        if(voices_case&&voice_probes!=32)$fatal(1,"missing voice cell probes %d",voice_probes);
         if(spectrum_case&&spectrum_probes!=6)$fatal(1,"Missing spectrum pixel probes");
         if(quiet_case && max_display_height<30)$fatal(1,"Quiet waveform remained invisible: %d",max_display_height);
         $fclose(file_handle);$display("PASS RGB/XY raster, stable pixels and PLL-loss recovery, quiet=%0d messy=%0d height=%0d",

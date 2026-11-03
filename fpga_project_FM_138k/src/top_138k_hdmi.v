@@ -1,6 +1,6 @@
 // XiaoMeiGe ACG720, GW5AT-LV138PG484AC1/I0.
 // PC: CH340 at 115200 baud. Keyboard: external CH376S, SPI mode 0.
-module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0,GESTURE_GRAY=1,GESTURE_SELF_TEST=0) (
+module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0,CH376_ENABLED=1,GESTURE_GRAY=1,GESTURE_SELF_TEST=0) (
     input wire clk,
     input wire reset_button_n,
     input wire uart_rx_pin,
@@ -22,6 +22,7 @@ module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0,GESTURE_GRAY=1,
     output wire tp_rst,
     output wire seg7_dio,seg7_sclk,seg7_rclk,
     output wire [7:0] status_led,
+    output wire latency_probe,
     output wire hdmi_clk_p, hdmi_clk_n,
     output wire [2:0] hdmi_data_p, hdmi_data_n,
     output wire hdmi_oe,
@@ -56,6 +57,7 @@ module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0,GESTURE_GRAY=1,
     wire tick, event_valid;
     wire [31:0] event_data;
     localparam integer AUDIO_VOICES=32;
+    wire [31:0] voice_mask;
     wire [7:0] voices;wire [4:0] algorithm;
     seg8_audio_status u_seg8(.clk(clk),.reset_n(reset_n),
         .sample_tick(tick),.audio_sample(pcm),.active_voices(voices),
@@ -66,11 +68,13 @@ module top_138k_hdmi #(parameter integer LEGACY_BRIDGE_ENABLED=0,GESTURE_GRAY=1,
     wire ui_valid,ui_ready,external_ready,touch_present;
     wire signed [3:0] keyboard_octave;
     wire [6:0] master_volume;
-    wire visual_mode,spectrum_enable;
+    wire visual_mode,spectrum_enable,linear_enable;
+    wire poly_test_active,poly_test_valid,poly_test_ready;wire [31:0] poly_test_data;
+    wire linear_write;wire [8:0] linear_address;wire [13:0] linear_data;
     wire spectrum_write;
     wire [5:0] spectrum_address;
     wire [13:0] spectrum_data;
-    audio_spectrum_analyzer u_spectrum(.clk(clk),.reset_n(reset_n),
+    audio_spectrum_analyzer u_spectrum(.linear_write(linear_write),.linear_address(linear_address),.linear_data(linear_data),.clk(clk),.reset_n(reset_n),
         .sample_tick(tick),.audio_sample(pcm),.bin_write(spectrum_write),
         .bin_address(spectrum_address),.bin_data(spectrum_data));
     wire headphone_select, headphone_din;
@@ -100,12 +104,18 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire usb_valid,usb_ready,merged_valid,merged_ready,input_valid;
     wire ch376_present,ch376_configured;
     wire [7:0] ch376_fault;
+    generate if(CH376_ENABLED)begin:g_ch376
     ch376_midi_host u_ch376(.clk(clk),.reset_n(reset_n),
         .spi_cs_n(ch376_cs_n),.spi_sck(ch376_sck),.spi_mosi(ch376_mosi),
         .spi_miso(ch376_miso),.interrupt_n(ch376_int_n),
         .midi_event_data(usb_event),.midi_event_valid(usb_valid),.midi_event_ready(usb_ready),
         .module_present(ch376_present),.configured(ch376_configured),.fault_code(ch376_fault),
         .vendor_id(),.product_id(),.ignored_words(),.nak_count());
+    end else begin:g_no_ch376
+        assign ch376_cs_n=1'b1;assign ch376_sck=1'b0;assign ch376_mosi=1'b0;
+        assign usb_event=0;assign usb_valid=0;
+        assign ch376_present=0;assign ch376_configured=0;assign ch376_fault=0;
+    end endgenerate
     // USB cable/CIN is transport metadata, not the internal demo/ARP owner tag.
     midi_event_arbiter3 u_midi_inputs(.clk(clk),.reset_n(reset_n),
         .data0({8'd0,usb_event[23:0]}),.valid0(usb_valid),.ready0(usb_ready),
@@ -128,9 +138,23 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire [31:0] ai_status,composer_status,composer_detail;wire [159:0] arp_config;wire [31:0] arp_status;wire [127:0] arp_notes;
     wire latency_marker;
     wire [2:0] gesture_config;
-    wire [31:0] gesture_status,gesture_detail;
+    wire [31:0] gesture_status,gesture_detail;wire [1:0] gesture_audio_mode;wire [31:0] camera_gesture_status;
+    assign gesture_status={camera_gesture_status[31:16],gesture_audio_mode,camera_gesture_status[13:0]};
     wire gesture_valid,gesture_ready,gesture_allowed,gesture_cancel;
     wire [3:0] gesture_action;
+    wire test_view=menu_page==0&&visual_mode&&spectrum_enable;
+    wire test_button_press,test_stop_press;
+    reg test_button_owned;
+    always @(posedge clk)if(!reset_n||tutorial_start_n)test_button_owned<=0;
+    else if(test_view||poly_test_active)test_button_owned<=1;
+    debounced_press u_poly_stop_button(.clk(clk),.reset_n(reset_n),.button_n(tutorial_stop_n),.pressed(test_stop_press));
+    debounced_press u_poly_test_button(.clk(clk),.reset_n(reset_n),.button_n(tutorial_start_n),.pressed(test_button_press));
+    reg [11:0] test_quiet;
+    wire test_modes_idle=!arp_config[0]&&!sequencer_active&&!composer_status[0]&&!ai_status[0]&&!lesson_state[16]&&!score_playing&&!score_flushing&&!tutorial_running;
+    always @(posedge clk)if(!reset_n||voices!=0||merged_valid||!test_modes_idle)test_quiet<=0;
+    else if(!(&test_quiet))test_quiet<=test_quiet+1'b1;
+    polyphony_test32 u_poly_test(.clk(clk),.reset_n(reset_n),.press((test_button_press&&(test_view||poly_test_active))||(test_stop_press&&poly_test_active)),
+        .allowed(test_view&&test_modes_idle&&(&test_quiet)),.active(poly_test_active),.valid(poly_test_valid),.data(poly_test_data),.ready(poly_test_ready));
     touch_ui_controller #(.VOICE_CAPACITY(AUDIO_VOICES),.GESTURE_ENABLED(1)) u_ui (
         .gesture_config(gesture_config),.gesture_status(gesture_status),.gesture_detail(gesture_detail),
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),
@@ -144,7 +168,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .monitor_event(event_data),.monitor_event_valid(event_valid),
         .preset_index(preset),.algorithm(algorithm),.active_voices(voices),
         .touch_present(touch_present),.keyboard_octave(keyboard_octave),.master_volume(master_volume),
-        .visual_mode(visual_mode),.spectrum_enable(spectrum_enable),.headphone_select(headphone_select),.xy_delay_samples(xy_delay_samples),.display_auto_gain(display_auto_gain),
+        .linear_enable(linear_enable),.visual_mode(visual_mode),.spectrum_enable(spectrum_enable),.headphone_select(headphone_select),.xy_delay_samples(xy_delay_samples),.display_auto_gain(display_auto_gain),
         .menu_page(menu_page),.background_color(background_color),.wave_color(wave_color),.xy_color(xy_color),
         .text_write(text_write),.text_address(text_address),.text_data(text_data),
         .palette_write(palette_write),.palette_index(palette_index),.palette_data(palette_data),
@@ -155,10 +179,13 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .patch_read_data(readback_data),.patch_read_valid(readback_valid),
         .fx_write(),.fx_index(),.fx_value(),.fx_read_value(32'd0),.numeric_display()
     );
-    top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1),.GESTURE_ENABLED(1),.EXTERNAL_SCORE_ENABLED(1),.BOARD_LATENCY_INPUT(1)) u_audio (
+    top #(.FM_VOICE_COUNT(AUDIO_VOICES),.USB_HOST_ENABLED(0),.FM_AUDIO_ONLY(0),.FX2_ENABLED(1),.OUTPUT_SELECT_ENABLED(1),.GESTURE_ENABLED(1),.EXTERNAL_SCORE_ENABLED(1),.BOARD_LATENCY_INPUT(1),.POLY_TEST_ENABLED(1),.MIDI_TRACE_ENABLED(0)) u_audio (
+        .trace_usb_accept(usb_valid&&usb_ready),.trace_usb_data(usb_event),
+        .poly_test_active(poly_test_active),.poly_test_valid(poly_test_valid),.poly_test_data(poly_test_data),.poly_test_ready(poly_test_ready),
         .board_latency_valid(merged_valid&&merged_ready),.board_latency_data(merged_event),
-        .external_score_active(score_playing||score_flushing),.latency_marker(latency_marker),.gesture_valid(gesture_valid),.gesture_action(gesture_action),
+        .external_score_active(score_playing||score_flushing||poly_test_active),.latency_marker(latency_marker),.gesture_valid(gesture_valid),.gesture_action(gesture_action),
         .gesture_ready(gesture_ready),.gesture_allowed(gesture_allowed),.gesture_cancel(gesture_cancel),
+        .gesture_control(gesture_config[0]&&gesture_config[1]),.gesture_mode(gesture_audio_mode),
         .perf_data(perf_data),.perf_index(perf_index),.perf_snapshot(perf_snapshot),.perf_clear(perf_clear),.perf_bridge_drop(bridge_drop),
         .arp_config(arp_config),.arp_suspend(lesson_state[16]||sequencer_active),.sequence_active(sequencer_active),.ai_status(ai_status),.composer_status(composer_status),.composer_detail(composer_detail),.arp_status(arp_status),.arp_notes(arp_notes),
         .clk(clk),.key_s2(~reset_n),.uart_rx_pin(uart_rx_pin),
@@ -175,7 +202,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .external_midi_event_ready(external_ready),
         .monitor_sample(pcm),.monitor_sample_tick(tick),
         .monitor_midi_event_data(event_data),.monitor_midi_event_valid(event_valid),
-        .monitor_voice_count(voices),.monitor_preset(preset),
+        .monitor_voice_count(voices),.monitor_voice_mask(voice_mask),.monitor_preset(preset),
         .monitor_algorithm(algorithm),.monitor_operator_envelopes(operator_eg),
         .readback_data(readback_data),.readback_valid(readback_valid)
     );
@@ -188,21 +215,26 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
         .aud_dacdat(aud_dacdat),.codec_scl(codec_scl),.codec_sda(codec_sda),
         .ready(codec_ready),.init_error(codec_init_error)
     );
+    // Isolate UI/source arbitration from the wait-for-key 128-note lookup.
+    // This observes acceptance one clock later; it never feeds MIDI ready.
+    wire [31:0] tutorial_key_event;wire tutorial_key_valid;wire [1:0] tutorial_key_source;
+    midi_input_observer u_key_observer(.clk(clk),.reset_n(reset_n),
+        .usb_data(usb_event),.bridge_data(bridge_event),.ui_data(ui_event),
+        .usb_accept(usb_valid&&usb_ready),.bridge_accept(bridge_valid&&bridge_ready),.ui_accept(ui_valid&&ui_ready),
+        .event_data(tutorial_key_event),.event_valid(tutorial_key_valid),.source(tutorial_key_source));
     sunny_tutorial_system #(.SCORE_MAX_EVENTS(8192),.SYNTH_VOICE_COUNT(AUDIO_VOICES),.EXTERNAL_GUARD(1)) u_tutorial(
         .clk(clk),.reset_n(reset_n),.bt_rx(bluetooth_rx_pin),.bt_tx(bluetooth_tx_pin),
-        .start_button_n(tutorial_start_n),.stop_button_n(tutorial_stop_n),
+        .start_button_n((test_view||poly_test_active||test_button_owned)?1'b1:tutorial_start_n),.stop_button_n(tutorial_stop_n),
         .live_midi_event(event_data),.live_midi_valid(event_valid),
-        .key_midi_event(usb_valid&&usb_ready?usb_event:bridge_valid&&bridge_ready?bridge_event:ui_event),
-        .key_midi_valid((usb_valid&&usb_ready)||(bridge_valid&&bridge_ready)||(ui_valid&&ui_ready)),
-        .key_source(usb_valid&&usb_ready?2'd0:bridge_valid&&bridge_ready?2'd1:2'd2),
+        .key_midi_event(tutorial_key_event),.key_midi_valid(tutorial_key_valid),.key_source(tutorial_key_source),
         .auto_midi_event(score_event),.auto_midi_valid(score_valid),.auto_midi_ready(score_ready),
         .auto_playing(score_playing),.auto_flushing(score_flushing),.led_data(ws2812_data),
         .running(tutorial_running),.count_in(tutorial_count_in),.beat_active(tutorial_beat),
         .initialized(tutorial_initialized),.mapping_missing(tutorial_missing),
         .frame_done(tutorial_frame_done),.reply_overflow(tutorial_reply_overflow),
-        .external_busy(arp_config[0]||sequencer_active||composer_status[0]||ai_status[0]||lesson_state[16]));
+        .external_busy(poly_test_active||arp_config[0]||sequencer_active||composer_status[0]||ai_status[0]||lesson_state[16]));
     wire video_lock;
-    rgb_visualizer u_video (
+    rgb_visualizer u_video (.active_voice_mask(voice_mask),.linear_enable(linear_enable),.linear_write(linear_write),.linear_address(linear_address),.linear_data(linear_data),
         .lesson_state(lesson_state),.lesson_bank(lesson_bank),.lesson_count(lesson_count),
         .lesson_write(lesson_write),.lesson_address(lesson_address),.lesson_data(lesson_data),
 
@@ -228,7 +260,7 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     camera_hdmi_tx #(.GESTURE_ENABLED(1),.GESTURE_GRAY(GESTURE_GRAY),.GESTURE_SELF_TEST(GESTURE_SELF_TEST)) u_hdmi (
         .gesture_config(gesture_config),.gesture_allowed(gesture_allowed),.gesture_cancel(gesture_cancel),
         .gesture_action_valid(gesture_valid),.gesture_action_ready(gesture_ready),.gesture_action(gesture_action),
-        .gesture_status(gesture_status),.gesture_detail(gesture_detail),
+        .gesture_status(camera_gesture_status),.gesture_detail(gesture_detail),
         .clk(clk), .reset_n(reset_n),
         .camera_pclk(camera_pclk),.camera_href(camera_href),.camera_vsync(camera_vsync),
         .camera_data(camera_data),.camera_scl(camera_scl),.camera_sda(camera_sda),
@@ -249,5 +281,6 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
             else if (event_hold!=0) event_hold<=event_hold-1'b1;
         end
     end
-    assign status_led={ch376_fault!=0,ch376_configured,ch376_present,bridge_dropped!=0||tutorial_reply_overflow,touch_present,event_hold!=0,video_lock,latency_marker};
+    assign latency_probe=latency_marker;
+    assign status_led={ch376_fault!=0,ch376_configured,ch376_present,bridge_dropped!=0||tutorial_reply_overflow,touch_present,event_hold!=0,video_lock,heartbeat[25]};
 endmodule

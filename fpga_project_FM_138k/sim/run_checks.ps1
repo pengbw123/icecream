@@ -11,6 +11,10 @@ try {
     & python tools/test_algo_rectangles.py
     if ($LASTEXITCODE -ne 0) { throw 'Algorithm rectangle reference/fixture generation failed.' }
     $cases = @(
+        @{ Name='tb_midi_input_observer'; Sources=@('sim/tb_midi_input_observer.sv','src/ch376/midi_input_observer.v') },
+        @{ Name='tb_strip_index_range'; Sources=@('sim/tb_strip_index_range.sv','src/led_guide/score_strip_guide.v','src/led_guide/ws2812_frame_tx.v') },
+        @{ Name='tb_gesture_performer'; Sources=@('sim/tb_gesture_performer.sv','src/gesture/gesture_performer.v','src/midi_arpeggiator.v') },
+        @{ Name='tb_gesture_chopper'; Sources=@('sim/tb_gesture_chopper.sv','src/gesture/gesture_chopper.v') },
         @{ Name='tb_camera_diagnostics'; Sources=@('sim/tb_camera_diagnostics.sv','src/camera/camera_diagnostics.v') },
         @{ Name='tb_ov5640_config'; Sources=@('sim/tb_ov5640_config.sv','sim/ov5640_sccb_model.sv','src/camera/ov5640_config.v','src/camera/camera_sccb.v') },
         @{ Name='tb_ov5640_capture'; Sources=@('sim/tb_ov5640_capture.sv','src/camera/ov5640_capture.v') },
@@ -41,6 +45,7 @@ try {
         @{ Name='tb_lesson_view'; Sources=@('sim/tb_lesson_view.sv','src/lesson_view.v','src/lesson_score_memory.v') },
         @{ Name='tb_lesson_loader'; Sources=@('sim/tb_lesson_loader.sv','src/lesson_player.v','src/lesson_score_memory.v','src/step_sequencer.v','src/touch_ui_controller.v','src/gt9147_reset.v','src/usb_midi/rtl/rv32i.v','src/usb_midi/rtl/usb_midi_host.v') },
         @{ Name='tb_velocity80'; Sources=@('sim/tb_velocity80.sv','../fpga_midi_bridge_25k/src/top_bridge.v','../fpga_midi_bridge_25k/src/midi_frame_tx.v','src/midi_performance_control.v') },
+        @{ Name='tb_polyphony_test32'; Sources=@('sim/tb_polyphony_test32.sv','src/polyphony_test32.v') },
         @{ Name='tb_audio_spectrum'; Sources=@('sim/tb_audio_spectrum.sv','src/audio_spectrum_analyzer.v') },
         @{ Name='tb_spectrum_snapshot'; Sources=@('sim/tb_spectrum_snapshot.sv','src/audio_spectrum_snapshot.v') },
         @{ Name='tb_i2s_output_select'; Sources=@('sim/tb_i2s_output_select.sv','src/i2s_tx.v') },
@@ -60,11 +65,11 @@ try {
         @{ Name='tb_fm_sine_interpolation'; Sources=@('sim/tb_fm_sine_interpolation.sv','src/fm_poly_synth.v') },
         @{ Name='tb_fm_readback'; Sources=@('sim/tb_fm_readback.sv','src/audio_performance_monitor.v','src/fm_uart_control.v','src/fm_poly_synth.v','src/uart_rx.v','src/audio_fx.v','src/audio_chorus.v','src/audio_phaser.v','src/audio_delay.v','src/audio_reverb.v') },
         @{ Name='tb_138k_io'; Sources=@('sim/tb_138k_io.sv','../fpga_midi_bridge_25k/src/midi_frame_tx.v','src/midi_bridge_rx.v','src/uart_rx.v','src/ws2812_keys.v','src/tmds_encoder.v') },
-        @{ Name='tb_touch_ui'; Sources=@('sim/tb_touch_ui.sv','src/midi_arpeggiator.v','src/lesson_player.v','src/lesson_score_memory.v','src/step_sequencer.v','src/touch_ui_controller.v','src/gt9147_reset.v','src/usb_midi/rtl/rv32i.v','src/usb_midi/rtl/usb_midi_host.v') },
+        @{ Name='tb_touch_ui'; Sources=@('sim/tb_touch_ui.sv','src/midi_arpeggiator.v','src/lesson_player.v','src/lesson_score_memory.v','src/step_sequencer.v','src/touch_ui_controller.v','src/gt9147_reset.v','src/usb_midi/rtl/rv32i.v','src/usb_midi/rtl/usb_midi_host.v','src/sd_spi_byte.v','src/ai_bass_accompaniment.v','src/ai_bass_inference.v','src/ai_melody_composer.v','src/ai_melody_inference.v') },
         @{ Name='tb_rgb_visualizer'; Sources=@('sim/tb_rgb_visualizer.sv','src/lesson_view.v','src/lesson_score_memory.v','src/rgb_visualizer.v','src/audio_spectrum_snapshot.v','src/audio_xy_scope.v','src/audio_wave_scope.v','src/rtl_performance_text.v','src/rtl_char_display.v','src/ui_eg_curve.v','src/ui_algo_map.v','src/ui_eg_multi.v') }
     )
     foreach ($case in $cases) {
-        if ($case.Sources -contains 'src/top.v') { $case.Sources += 'src/audio_note_latency.v' }
+        if ($case.Sources -contains 'src/top.v') { $case.Sources += @('src/audio_note_latency.v','src/gesture/gesture_performer.v','src/gesture/gesture_chopper.v') }
         if ($case.Sources -contains 'src/camera/camera_hdmi_video.v') { $case.Sources += 'src/camera/camera_diagnostics.v' }
         if (($case.Sources -contains 'src/top.v') -or ($case.Sources -contains 'src/touch_ui_controller.v')) { $case.Sources += @('src/ai_melody_composer.v','src/ai_melody_inference.v') }
         if ($case.Name -eq 'tb_touch_ui') { $case.Sources += @('src/ai_bass_accompaniment.v','src/ai_bass_inference.v') }
@@ -90,6 +95,10 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Waveform RGB simulation failed.' }
             & $vvp $outputFile '+messy'
             if ($LASTEXITCODE -ne 0) { throw 'Complex-waveform continuity regression failed.' }
+            & $vvp $outputFile '+linear'
+            if ($LASTEXITCODE -ne 0) { throw 'RGB linear spectrum regression failed.' }
+            & $vvp $outputFile '+voices'
+            if ($LASTEXITCODE -ne 0) { throw 'RGB voice-slot regression failed.' }
             & $vvp $outputFile '+spectrum'
             if ($LASTEXITCODE -ne 0) { throw 'RGB spectrum bars/gaps regression failed.' }
         }
@@ -98,6 +107,10 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'XY attack regression failed.' }
         }
         if ($case.Name -eq 'tb_hdmi_scope_video') {
+            & $vvp $outputFile '+linear'
+            if ($LASTEXITCODE -ne 0) { throw 'RGB linear spectrum regression failed.' }
+            & $vvp $outputFile '+voices'
+            if ($LASTEXITCODE -ne 0) { throw 'RGB voice-slot regression failed.' }
             & $vvp $outputFile '+spectrum'
             if ($LASTEXITCODE -ne 0) { throw 'HDMI spectrum raster regression failed.' }
         }
@@ -159,6 +172,10 @@ try {
 
             & $vvp $outputFile '+keyboard'
             if ($LASTEXITCODE -ne 0) { throw 'Full-width keyboard, velocity and output-selection regression failed.' }
+            & $vvp $outputFile '+linear'
+            if ($LASTEXITCODE -ne 0) { throw 'RGB linear spectrum regression failed.' }
+            & $vvp $outputFile '+voices'
+            if ($LASTEXITCODE -ne 0) { throw 'RGB voice-slot regression failed.' }
             & $vvp $outputFile '+spectrum'
             if ($LASTEXITCODE -ne 0) { throw 'Spectrum UI mode/shortcut regression failed.' }
             & $vvp $outputFile '+performance'

@@ -1,0 +1,2 @@
+# Preserve archived evidence byte for byte so archive_sha256.json stays valid.
+* -text

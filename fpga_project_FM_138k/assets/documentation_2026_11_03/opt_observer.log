@@ -1,0 +1,2 @@
+PASS MIDI observer: all sources, acceptance edge, idle suppression, reset
+sim/tb_midi_input_observer.sv:21: $finish called at 1272000 (1ps)

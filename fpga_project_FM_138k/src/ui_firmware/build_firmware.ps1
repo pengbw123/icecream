@@ -1,5 +1,6 @@
 param(
-    [string]$Zig = $env:ZIG_EXE
+    [string]$Zig = $env:ZIG_EXE,
+    [switch]$MidiProbe
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,7 +28,9 @@ $hex = Join-Path $firmwareDir 'firmware.hex'
 # This soft core implements RV32I only.  Zig's baseline_rv32 also enables
 # A/C/D/M, which allowed 16-bit compressed and multiply instructions into the
 # image and made the CPU lose instruction alignment during startup.
+$probeFlag=if($MidiProbe){'-DMIDI_INPUT_PROBE=1'}else{'-DMIDI_INPUT_PROBE=0'}
 & $Zig cc `
+    $probeFlag `
     -target riscv32-freestanding-none `
     -mcpu=generic_rv32 `
     -mabi=ilp32 `

@@ -1,5 +1,57 @@
 # 25K / 138K 下载、固化与首次看到现象
 
+## 当前下载文件核对 2026年11月3日
+
+40Pin测量候选已经完成，不再处于构建中：`impl/pnr/fm_138k_gesture_probe.fs`，完成时间2026-11-02 20:59，SHA256 `97A853217B176CC843B84EB1C58901323496DCD4F7C3BDD1066EDB67D99F6773`。全时钟约束Setup/Hold TNS为0、回归通过，工具未自动烧录。P7-15输出延迟标记，LED0为心跳；键盘默认CH376直接接138K，无需25K。
+
+`fm_138k_gesture_performance.fs`为19:47的LED0标记版本；标准`fm_138k_rgb_hdmi.fs`仍是11月1日文件；根目录`fm_138k_rgb.fs`为历史文件。请按SHA256和发布收据区分，不按相近文件名选择。当前资源及完整版本边界见[技术状态](CURRENT_TECHNICAL_STATUS_2026_11_03.md)，测量接线见[40Pin说明](LATENCY_PROBE_40PIN.md)。
+
+以下按日期保留开发记录，出现“构建中”“当前下载版”“尚未完成”仅表示当时状态；当前状态以上述完成收据为准。生成位流不代表实机全功能验收。
+
+## 2026-11-02 已完成手势演奏位流；新40Pin延迟脉冲版构建中
+
+- fm_138k_gesture_performance.fs已于19:47生成并通过全部时序/回归，SHA256 688E582974430D80DB64262CD2CB4E84E068F188DB3A17C38E6832B80B4AC488；快照tmp/gesture_performance_timing_build_v2。主50MHz Fmax51.786、RGB33.333MHz Fmax36.782、摄像头112.201、HDMI25 75.695/串行249.582，全时钟Setup/Hold TNS0。标准FS未覆盖，未烧录。该可用版本仍为LED0/M22延迟标记。
+- 用户新要求把延迟测量输出从LED移到40Pin。已新增HDMI正式顶层latency_probe，CST定位D14 = GPIO0_12 = P7-15；LED0恢复heartbeat。P7-12为GND。GPIO0 VCCIO保持3.3V；不与模块输出短接。依据板厂引脚表及原理图第11页核实。内部起止计时逻辑没有更改，仍为板内可见输入到I2S起音的数字延迟，不等同完整模拟端到端延迟。
+- 已冻结并启动tmp/gesture_performance_probe_build，gw_sh PID38012，后台5376；helper工具finish_gesture_timing_build.ps1新增可配置SnapshotDirectory/ArtifactName/ReleaseName参数。合格后生成独立fm_138k_gesture_probe.fs，不覆盖当前可用fm_138k_gesture_performance.fs或标准FS。结果见该目录background_result.json，发布记录2026-11-02_latency_probe.json。本次仍需布局布线/时序，不能提前告诉用户P7-15在旧位流有效。
+- 32声部测试：预选持续正弦、关闭ARP/SEQ/AI/练习/曲谱/手势CONTROL及FX，首页VOICES按S0启动32个MIDI96..127音，32格及计数到32；点FFT两次进入LIN FFT看32谱峰；S0或S1停止释放到0。手势：SETUP/GESTURES先识别后控制；按住CEG，PALM原声/FIST切音/V跨两八度琶音，固定120BPM，当前LIVE音色；控制关闭恢复原声。无需25K，CH376直接接键盘。尚未实机验证新手势演奏版。
+
+## 2026-11-02 手势版时序优化（最新构建）
+
+- 原tmp/gesture_performance_build在18:37已生成候选FS，但主50MHz域Fmax48.443/TNS-48.168ns/160端点，RGB33.333MHz域Fmax33.115/TNS-0.197ns/1端点，不能烧录。不是卡住；正式FS仍旧版610db0d65cc770fa3c3c94056380fb60239623ddc621f73990c49adbff01f170。
+- 已优化：切音增益两级系统时钟寄存；MIDI入口仅空槽ready断开分类→ACK长路径；音频已接受事件观察寄存；板级原始按键观察器寄存再送tutorial；FFT幅度管线并增加对齐等待；键盘除法改精确平衡比较树；灯带填充计数器32位缩为按灯数寻址宽度。没有改时钟约束、32音测试模块或删除功能。固件不变81720字节，工程106RTL。
+- 已过FFT/32频点、生产32声PCM32峰、手势FM32+FX、MIDI17次数字延迟脉冲计数、三个RGB视图/800像素键盘边界、输入观察器、160及1灯边界、曲谱练习联合32项。包含手势的32声部额外回归tmp/opt_poly_gesture.log待最终确认。原菜单代码未变，保留前轮真实UI通过证据。
+- 当前不可变构建tmp/gesture_performance_timing_build_v2，gw_sh PID47848，后台收尾4668，工具tools/finish_gesture_timing_build.ps1。548文件清单source_manifest.json；全部测试和所有约束时钟TNS=0、当前/冻结源码哈希均通过后才复制独立impl/pnr/fm_138k_gesture_performance.fs，标准FS不覆盖、不烧录。结果background_result.json/test_result.json、docs/releases/2026-11-02_gesture_performance_timing.json。
+- tmp/gesture_performance_timing_build(PID1716)是在布局布线前主动取消的中间快照，以便批量加入另两条已知路径修复。不要误报其结束为最终完成。下次先检查最新v2测试、PNR和时序结果，如失败继续针对报告优化。用户允许等待PNR时结束当前轮；尚未有合格的新位流。
+- 详情GESTURE_TIMING_OPTIMIZATION.md。没有自动提交推送。
+
+## 2026-11-02 CH376直连与独立手势演奏（当前任务）
+
+- 用户新指示：不用25K中转，恢复CH376；原32复音演示代码不改；实现张手原声/拳头切音/V手势琶音；暂时移除手势对AI旋律控制；本轮生成位流。此前“终止”只覆盖旧MIDI问题排查，未继续追查双发或做去重。
+- top_138k_hdmi和top_138k默认LEGACY_BRIDGE_ENABLED=0、CH376_ENABLED=1。新增gesture_performer与gesture_chopper，复用原ARP并锁定LIVE来源使用当前音色；普通ARP仍BACKING。原声与琶音切换清理/重建按键和踏板；短暂UNKNOWN保持；控制关闭恢复原声；自动模式优先。32音测试透明旁路，polyphony_test32.v与上一轮完成快照对比相同。
+- SETUP顶部三按钮ARP/SEQ/GESTURES，独立PAGE15，保留琴键。识别和控制默认OFF，显示实际NORMAL/CHOP/ARPEGGIO；固定120BPM、切音1/16、琶音1/8跨两八度75%门长。AI composer生产实例GESTURE_ENABLED=0且输入固定0，菜单保留AI手动操作，删除旧gesture BASIC/PERFORM界面。主固件81720字节，BSS10828，栈16584，工程105RTL文件。
+- 专项逻辑/音量平滑/正负满幅/按键恢复/踏板/背压/普通ARP接管通过；RGB PAGE15键盘实像素通过。真实菜单tmp/gesture_ui.log、生产FM32+FX tmp/gesture_production.log、原32演示带手势旁路tmp/gesture_polyphony.log现已全部PASS；原ARP/AI旋律回归也PASS。证据assets/gesture_performance。初次音频回归超时来自Icarus忽略嵌套节拍参数覆盖，改测试台驱动分频器终值后PASS，未改综合RTL；清单记录该测试文件修订。
+- 冻结构建tmp/gesture_performance_build，gw_sh进程44076，后台收尾48092，入口tmp/finish_gesture_wait.ps1转调tools/finish_gesture_performance_build.ps1。全部回归+全时钟时序TNS=0+冻结/当前源哈希通过后才复制独立impl/pnr/fm_138k_gesture_performance.fs；结果background_result.json/test_result.json和docs/releases/2026-11-02_gesture_performance.json。标准FS不覆盖、不烧录，旧25K位流不发布。当前尚未生成新文件，需先检查构建和回归结果。用户允许布局布线等待时结束当前轮。
+- 详情GESTURE_PERFORMANCE.md。源码未提交/推送。下一轮优先检查测试、构建是否失败，需要则继续优化，不得把启动构建当完成。
+
+## 2026-11-02 恢复 25K 中转（当前构建）
+
+- 用户要求恢复原25K USB MIDI中转。RGB+HDMI和单RGB顶层默认LEGACY_BRIDGE_ENABLED=1、CH376_ENABLED=0；CH376输出保持CS高/SCK低/MOSI低，数据/状态归零，不参与键盘输入。保留可编译CH376分支作为历史排查，但未确认双发根因。
+- 正式普通固件81776字节，MIDI_TRACE_ENABLED=0，未用probe菜单。保留当前32格真实声部、32音测试、线性FFT和GOWIN Logo等改动。
+- 真实1Mbaud TX/RX串口贯通到生产FM32+FX2回归通过：单NoteOn一声部、触屏一声部、两通道两声部；弯音/CC/背压/半帧恢复也通过。证据tmp/bridge_restore_checks.log，脚本sim/run_midi_ingress_checks.ps1。
+- 冻结构建tmp/bridge25k_restore_build，gw_sh进程30628；后台收尾进程43900，脚本tmp/finish_bridge25k_build.ps1。完成后检查所有约束时钟TNS=0、冻结和当前输入哈希一致才自动备份并发布impl/pnr/fm_138k_25k_bridge.fs和标准fm_138k_rgb_hdmi.fs；结果background_result.json和docs/releases/2026-11-02_25k_bridge.json。若失败或输入变化则保留旧版。没有自动烧录或Git提交。
+- 先前tmp/midi_double_probe_build已按用户新要求停止，不再等待该诊断版。标准FS在本次后台发布之前仍为11月1日CNN正式版，不能误报新位流已完成。
+- 接线：25K USB-A接键盘；Dock J3-15/F1 TX → 138K P7-4/A16 RX；25K GND → 138K P7-12 GND；3.3V信号，两板各自供电不互接5V。25K使用现有2026-10-23 21:51 midi_bridge_25k.fs，SHA256 1F9E610D25C44E7509FB1B18A60217B0FA0B741D80AA68A1563EB3B6C1689A6F，已含0–80力度映射，不需重建。详情25K_BRIDGE_RESTORE.md。
+
+## 2026-11-02 复音显示、32音测试和Logo（构建中）
+
+- 新增首页VOICES 4×8真实声部槽显示，来源fm_poly_synth.voice_active；保留原波形/XY/对数FFT。FFT按钮重复点按切换线性512频点，真实FFT结果，无预画谱峰。
+- 首页VOICES按S0(F15)启动，测试中任意页面按S0或S1(A20)停止。开始要求32槽空闲且ARP/SEQ/AI/练习/曲谱关闭。发MIDI96..127力度32，用户预先选正弦音色；同一生产引擎和音频输出。停止NoteOff后LIVE限定CC123清理，恢复滑音配置。其它页面S0保留曲谱功能。
+- GOWIN官方Logo首页(688,80)，64×24，两色加白底，静态RTL行常量，不增加BSRAM。全部新增功能综合较前版+482 LUT/+196 FF/+1 BSRAM（线性快照）；最终资源和时序待PNR。
+- 固件81776/81920字节；专项回归32声部、零抢占/丢采样/超时、生产FM32+效果器实际PCM32峰和停止到0、512频点快照、RGB格子/Logo/线性/对数显示均通过。真实UI五视图回归后台运行；修复的是测试脚本动作编号重号，生产代码未因此更改。
+- 当前构建tmp/polyphony_logo_final_build，进程14608，布线中；后台收尾脚本tmp/polyphony_background_finish.ps1，结果ui_result.json和background_result.json。源码哈希source_manifest.json，构建输入不可再修改。用户允许在布局布线时结束当前轮，后台继续；下次先检查结果、源指纹、时序和资源，再备份/发布标准FS。标准FS当前仍为2026-11-01 CNN正式版610db0d65cc770fa3c3c94056380fb60239623ddc621f73990c49adbff01f170，尚未替换。
+- 说明docs/POLYPHONY_TEST_AND_LOGO.md；频率表docs/POLYPHONY_TEST_FREQUENCIES.csv，证据assets/polyphony_logo，品牌来源assets/branding/SOURCE.txt。代码未提交/推送，本轮无自动烧录。
+
+
 ## 2026-11-01 CNN乘加修复正式版（当前下载版）
 
 标准位流impl/pnr/fm_138k_rgb_hdmi.fs，SHA256 610db0d65cc770fa3c3c94056380fb60239623ddc621f73990c49adbff01f170。构建完成2026-11-01 20:17，快照tmp/gray_macfix_production_build。SELF_TEST=0，恢复正常判定、投票与动作。全部约束时钟setup/hold TNS=0；主域50.024MHz、RGB33.521MHz，裕量较小。回退impl/pnr/backup/fm_138k_rgb_hdmi_pre_macfix_20261101.fs。用户已验证修复诊断版，正式版待实机验证。未自动烧录。此前构建中记录为历史。

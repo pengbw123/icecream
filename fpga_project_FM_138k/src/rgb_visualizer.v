@@ -12,13 +12,14 @@ module rgb_visualizer #(
     input wire clk, input wire reset_n,
     input wire sample_tick, input wire signed [15:0] audio_sample,
     input wire [31:0] midi_event_data, input wire midi_event_valid,
+    input wire [31:0] active_voice_mask,
     input wire [7:0] active_voice_count,input wire [4:0] algorithm,
     input wire [6:0] preset_index,
     input wire [47:0] operator_envelopes,
     input wire touch_present,
     input wire signed [3:0] keyboard_octave,
     input wire [6:0] master_volume,
-    input wire visual_mode,
+    input wire visual_mode,linear_enable,linear_write,input wire [8:0] linear_address,input wire [13:0] linear_data,
     input wire spectrum_enable,spectrum_write,
     input wire [5:0] spectrum_address,
     input wire [13:0] spectrum_data,
@@ -109,6 +110,15 @@ module rgb_visualizer #(
         .bin_address(spectrum_address),.bin_data(spectrum_data),
         .pixel_clk(pclk),.video_reset_n(video_reset_n),.frame_latch(frame_latch),
         .pixel_address(xy_read_x[8:3]),.level(spectrum_level),.peak(spectrum_peak),.valid(spectrum_valid));
+    wire [6:0] linear_level,linear_peak;wire linear_valid;
+    audio_spectrum_snapshot #(.ADDRESS_BITS(9)) u_linear_view(
+        .clk(clk),.reset_n(capture_reset_n),.bin_write(linear_write),.bin_address(linear_address),.bin_data(linear_data),
+        .pixel_clk(pclk),.video_reset_n(video_reset_n),.frame_latch(frame_latch),.pixel_address(xy_read_x[8:0]),
+        .level(linear_level),.peak(linear_peak),.valid(linear_valid));
+    reg [1:0] linear_sync;reg linear_frame;
+    always @(posedge pclk or negedge video_reset_n)if(!video_reset_n)begin linear_sync<=0;linear_frame<=0;end
+    else begin linear_sync<={linear_sync[0],linear_enable};if(frame_latch)linear_frame<=linear_sync[1];end
+    wire [9:0] linear_height=({3'd0,linear_level}*10'd7)/10'd3;
     wire [9:0] spectrum_height=({3'd0,spectrum_level}*10'd7)/10'd3;
     wire [9:0] spectrum_peak_height=({3'd0,spectrum_peak}*10'd7)/10'd3;
     always @(posedge pclk or negedge video_reset_n) begin
@@ -160,6 +170,7 @@ module rgb_visualizer #(
     reg touch_frame;
     reg [1:0] visual_sync;
     reg visual_frame;
+    reg [31:0] voice_mask_meta,voice_mask_sync,voice_mask_frame;
     reg [1:0] spectrum_sync;
     reg spectrum_frame;
     reg [1:0] auto_sync;
@@ -181,9 +192,10 @@ module rgb_visualizer #(
             volume_meta<=96;volume_sync<=96;volume_frame<=96;
             octave_meta<=0;octave_sync<=0;octave_frame<=0;touch_sync<=0;touch_frame<=0;
             visual_sync<=0;visual_frame<=0;delay_meta<=24;delay_sync<=24;delay_frame<=24;
-            spectrum_sync<=0;spectrum_frame<=0;
+            spectrum_sync<=0;spectrum_frame<=0;voice_mask_meta<=0;voice_mask_sync<=0;voice_mask_frame<=0;
             auto_sync<=0;auto_frame<=0;
         end else begin
+            voice_mask_meta<=active_voice_mask;voice_mask_sync<=voice_mask_meta;
             keys_meta<=keys_down;keys_sync<=keys_meta;
             eg_meta<=operator_envelopes;eg_sync<=eg_meta;
             preset_meta<=preset_index;preset_sync<=preset_meta;
@@ -202,7 +214,7 @@ module rgb_visualizer #(
                 voices_frame<=voices_sync;alg_frame<=alg_sync;peak_frame<=peak_sync;clip_frame<=clip_sync[1];
                 volume_frame<=volume_sync;octave_frame<=octave_sync;touch_frame<=touch_sync[1];
                 visual_frame<=visual_sync[1];delay_frame<=delay_sync;
-                spectrum_frame<=spectrum_sync[1];
+                spectrum_frame<=spectrum_sync[1];voice_mask_frame<=voice_mask_sync;
                 auto_frame<=auto_sync[1];
             end
         end
@@ -227,6 +239,23 @@ module rgb_visualizer #(
             "6":glyph=24'h68E996; "7":glyph=24'hF12444; "8":glyph=24'h699699;
             "9":glyph=24'h699711; "-":glyph=24'h000F00; "+":glyph=24'h022F22;
             default:glyph=0;
+        endcase end
+    endfunction
+    // Exact floor(x*15/800) for the active 800-pixel keyboard, using a
+    // balanced comparison tree instead of a 32-bit constant divider.
+    function [3:0] white_key_index(input [10:0] pixel_x);
+        begin
+            white_key_index=pixel_x<427 ?
+                (pixel_x<214 ? (pixel_x<107 ? (pixel_x<54?0:1):(pixel_x<160?2:3)):
+                              (pixel_x<320 ? (pixel_x<267?4:5):(pixel_x<374?6:7))):
+                (pixel_x<640 ? (pixel_x<534 ? (pixel_x<480?8:9):(pixel_x<587?10:11)):
+                              (pixel_x<747 ? (pixel_x<694?12:13):14));
+        end
+    endfunction
+    function white_key_edge(input [10:0] pixel_x);
+        begin case(pixel_x)
+            54,107,160,214,267,320,374,427,480,534,587,640,694,747:white_key_edge=1;
+            default:white_key_edge=0;
         endcase end
     endfunction
     function [4:0] white_note;
@@ -274,6 +303,9 @@ module rgb_visualizer #(
     reg font_enable;
     reg [7:0] font_character;
     reg [2:0] font_x,font_y;
+    wire [2:0] voice_col=(x-16)>>6;
+    wire [1:0] voice_row=(y-96)>>6;
+    wire [5:0] voice_x=x-16,voice_y=y-96;
     reg [23:0] font_color;
     reg [7:0] character;
     reg [9:0] tx,ty;
@@ -296,12 +328,20 @@ module rgb_visualizer #(
             if(spectrum_frame)begin
                 rgb=bg_frame;
                 if(y<320)begin
+                    if(linear_frame&&linear_valid&&linear_level!=0&&y>=320-linear_height)rgb=wc_frame;
                     if(x[5:0]==16 || y==96 || y==170 || y==245 || y==319)rgb=ui_grid;
-                    if(spectrum_valid && spectrum_level!=0 && x[2:0]!=7 &&
+                    if(!linear_frame && spectrum_valid && spectrum_level!=0 && x[2:0]!=7 &&
                        y>=320-spectrum_height)rgb=wc_frame;
-                    if(spectrum_valid && spectrum_peak!=0 && x[2:0]!=7 &&
+                    if(!linear_frame && spectrum_valid && spectrum_peak!=0 && x[2:0]!=7 &&
                        y==320-spectrum_peak_height)rgb=ui_dim;
                 end
+            end
+        end
+        if(spectrum_frame&&visual_frame&&x>=16&&x<528&&y>=96&&y<352)begin
+            rgb=bg_frame;
+            if(voice_x>=4&&voice_x<60&&voice_y>=4&&voice_y<60)begin
+                rgb=voice_mask_frame[{voice_row,voice_col}]?wc_frame:ui_panel;
+                if(voice_x==4||voice_x==59||voice_y==4||voice_y==59)rgb=ui_grid;
             end
         end
         if (!spectrum_frame && x>=544 && x<576 && y>=96 && y<352) begin
@@ -310,9 +350,9 @@ module rgb_visualizer #(
         end
         if (clip_frame && x>=544 && x<576 && y>=80 && y<88) rgb=wc_frame;
         if (x<800 && y>=352 && y<480) begin
-            key_index=(x*15)/800;
+            key_index=white_key_index(x);
             rgb=keys_frame[base_note+white_note(key_index)] ? wc_frame : 24'hF5F8FB;
-            if (((x*15)/800!=((x==0?0:x-1)*15)/800) || y==479) rgb=bg_frame;
+            if (white_key_edge(x) || y==479) rgb=bg_frame;
             for(k=0;k<10;k=k+1)begin
                 bx=(black_boundary(k)*800)/15;
                 if(x>=bx-16&&x<bx+16&&y<432)
@@ -322,7 +362,7 @@ module rgb_visualizer #(
         // Menu pages are a flat panel drawn entirely by the character layer;
         // hide the performance-page graphics behind it.  page_frame is latched
         // at the frame boundary, so this switch is tear-free.
-        if(page_frame!=0&&!((page_frame==10||page_frame==11||page_frame==13||page_frame==14)&&y>=352))begin rgb=bg_frame;font_enable=0;end
+        if(page_frame!=0&&!((page_frame==10||page_frame==11||page_frame==13||page_frame==14||page_frame==15)&&y>=352))begin rgb=bg_frame;font_enable=0;end
         if(page_frame==9&&lesson_ink)rgb=lesson_color;
         if (!de) rgb=0;
     end
@@ -362,7 +402,44 @@ module rgb_visualizer #(
         .pclk(pclk),.video_reset_n(video_reset_n),.h(hcount),.v(vcount),
         .enable(text_enable&&(page_frame==4'd8)),.wclk(clk),.we(eg_we),.waddr(eg_addr),.wdata(eg_data),.ink(pitch_ink),.cls(pitch_cls));
     wire [23:0] pitch_color=pitch_cls==2?wc_frame:pitch_cls==3?ui_grid:bg_frame;
-    wire [23:0] final_rgb=menu_ink?menu_color:pitch_ink?pitch_color:
+    // Official logo reduced to a 64x24 two-colour static mask, no BSRAM.
+    function [127:0] gowin_logo_row(input [4:0] row);
+      begin case(row)
+        5'd0:gowin_logo_row=128'h00000000000000000000000000000000;
+        5'd1:gowin_logo_row=128'h00000000000a00020000000000000000;
+        5'd2:gowin_logo_row=128'h00000000000a800a8000000000000000;
+        5'd3:gowin_logo_row=128'h00000000000a800a8000000000000000;
+        5'd4:gowin_logo_row=128'h00000000002a20222000000000000000;
+        5'd5:gowin_logo_row=128'h0000000000a8a8a8a800000000000000;
+        5'd6:gowin_logo_row=128'h0000000000a8a8a8a800000000000000;
+        5'd7:gowin_logo_row=128'h5400541500a0a0a8a800155400055500;
+        5'd8:gowin_logo_row=128'h54015415052a21222140555540555550;
+        5'd9:gowin_logo_row=128'h54055415054a854a8541541550155554;
+        5'd10:gowin_logo_row=128'h54055415054a955a8545500150000054;
+        5'd11:gowin_logo_row=128'h54155415015215521505400054000015;
+        5'd12:gowin_logo_row=128'h54145415015455545405400054554005;
+        5'd13:gowin_logo_row=128'h54545415005554555405400054554005;
+        5'd14:gowin_logo_row=128'h55505415001550155005400054540015;
+        5'd15:gowin_logo_row=128'h55405415001540155005400150540015;
+        5'd16:gowin_logo_row=128'h55405415000540054001500550540054;
+        5'd17:gowin_logo_row=128'h55005415000500010000555540555554;
+        5'd18:gowin_logo_row=128'h55005415000000000000155500555540;
+        5'd19:gowin_logo_row=128'h00000000000000000000015000000000;
+        5'd20:gowin_logo_row=128'h00000000000000000000000000000000;
+        5'd21:gowin_logo_row=128'h00000000000000000000000000000000;
+        5'd22:gowin_logo_row=128'h11554151011501441515554455155540;
+        5'd23:gowin_logo_row=128'h00000000000000000000000000000000;
+        default:gowin_logo_row=0;
+      endcase end
+    endfunction
+    wire logo_area=page_frame==0&&x>=688&&x<752&&y>=80&&y<104;
+    wire [127:0] logo_row=gowin_logo_row(y-80);
+    wire [1:0] logo_code=logo_row[((x-688)&63)*2+:2];
+    wire [23:0] logo_color=logo_code==1?24'h005183:logo_code==2?24'h00a0e9:24'hffffff;
+    reg logo_area_pipe;reg [23:0] logo_color_pipe;
+    always @(posedge pclk)if(!video_reset_n)begin logo_area_pipe<=0;logo_color_pipe<=0;end
+    else begin logo_area_pipe<=logo_area;logo_color_pipe<=logo_color;end
+    wire [23:0] final_rgb=logo_area_pipe?logo_color_pipe:menu_ink?menu_color:pitch_ink?pitch_color:
         (algo_ink?algo_color:(eg2_ink?eg2_color:background_pipe));
     always @(posedge pclk) begin
         if (!video_reset_n) begin

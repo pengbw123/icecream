@@ -1,15 +1,15 @@
 // Each display owns a separate pair of 64-column snapshots. A busy/slow or
 // unlocked display drops a whole analyzer frame and cannot stall the other.
-module audio_spectrum_snapshot (
+module audio_spectrum_snapshot #(parameter integer ADDRESS_BITS=6) (
     input wire clk,reset_n,bin_write,
-    input wire [5:0] bin_address,
+    input wire [ADDRESS_BITS-1:0] bin_address,
     input wire [13:0] bin_data,
     input wire pixel_clk,video_reset_n,frame_latch,
-    input wire [5:0] pixel_address,
+    input wire [ADDRESS_BITS-1:0] pixel_address,
     output wire [6:0] level,peak,
     output reg valid
 );
-    reg [13:0] snapshots[0:127];
+    reg [13:0] snapshots[0:(1<<(ADDRESS_BITS+1))-1];
     reg write_bank,publish_toggle,video_ack,copying,waiting;
     reg [1:0] ack_sync;
     wire ready=!waiting;
@@ -21,7 +21,7 @@ module audio_spectrum_snapshot (
         else begin
             ack_sync<={ack_sync[0],video_ack};
             if(start)copying<=1;
-            if(bin_write&&copying&&bin_address==63)begin copying<=0;publish_toggle<=~publish_toggle;waiting<=1;end
+            if(bin_write&&copying&&(&bin_address))begin copying<=0;publish_toggle<=~publish_toggle;waiting<=1;end
             // Only return to the other bank after the pixel domain releases it.
             if(waiting&&ack_sync[1]==publish_toggle)begin write_bank<=~write_bank;waiting<=0;end
         end

@@ -3,11 +3,13 @@
 module audio_performance_monitor #(
     parameter integer CLOCK_HZ=50000000,
     parameter integer SAMPLE_CYCLES=1024,
-    parameter integer VOICE_CAPACITY=16
+    parameter integer VOICE_CAPACITY=16,
+    parameter integer MIDI_TRACE_ENABLED=0
 )(
     input wire clk,reset_n,
     input wire sample_tick,engine_busy,sample_pending,render_start,render_done,
     input wire voice_steal,midi_accept,midi_stall,bridge_drop,
+    input wire usb_accept,input wire [31:0] usb_data,midi_data,
     input wire [7:0] active_voices,
     input wire signed [15:0] audio_sample,
     input wire snapshot,clear_stats,
@@ -90,10 +92,19 @@ module audio_performance_monitor #(
             end
         end
     end
-    reg [31:0] held[0:17];
+    reg [31:0] usb_events,usb_last,usb_previous,audio_last,audio_previous;
+    always @(posedge clk or negedge reset_n)begin
+        if(!reset_n)begin usb_events<=0;usb_last<=0;usb_previous<=0;audio_last<=0;audio_previous<=0;end
+        else if(clear_stats)begin usb_events<=0;usb_last<=0;usb_previous<=0;audio_last<=0;audio_previous<=0;end
+        else if(MIDI_TRACE_ENABLED)begin
+            if(usb_accept)begin usb_events<=inc32(usb_events);usb_previous<=usb_last;usb_last<=usb_data;end
+            if(midi_accept)begin audio_previous<=audio_last;audio_last<=midi_data;end
+        end
+    end
+    reg [31:0] held[0:31];
     integer i;
     always @(posedge clk or negedge reset_n)begin
-        if(!reset_n)for(i=0;i<18;i=i+1)held[i]<=0;
+        if(!reset_n)for(i=0;i<32;i=i+1)held[i]<=0;
         else if(snapshot)begin
             held[0]<=32'h50455231; // PER1, layout version 1
             held[1]<=CLOCK_HZ;held[2]<=SAMPLE_CYCLES;held[3]<={16'd0,last_period};
@@ -103,7 +114,9 @@ module audio_performance_monitor #(
             held[13]<={16'(VOICE_CAPACITY),peak_voices,active_voices};
             held[14]<=stall_clocks;held[15]<={16'd0,peak_sample};held[16]<=ticks;
             held[17]<={29'd0,engine_busy,sample_pending,render_active};
+            held[24]<=usb_events;held[25]<=usb_last;held[26]<=usb_previous;
+            held[27]<=audio_last;held[28]<=audio_previous;
         end
     end
-    always @* read_data=(read_index<18)?held[read_index]:32'd0;
+    always @* read_data=held[read_index];
 endmodule

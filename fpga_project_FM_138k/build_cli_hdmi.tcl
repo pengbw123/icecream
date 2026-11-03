@@ -1,3 +1,7 @@
+add_file -type verilog "src/ch376/midi_input_observer.v"
+add_file -type verilog "src/gesture/gesture_performer.v"
+add_file -type verilog "src/gesture/gesture_chopper.v"
+add_file -type verilog "src/polyphony_test32.v"
 add_file -type verilog "src/gesture/gesture_gray_frontend.v"
 add_file -type verilog "src/gesture/gesture_gray_roi.v"
 add_file -type verilog "src/gesture/gesture_gray_mailbox.v"

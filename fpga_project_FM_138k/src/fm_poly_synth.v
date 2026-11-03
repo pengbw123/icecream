@@ -80,6 +80,7 @@ module fm_poly_synth #(
     input  wire [6:0]         portamento_time,
     output reg  signed [15:0] sample_out,
     output wire [7:0]         active_voice_count,
+    output wire [31:0]        active_voice_mask,
     output reg  [47:0]        operator_envelope_levels,
     output wire perf_busy,perf_pending,perf_render_start,perf_render_done,perf_voice_steal
 );
@@ -1129,6 +1130,11 @@ module fm_poly_synth #(
     always @(posedge clk or negedge reset_n)
         if(!reset_n) active_count_q<=0;
         else active_count_q<=count_tree[1];
+    genvar vm;
+    generate for(vm=0;vm<32;vm=vm+1)begin:g_voice_monitor
+      if(vm<VOICE_COUNT)assign active_voice_mask[vm]=voice_active[vm];
+      else assign active_voice_mask[vm]=1'b0;
+    end endgenerate
     assign active_voice_count=active_count_q;
 
     always @(posedge clk or negedge reset_n) begin

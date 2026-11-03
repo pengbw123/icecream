@@ -1,17 +1,17 @@
 `timescale 1ns/1ps
-module tb_spectrum_snapshot;
+module tb_spectrum_snapshot #(parameter integer ADDRESS_BITS=6);
     reg clk=0,pclk=0;
     always #10 clk=~clk;always #17 pclk=~pclk;
     reg reset_n=0,video_reset_n=0,we=0,latch_frame=0;
-    reg [5:0] wa=0,pa=0;
+    reg [ADDRESS_BITS-1:0] wa=0,pa=0;
     reg [13:0] wd=0;
     wire [6:0] level,peak;wire valid;
-    audio_spectrum_snapshot dut(.clk(clk),.reset_n(reset_n),.bin_write(we),
+    audio_spectrum_snapshot #(.ADDRESS_BITS(ADDRESS_BITS)) dut(.clk(clk),.reset_n(reset_n),.bin_write(we),
         .bin_address(wa),.bin_data(wd),.pixel_clk(pclk),.video_reset_n(video_reset_n),
         .frame_latch(latch_frame),.pixel_address(pa),.level(level),.peak(peak),.valid(valid));
     task send_frame(input integer tag,first);
         integer i;reg [6:0] v;
-        begin for(i=first;i<64;i=i+1)begin
+        begin for(i=first;i<(1<<ADDRESS_BITS);i=i+1)begin
             @(negedge clk);v=(i+tag)%90;wa=i;wd={v+7'd4,v};we=1;
             @(negedge clk);we=0;
         end end
@@ -24,7 +24,7 @@ module tb_spectrum_snapshot;
         integer i;reg [6:0] v;
         begin
             if(!valid)$fatal(1,"Snapshot not valid");
-            for(i=0;i<64;i=i+1)begin
+            for(i=0;i<(1<<ADDRESS_BITS);i=i+1)begin
                 @(negedge pclk);pa=i;repeat(2)@(negedge pclk);v=(i+tag)%90;
                 if(level!==v||peak!==v+7'd4)$fatal(1,"Torn snapshot tag=%d bar=%d level=%d peak=%d",tag,i,level,peak);
             end

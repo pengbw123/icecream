@@ -14,17 +14,22 @@ module top #(
     parameter integer GESTURE_ENABLED = 0,
     parameter integer EXTERNAL_SCORE_ENABLED=0,
     parameter integer BOARD_LATENCY_INPUT=0,
+    parameter integer POLY_TEST_ENABLED=0,
+    parameter integer MIDI_TRACE_ENABLED=0,
     // USB key velocity calibration endpoints: 0x00 -> 0, 80 -> 127.
     // Compile-time knobs; pads (channel 10) and UART are not rescaled.
     parameter [6:0] USB_KEY_VELOCITY_MIN = 7'h00,
     parameter [6:0] USB_KEY_VELOCITY_MAX = 7'd80,
     parameter       USB_KEY_VELOCITY_CALIBRATE = 1'b1
 ) (
+    input wire poly_test_active,poly_test_valid,input wire [31:0] poly_test_data,output wire poly_test_ready,
+    input wire trace_usb_accept,input wire [31:0] trace_usb_data,
     input  wire clk,
     input  wire key_s2,
     input wire [159:0] arp_config,input wire arp_suspend,input wire sequence_active,
     output wire [31:0] ai_status,composer_status,composer_detail,
     input wire gesture_valid,input wire [3:0] gesture_action,
+    input wire gesture_control,output wire [1:0] gesture_mode,
     output wire gesture_ready,gesture_allowed,gesture_cancel,
     output wire [31:0] arp_status,output wire [127:0] arp_notes,
     input wire headphone_select,
@@ -50,9 +55,10 @@ module top #(
     output wire external_midi_event_ready,
     output wire signed [15:0] monitor_sample,
     output wire monitor_sample_tick,
-    output wire [31:0] monitor_midi_event_data,
-    output wire monitor_midi_event_valid,
+    output reg [31:0] monitor_midi_event_data,
+    output reg monitor_midi_event_valid,
     output wire [7:0] monitor_voice_count,
+    output wire [31:0] monitor_voice_mask,
     output wire [6:0] monitor_preset,
     output wire [4:0] monitor_algorithm,
     output wire [47:0] monitor_operator_envelopes,
@@ -353,7 +359,10 @@ module top #(
     reg [31:0] selected_midi_data;
     reg [6:0] selected_brightness;
     reg selected_midi_valid;
-    wire ingress_buffer_ready = !selected_midi_valid || ingress_ready;
+    // A one-cycle bubble on replacement removes the downstream ARP/pad
+    // classification -> external ACK -> score RAM/write-enable timing path.
+    // Capacity remains one held event; upstream must retain valid until ready.
+    wire ingress_buffer_ready = !selected_midi_valid;
     always @(posedge clk or negedge audio_reset_n) begin
         if (!audio_reset_n) begin
             selected_midi_data <= 32'd0;
@@ -365,7 +374,7 @@ module top #(
                 selected_midi_data <= ingress_mux_data;
                 selected_brightness <= ingress_mux_brightness;
             end
-        end
+        end else if(ingress_ready)selected_midi_valid<=0;
     end
     wire [6:0] synth_midi_event_brightness;
     wire [31:0] arp_midi_data;
@@ -375,19 +384,37 @@ module top #(
     wire [31:0] composer_midi_data,auto_midi_data;
     wire composer_midi_valid,composer_midi_ready,auto_midi_valid,auto_midi_ready;
     wire [6:0] auto_brightness;
-    ai_melody_composer #(.GESTURE_ENABLED(GESTURE_ENABLED)) u_composer(.clk(clk),.reset_n(audio_reset_n),
-        .gesture_valid(gesture_valid),.gesture_action(gesture_action),
-        .gesture_ready(gesture_ready),.gesture_allowed(gesture_allowed),.gesture_cancel(gesture_cancel),
+    ai_melody_composer #(.GESTURE_ENABLED(0)) u_composer(.clk(clk),.reset_n(audio_reset_n),
+        .gesture_valid(1'b0),.gesture_action(4'd0),
+        .gesture_ready(),.gesture_allowed(),.gesture_cancel(),
         .cfg_write(aux_write_valid),.cfg_address(aux_write_address),.cfg_value(aux_write_value),
         .suspend(arp_suspend||arp_config[0]||ai_status[0]),
         .observe_data(selected_midi_data),.observe_valid(selected_midi_valid&&ingress_ready),.consume_input(composer_consume),
         .out_data(composer_midi_data),.out_valid(composer_midi_valid),.out_ready(composer_midi_ready),
         .status(composer_status),.detail(composer_detail));
-    assign ingress_ready=composer_consume ? 1'b1 : arp_ingress_ready;
-    midi_arpeggiator u_arp(.clk(clk),.reset_n(audio_reset_n),
-        .config_data(arp_config),.suspend(arp_suspend),.sequence_mode(sequence_active),
-        .sync_step(1'b0),.sync_restart(1'b0),.external_sync(1'b0),
-        .in_data(selected_midi_data),.in_brightness(selected_brightness),.in_valid(selected_midi_valid&&!composer_consume),.in_ready(arp_ingress_ready),
+    wire [31:0] perform_data;wire [6:0] perform_brightness;
+    wire perform_valid,perform_ready,perform_busy,perform_restart;
+    wire [159:0] effective_arp_config=gesture_mode==2 ?
+        {32'd187500,32'd187500,32'd250000,32'd250000,32'h00000041}:arp_config;
+    assign gesture_allowed=GESTURE_ENABLED&&!arp_suspend&&!arp_config[0]&&!sequence_active&&
+        !composer_status[0]&&!ai_status[0]&&!(EXTERNAL_SCORE_ENABLED&&external_score_active)&&!test_owns_audio;
+    generate if(GESTURE_ENABLED)begin:g_gesture_perform
+        gesture_performer u_performer(.clk(clk),.reset_n(audio_reset_n),
+            .enable(gesture_control&&gesture_allowed),.track_enable(gesture_allowed),.action_valid(gesture_valid),.action(gesture_action),
+            .action_ready(gesture_ready),.arp_enabled(arp_status[1]==(effective_arp_config[0]&&!arp_suspend)),.mode(gesture_mode),.busy(perform_busy),.cancel(gesture_cancel),.restart_arp(perform_restart),
+            .in_data(selected_midi_data),.in_brightness(selected_brightness),
+            .in_valid(selected_midi_valid&&!composer_consume),.in_ready(perform_ready),
+            .out_data(perform_data),.out_brightness(perform_brightness),.out_valid(perform_valid),.out_ready(arp_ingress_ready));
+    end else begin:g_no_gesture_perform
+        assign perform_data=selected_midi_data;assign perform_brightness=selected_brightness;
+        assign perform_valid=selected_midi_valid&&!composer_consume;assign perform_ready=arp_ingress_ready;
+        assign gesture_mode=0;assign perform_busy=0;assign gesture_ready=0;assign gesture_cancel=0;assign perform_restart=0;
+    end endgenerate
+    assign ingress_ready=composer_consume ? 1'b1 : perform_ready;
+    midi_arpeggiator #(.LIVE_PART_SUPPORT(GESTURE_ENABLED)) u_arp(.clk(clk),.reset_n(audio_reset_n),.live_part(gesture_mode==2),
+        .config_data(effective_arp_config),.suspend(arp_suspend),.sequence_mode(sequence_active),
+        .sync_step(1'b0),.sync_restart(perform_restart),.external_sync(1'b0),
+        .in_data(perform_data),.in_brightness(perform_brightness),.in_valid(perform_valid),.in_ready(arp_ingress_ready),
         .out_data(arp_midi_data),.out_brightness(arp_brightness),.out_valid(arp_valid),.out_ready(arp_ready),
         .status(arp_status),.chord_notes(arp_notes));
     wire [31:0] ai_midi_data,merged_midi_data;
@@ -406,10 +433,17 @@ module top #(
         .live_data(arp_midi_data),.live_brightness(arp_brightness),.live_valid(arp_valid),.live_ready(arp_ready),
         .ai_data(auto_midi_data),.ai_valid(auto_midi_valid),.ai_ready(auto_midi_ready),
         .out_data(merged_midi_data),.out_brightness(merged_brightness),.out_valid(merged_midi_valid),.out_ready(merged_midi_ready));
+    wire [31:0] normal_midi_data;wire [6:0] normal_brightness;wire normal_valid,normal_ready;
+    wire test_owns_audio=POLY_TEST_ENABLED&&poly_test_active;
+    assign synth_midi_event_data=test_owns_audio?poly_test_data:normal_midi_data;
+    assign synth_midi_event_valid=test_owns_audio?poly_test_valid:normal_valid;
+    assign synth_midi_event_brightness=test_owns_audio?7'd127:normal_brightness;
+    assign normal_ready=test_owns_audio?1'b1:synth_midi_event_ready;
+    assign poly_test_ready=test_owns_audio&&synth_midi_event_ready;
     midi_owner_queue #(.INDEPENDENT_PARTS(1)) u_note_queue(.clk(clk),.reset_n(audio_reset_n),
         .in_data(merged_midi_data),.in_brightness(merged_brightness),.in_valid(merged_midi_valid),.in_ready(merged_midi_ready),
-        .out_data(synth_midi_event_data),.out_brightness(synth_midi_event_brightness),
-        .out_valid(synth_midi_event_valid),.out_ready(synth_midi_event_ready));
+        .out_data(normal_midi_data),.out_brightness(normal_brightness),
+        .out_valid(normal_valid),.out_ready(normal_ready));
     assign raw_midi_event_ready = ingress_buffer_ready;
     assign external_midi_event_ready = ingress_buffer_ready & ~midi_event_valid;
     assign uart_midi_event_ready = ingress_buffer_ready &
@@ -471,14 +505,14 @@ module top #(
         .patch_read_data(fm_patch_read_data),
         .pitch_bend(pitch_bend),
         .vibrato_depth(vibrato_depth), .vibrato_rate(vibrato_rate),
-        .portamento_time((EXTERNAL_SCORE_ENABLED&&external_score_active)?7'd0:portamento_time), .sample_out(synth_sample),
-        .active_voice_count(active_voice_count),
+        .portamento_time(((EXTERNAL_SCORE_ENABLED&&external_score_active)||gesture_mode==2)?7'd0:portamento_time), .sample_out(synth_sample),
+        .active_voice_count(active_voice_count),.active_voice_mask(monitor_voice_mask),
         .operator_envelope_levels(operator_envelope_levels)
     );
 
-    wire signed [15:0] output_sample;
+    wire signed [15:0] output_sample,pre_gesture_sample;
     wire latency_frame_load,latency_left_done;wire [31:0] engine_perf_data,latency_perf_data;
-    assign perf_data=perf_index>=18?latency_perf_data:engine_perf_data;
+    assign perf_data=(perf_index>=18&&perf_index<24)?latency_perf_data:engine_perf_data;
     // On ACG720 the start event is captured before the board input FIFO,
     // with USB transport metadata stripped, for both keyboard and touch.
     wire latency_event_valid=BOARD_LATENCY_INPUT ?
@@ -486,12 +520,13 @@ module top #(
     wire [31:0] latency_event_data=BOARD_LATENCY_INPUT ?
         (board_latency_valid?board_latency_data:uart_midi_event_data) : ingress_mux_data;
     audio_note_latency u_note_latency(.clk(clk),.reset_n(audio_reset_n),
-        .enable(!(EXTERNAL_SCORE_ENABLED&&external_score_active)&&!arp_config[0]&&!sequence_active&&!composer_status[0]&&!ai_status[0]&&!arp_suspend),
+        .enable(!(EXTERNAL_SCORE_ENABLED&&external_score_active)&&!arp_config[0]&&!sequence_active&&!composer_status[0]&&!ai_status[0]&&!arp_suspend&&gesture_mode==0&&!perform_busy),
         .event_valid(latency_event_valid),.event_ready(BOARD_LATENCY_INPUT?1'b1:ingress_buffer_ready),.event_data(latency_event_data),
         .active_voices(active_voice_count),.frame_load(latency_frame_load),.left_word_done(latency_left_done),
         .sample_value(output_sample),.snapshot(perf_snapshot),.clear_stats(perf_clear),
         .read_index(perf_index),.read_data(latency_perf_data),.marker(latency_marker));
-    audio_performance_monitor #(.VOICE_CAPACITY(FM_VOICE_COUNT)) u_performance(.clk(clk),.reset_n(audio_reset_n),
+    audio_performance_monitor #(.VOICE_CAPACITY(FM_VOICE_COUNT),.MIDI_TRACE_ENABLED(MIDI_TRACE_ENABLED)) u_performance(.clk(clk),.reset_n(audio_reset_n),
+        .usb_accept(trace_usb_accept),.usb_data(trace_usb_data),.midi_data(synth_midi_event_data),
         .sample_tick(sample_tick),.engine_busy(perf_busy),.sample_pending(perf_pending),
         .render_start(perf_start),.render_done(perf_done),.voice_steal(perf_steal),
         .midi_accept(synth_midi_event_valid&&synth_midi_event_ready),
@@ -508,7 +543,7 @@ module top #(
             .dry_sample(synth_sample),.cfg_write(fx_cfg_write),
             .cfg_addr(fx_cfg_addr),.cfg_value(fx_cfg_value),
             .read_addr(fx2_read_index),.read_value(fx2_read_value),
-            .sample_out(output_sample));
+            .sample_out(pre_gesture_sample));
         assign fx_read_value = 32'd0;
         assign lcd_resetn=0;assign lcd_clk=0;assign lcd_cs=1;assign lcd_dc=0;assign lcd_data=0;
     end else if(PRO_FX_ENABLED)begin:gen_pro_fx
@@ -516,13 +551,13 @@ module top #(
             .dry_sample(synth_sample),.config_write(fx_write),.config_index(fx_index),.config_value(fx_value),
             .read_index(fx_read_index),.read_value(fx_read_value),
             .midi_event(synth_midi_event_data),.midi_valid(synth_midi_event_valid&&synth_midi_event_ready),
-            .sample_out(output_sample));
+            .sample_out(pre_gesture_sample));
         assign lcd_resetn=0;assign lcd_clk=0;assign lcd_cs=1;assign lcd_dc=0;assign lcd_data=0;
     end else if (FM_AUDIO_ONLY) begin : gen_audio_only
         // Direct digital path for tone-matching against Dexed.  The FM mixer
         // already has a soft knee; bypassing the second limiter avoids
         // changing attack timbre before I2S.
-        assign output_sample = synth_sample;
+        assign pre_gesture_sample = synth_sample;
         assign fx_read_value=0;
         assign lcd_resetn = 1'b0;
         assign lcd_clk = 1'b0;
@@ -541,7 +576,7 @@ module top #(
         );
         audio_output_stage u_audio_output_stage (
             .clk(clk), .reset_n(audio_reset_n), .sample_tick(sample_tick),
-            .sample_in(effected_sample), .sample_out(output_sample),
+            .sample_in(effected_sample), .sample_out(pre_gesture_sample),
             .peak_level(peak_level), .clip_active(clip_active)
         );
         fm_status_lcd u_fm_status_lcd (
@@ -556,6 +591,13 @@ module top #(
             .lcd_dc(lcd_dc), .lcd_data(lcd_data)
         );
     end endgenerate
+    generate if(GESTURE_ENABLED)begin:g_gesture_chop
+        gesture_chopper u_chopper(.clk(clk),.reset_n(audio_reset_n),.sample_tick(sample_tick),
+            .enable(gesture_mode==1),.bypass(test_owns_audio),
+            .sample_in(pre_gesture_sample),.sample_out(output_sample),.gate_open());
+    end else begin:g_no_gesture_chop
+        assign output_sample=pre_gesture_sample;
+    end endgenerate
     i2s_tx #(.BCLK_HALF_DIV(8),.OUTPUT_SELECT_ENABLED(OUTPUT_SELECT_ENABLED)) u_i2s_tx (
         .clk(clk), .reset_n(audio_reset_n),
         .headphone_select(headphone_select),.headphone_din(headphone_din),
@@ -567,8 +609,15 @@ module top #(
 
     assign monitor_sample = output_sample;
     assign monitor_sample_tick = sample_tick;
-    assign monitor_midi_event_data = selected_midi_data;
-    assign monitor_midi_event_valid = selected_midi_valid && ingress_ready;
+    // Telemetry consumers observe a registered acceptance pulse. This does
+    // not participate in MIDI acknowledgement or audio scheduling.
+    always @(posedge clk or negedge audio_reset_n)begin
+        if(!audio_reset_n)begin monitor_midi_event_data<=0;monitor_midi_event_valid<=0;end
+        else begin
+            monitor_midi_event_valid<=selected_midi_valid&&ingress_ready;
+            if(selected_midi_valid&&ingress_ready)monitor_midi_event_data<=selected_midi_data;
+        end
+    end
     assign monitor_voice_count = active_voice_count;
     assign monitor_preset = current_preset;
     assign monitor_algorithm = fm_algorithm;

@@ -1,0 +1,29 @@
+{
+  "gesture_performer": [
+    "PASS gesture performer: normal/chop/6-note LIVE arpeggio, UNKNOWN retention, held/pedal restoration, control-off, manual ARP handoff, backpressure"
+  ],
+  "gesture_chopper": [
+    "PASS gesture chopper: unity, smooth edges, open/closed plateaus, signed full scale, disable recovery, test bypass"
+  ],
+  "gesture_production": [
+    "PASS production FM32+FX gesture: real chord, chopped PCM with silence/full plateaus, six-note current-patch ARP, palm restore, AI inactive, no deadlines/lost samples"
+  ],
+  "gesture_ui": [
+    "PASS independent gesture UI: direct SETUP entry, recognition/control, actual sound mode labels, cross-page persistence, no AI session or accidental notes"
+  ],
+  "gesture_rgb": [
+    "PASS RGB/XY raster, stable pixels and PLL-loss recovery, quiet=0 messy=0 height=112"
+  ],
+  "gesture_polyphony": [
+    "PASS production test32: real 32-slot mask, 32 voices, 4096 PCM samples, matched stop releases to zero"
+  ],
+  "gesture_original_arp": [
+    "PASS arp bypass, up/down/bounce/order/random, octaves/range, velocity, gate, HOLD, pedal, STOP, stalls and practice suspend"
+  ],
+  "gesture_original_composer": [
+    "PASS composer: density 16/33 attacks; neutral/up mean pitch 62/71; theme, full phrase LOCK replay, tonic END, pad learn/actions, count-in/two-bar rhythm, rapid restart, backpressure/panic and zero missed steps"
+  ],
+  "hardware_tested": false,
+  "production_audio_simulation": "Production FM32+FX, I2S sample clock unchanged. ARP microsecond divider and chop period accelerated in testbench only.",
+  "polyphony_demo_source_unchanged": true
+}

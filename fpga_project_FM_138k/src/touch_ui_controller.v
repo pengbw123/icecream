@@ -18,6 +18,7 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32,GESTURE_ENABLED
     output wire touch_present,
     output wire signed [3:0] keyboard_octave,
     output wire [6:0] master_volume,
+    output wire linear_enable,
     output wire visual_mode,
     output wire spectrum_enable,
     output wire headphone_select,
@@ -128,6 +129,7 @@ module touch_ui_controller #(parameter integer VOICE_CAPACITY=32,GESTURE_ENABLED
     assign keyboard_octave=ui_state[11:8];
     assign master_volume=volume;
     assign visual_mode=ui_state[12];
+    assign linear_enable=ui_state[15];
     assign spectrum_enable=ui_state[14];
     assign headphone_select=ui_state[13];
     assign xy_delay_samples=ui_state[22:16];

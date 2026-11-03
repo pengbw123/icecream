@@ -1,5 +1,10 @@
 /* Passive RTL telemetry. Snapshot refresh is independent of audio scheduling. */
-static u32 metrics[24],metrics_last_poll;
+#if MIDI_INPUT_PROBE
+#define METRICS_WORDS 32
+#else
+#define METRICS_WORDS 24
+#endif
+static u32 metrics[METRICS_WORDS],metrics_last_poll;
 static u8 metrics_frozen;
 static char metrics_number[12],metrics_pair[40];
 static const char *metrics_u32(u32 v){char reverse[10];u8 n=0,i=0;
@@ -25,7 +30,7 @@ static const char *metrics_load(void){u8 n=0;u32 budget=metrics[3]?metrics[3]:me
     metrics_pair[0]=0;metrics_decimal(metrics_pair,&n,a,10);metrics_append(metrics_pair,&n," / ");
     metrics_decimal(metrics_pair,&n,b,10);metrics_append(metrics_pair,&n," %");return metrics_pair;
 }
-static void metrics_read(void){u8 i;UI[58]=1;for(i=0;i<24;i++){UI[56]=i;metrics[i]=UI[57];}}
+static void metrics_read(void){u8 i;UI[58]=1;for(i=0;i<METRICS_WORDS;i++){UI[56]=i;metrics[i]=UI[57];}}
 static void draw_metrics_values(void){u32 v=metrics[13];
     if(metrics[0]!=0x50455231u){text(3,9,"TELEMETRY NOT CONNECTED",2,0);return;}
     row_box(2,8,46,3,"VOICES NOW / PEAK",metrics_two(v&255u,(v>>8)&255u),0);
@@ -37,15 +42,25 @@ static void draw_metrics_values(void){u32 v=metrics[13];
     row_box(52,8,46,3,"DEADLINE MISSES",metrics_u32(metrics[8]),metrics[8]!=0);
     row_box(52,11,46,3,"LOST SAMPLE TICKS",metrics_u32(metrics[9]),metrics[9]!=0);
     row_box(52,14,46,3,"VOICE STEALS",metrics_u32(metrics[10]),0);
+#if MIDI_INPUT_PROBE
+    row_box(52,17,46,3,"USB / AUDIO COUNT",metrics_two(metrics[24],metrics[12]),0);
+    row_box(52,20,46,3,"USB LAST / PREV",metrics_two(metrics[25],metrics[26]),0);
+    row_box(52,23,46,3,"AUDIO LAST / PREV",metrics_two(metrics[27],metrics[28]),0);
+#else
     row_box(52,17,46,3,"BRIDGE DROPS",metrics_u32(metrics[11]),metrics[11]!=0);
     row_box(52,20,46,3,"MIDI ACCEPTED",metrics_u32(metrics[12]),0);
     row_box(52,23,46,3,"ONSET SKIPPED",metrics_u32(metrics[22]),0);
+#endif
     text(3,26,(metrics[23]&1u)?"MEASURING       ":!(metrics[23]&8u)?"MODE BLOCKED    ":!(metrics[23]&16u)?"WAIT VOICES=0   ":!(metrics[23]&4u)?"WAIT QUIET      ":"READY: ONE NOTE ",2,0);
 }
 static void draw_metrics(void){
     text(3,5,"AUDIO PERFORMANCE / RTL COUNTERS",2,0);
     text(3,6,"50 MHz / 48.828 kHz /",2,0);text(24,6,metrics_u32(UI[59]),2,0);text(27,6,"VOICES",2,0);
+#if MIDI_INPUT_PROBE
+    text(53,5,"MIDI INPUT PROBE / RAW WORDS",2,0);
+#else
     text(53,5,"RENDER: COMPUTE / NOTE: INPUT TO I2S",2,0);
+#endif
     text(53,6,"QUIET LIVE NOTE -> I2S / NOT ANALOG LATENCY",2,0);
     draw_metrics_values();
     button_box(2,27,24,3,"< SETUP",0);

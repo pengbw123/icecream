@@ -1,3 +1,4 @@
+add_file -type verilog "src/ch376/midi_input_observer.v"
 add_file -type verilog "src/gesture/gesture_gray_frontend.v"
 add_file -type verilog "src/gesture/gesture_gray_roi.v"
 add_file -type verilog "src/gesture/gesture_gray_mailbox.v"

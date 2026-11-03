@@ -42,7 +42,9 @@ module score_strip_guide #(
     reg [127:0] current_hold, preview_hold, represented, pending_unmapped;
     reg beat_hold, scan_hold, user_frame_pending;
     reg [15:0] scan_index_hold;
-    integer fill_index;
+    // A bounded unsigned address avoids a 32-bit counter/variable-part-select
+    // decoder feeding every LED register. Range is 0..LED_COUNT-1.
+    reg [MAP_INDEX_WIDTH-1:0] fill_index;
     wire [MAP_INDEX_WIDTH-1:0] cfg_map_index = cfg_index[MAP_INDEX_WIDTH-1:0];
     wire [8:0] entry = led_map[fill_index];
     wire [127:0] entry_note = (entry[8:7] == 2'd1) ?

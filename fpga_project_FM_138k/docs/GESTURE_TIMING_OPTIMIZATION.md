@@ -1,60 +1,28 @@
-# 手势集成后的时序优化
+# 手势演奏版时序优化（2026-11-02）
 
-本轮保留32复音、双Part、音频效果、RGB菜单、HDMI摄像头显示和神经网络手势链路，不降低时钟、不放宽约束。摄像头实机无图的问题仍单独待查。
+原快照`tmp/gesture_performance_build`已生成候选位流，但未通过时序，不能下载：主50MHz域Fmax48.443MHz、Setup TNS -48.168ns/160端点；RGB 33.333MHz域Fmax33.115MHz、TNS -0.197ns/1端点。其它约束时钟通过。正式FS没有替换。
 
-## 基线与目标
+## 本次修改
 
-源码`1af0e10`的完整布局布线于2026-10-28 17:16结束。主域要求50 MHz，实际Fmax 45.581 MHz，setup TNS −539.124 ns，823个失败端点；其余四域通过。工具生成了位流，但这份失败位流没有替换正式版本。
+1. 最差路径为FX输出→切音移位加法增益→波形XY/电平峰值比较。切音树改为两级系统时钟寄存，分离增益计算与下游统计；增加40ns固定数字管线延迟，不增加音频采样周期。32音演示旁路仍为原样直通。
+2. 主MIDI入口的一槽寄存缓冲改为仅按是否占用产生ready，消费后空一拍再接受替换，切断ARP/pad分类→上游ACK→曲谱RAM写使能的组合路径。事件仍按valid/ready完整保存，不去重、不丢弃。
+3. 合成器已接受事件的监视输出寄存一拍；板级新增`midi_input_observer`，把原始USB/桥接/触屏已接受事件及来源寄存后送练习的按键匹配逻辑。修复报告中lesson enabled→仲裁→大扇出→tutorial next_valid长路径。二者只改变观察延迟，不参与音频ACK。板级延迟测量起点没有后移。
+4. FFT幅度近似结果独立寄存，将RAM读出、绝对值/幅度计算、band_max比较分开。对应增加扫描等待状态，频点地址和实际幅度对齐，数学定义及FFT数据不变。
+5. RGB键盘的32位`(x*15)/800`和边界除法改为平衡比较树、固定分界点；对全部800个x逐点验证与原表达式完全一致，键宽、颜色、触屏区域不变。
+6. 灯带fill_index从32位integer收窄到现有MAP_INDEX_WIDTH（160灯为8位），避免大计数器/动态位选的冗余译码。灯数、地图、颜色与时序参数不变。
 
-验收要求五个受约束时钟域的setup、hold TNS均为0，失败端点均为0；不能只看Gowin退出码、生成.fs或综合通过。检查器为`tools/check_timing.py`。
+时钟约束、固件镜像、6算子/32声部、原32音测试模块、曲谱8192事件容量、摄像头与AI功能均未删改。没有使用降频、放宽约束或增加false path来隐藏失败。
 
-## 改动与原因
+## 验证
 
-生产源码检查点`9cf7ec2`，构建目录`tmp/gesture_build_9cf7ec2`。
+已通过切音流水线有符号满幅、增益平滑及32音旁路测试；FFT校准/负满幅/对数频带回归；512频点与32个真实峰值回归；生产FM32 PCM的32独立谱峰和释放回零；真实FM32+FX的手势切音与六音琶音；MIDI各通道/cable及触屏共17次延迟脉冲逐周期等于计数；三个RGB视图和全800像素琴键边界；MIDI观察器来源/空闲/复位；160灯及1灯边界和完整发送；曲谱/练习32项联合回归。日志`tmp/opt_*.log`。
 
-| 基线长路径 | 改动 | 可观察影响 |
-|---|---|---|
-| NN分数→排序/求差/门限→事件计数/锁存 | 新增四拍`gesture_score_gate`，事件与遥测共用结果；稳定计数器按参数收窄 | 后处理约增加80 ns；分类分数、阈值、连续帧规则不变 |
-| 算子索引→力度敏感度读取/乘法/舍入→最终电平 | 在已有`ENGINE_EVENT_GAIN_WAIT`锁存乘积 | 未增加FM事件处理周期；保持原有有符号舍入 |
-| 声部索引→年龄数组读取/递增→数组写回 | `ENGINE_PREP`读取年龄，`ENGINE_PREP_RESOLVE`更新同一声部 | 未增加渲染周期；年龄仍饱和递增 |
-| MIDI数据→8打击垫匹配/动作优先级→乐句状态 | 仲裁结果寄存后执行 | 触屏/打击垫/手势动作增加1拍，即20 ns |
+包含手势模块的32声部生产演示`tmp/opt_poly_gesture.log`亦已PASS。所有回归汇总与精简日志归档在`assets/gesture_timing_optimization`。菜单固件及触摸处理本轮未改，沿用前轮真实RV32I/I2C菜单通过记录。
 
-跨域特征邮箱仍由原始NN完成信号确认，不使用可被关闭识别开关清除的后处理valid。这样在推理完成附近关闭识别时，邮箱不会因等不到确认而卡住。
+## 构建状态
 
-手势命令继续经过COMPOSER所有权、录入/学习/紧急停止、新鲜帧及手动优先约束；优化不扩大其控制权限。
+最新冻结目录`tmp/gesture_performance_timing_build_v2`；`source_manifest.json`记录548个输入。主构建进程47848，后台检查进程4668，脚本`tools/finish_gesture_timing_build.ps1`。
 
-## 回归证据
+`tmp/gesture_performance_timing_build`是本轮最初综合快照，已在尚未布局布线时终止，以便一起加入已确认的练习按键观察长路径及灯带计数器修复。不要继续等待它，也不要和18:37完成的原失败版混淆。
 
-| 检查 | 日志 |
-|---|---|
-| 九组手势检查，含127组连续极值/边界向量、全部1116个NN分数逐位一致、实际样本到COMPOSER联合 | `tmp/gesture_timing_checks.log` |
-| 作曲器原有旋律/节奏/主题/快速重启/背压/紧急停止/无漏拍 | `tmp/gesture_timing_composer.log` |
-| FM32到I2S实际PCM、LIVE隔离及按来源停止 | `tmp/gesture_timing_audio.log` |
-| 32复音、192算子槽、密集事件/渲染期限 | `tmp/gesture_timing_fm32_poly32.log` |
-| 单音滑音、相位/包络保持、精确滑音终点 | `tmp/gesture_timing_fm32_legato.log` |
-| 双Part精确BACKING PCM、独立声部/延音/ARP与SEQ来源 | `tmp/gesture_timing_parts.log` |
-| 实际32复音性能计数 | `tmp/gesture_timing_fm32_metrics.log` |
-| 三路并发MIDI、144事件、背压/复位/无丢失重复 | `tmp/gesture_timing_midi.log` |
-| 时序优化后的真实RV32I/I2C COMPOSER菜单 | `tmp/gesture_timing_real_ui_composer_restart.log`，已通过 |
-
-其余不变部分沿用最终固件手势菜单/琴键与摄像头诊断/恢复/整链显示的已通过记录。公开CGI测试准确率81.72%不等于实机识别准确率。
-
-## 最终实现
-
-2026-10-28 20:15完成，五域setup/hold TNS均为0、失败端点均为0。
-
-| 时钟域 | 要求MHz | Fmax MHz |
-|---|---:|---:|
-| 主域 | 50 | 50.069 |
-| 摄像头输入 | 50 | 106.012 |
-| RGB像素 | 33.333 | 34.835 |
-| HDMI像素 | 25 | 73.670 |
-| HDMI串行 | 125 | 358.422 |
-
-主域最差setup slack 0.028ns，路径为音频输出到数码管峰值换算；目前通过但余量很小。后续扩展应优先流水化该显示换算，再观察FM增益、ARP及MIDI扇出。
-
-Logic 67652/138240，FF 37189/139095，BSRAM 331/340，DSP 82/298。相比失败基线，Logic减少429、FF增加250，BSRAM/DSP不增加。PnR报告总耗时17分54秒，基线为46分50秒；综合另计。
-
-正式位流`impl/pnr/fm_138k_rgb_hdmi.fs`已更新，SHA256 `A443C69D6247B4A9E44E5DEB3B8CC409970D1B3978F116366F1B56B105E12117`；旧位流已备份，未自动烧录。详细记录[releases/2026-10-28_gesture_integration.json](releases/2026-10-28_gesture_integration.json)。完整构建日志`tmp/build_gesture_9cf7ec2_restart.log`；中断前的`tmp/build_gesture_9cf7ec2.log`只到综合阶段。
-
-发布时同时核对了源码/SDC/CST/固件与快照一致、五域时序、回归日志、文件清单和引脚。最终固件手势菜单测试的已知跨页MIDI为两组57号音符开关与两次滑音控制：SETUP入口按住跨入AI页的琴键所致，旧版已有。本轮严格核对这份既有序列，未声称整个导航过程零音符；该触屏行为留待单独修复。
+最新构建仍需实际STA验证。所有专项回归及全部时钟Setup/Hold TNS=0、源码哈希均通过后才另存`impl/pnr/fm_138k_gesture_performance.fs`，结果`background_result.json`/`test_result.json`，正式标准FS保持原版，不自动烧录。

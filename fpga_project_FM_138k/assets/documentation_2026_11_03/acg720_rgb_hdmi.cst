@@ -1,0 +1,196 @@
+// ACG720 board J1 FPC40, TFT V3.0 800x480 RGB565.
+// GPIO0 bank VCCIO must be set to 3.3 V for external MIDI/audio/LED signals.
+IO_LOC "clk" Y18;
+// P4 OV5640, pinout from the supplied GW5AT138K ch59 board reference.
+// The generic PDF differs on D0/D1/D3/D6 and omits the FPGA PWDN net.
+IO_LOC "camera_pclk" B1;
+IO_LOC "camera_href" A1;
+IO_LOC "camera_vsync" B2;
+IO_LOC "camera_data[0]" J2;
+IO_LOC "camera_data[1]" J1;
+IO_LOC "camera_data[2]" G1;
+IO_LOC "camera_data[3]" H2;
+IO_LOC "camera_data[4]" F1;
+IO_LOC "camera_data[5]" G2;
+IO_LOC "camera_data[6]" D1;
+IO_LOC "camera_data[7]" E1;
+IO_LOC "camera_scl" M20;
+IO_LOC "camera_sda" L18;
+IO_LOC "camera_xclk" M17;
+IO_LOC "camera_reset_n" N20;
+IO_LOC "camera_pwdn" L1;
+IO_PORT "camera_pclk" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "camera_href" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "camera_vsync" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "camera_data[0]" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "camera_data[1]" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "camera_data[2]" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "camera_data[3]" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "camera_data[4]" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "camera_data[5]" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "camera_data[6]" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "camera_data[7]" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
+IO_PORT "camera_scl" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=4;
+IO_PORT "camera_sda" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=4;
+IO_PORT "camera_xclk" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "camera_reset_n" IO_TYPE=LVCMOS33 DRIVE=4;
+IO_PORT "camera_pwdn" IO_TYPE=LVCMOS33 DRIVE=4;
+// Onboard HC595, verified against ACG720 board pin assignment table.
+IO_LOC "seg7_dio" M18;
+IO_LOC "seg7_rclk" C2;
+IO_LOC "seg7_sclk" F4;
+IO_PORT "seg7_dio" IO_TYPE=LVCMOS33 DRIVE=4;
+IO_PORT "seg7_rclk" IO_TYPE=LVCMOS33 DRIVE=4;
+IO_PORT "seg7_sclk" IO_TYPE=LVCMOS33 DRIVE=4;
+IO_LOC "reset_button_n" B21;
+IO_LOC "uart_rx_pin" J21;
+IO_LOC "uart_tx_pin" M15;
+IO_LOC "i2s_bclk" A13; // P7-1
+IO_LOC "i2s_lrclk" A14; // P7-2
+IO_LOC "i2s_din" A15; // P7-3
+IO_LOC "bridge_uart_rx_pin" A16; // P7-4, 1 Mbaud input from 25K
+IO_LOC "ws2812_data" A19; // P7-6
+IO_LOC "status_led[0]" M22;
+IO_LOC "status_led[1]" N22;
+IO_LOC "status_led[2]" L21;
+IO_LOC "status_led[3]" K21;
+IO_LOC "status_led[4]" K22;
+IO_LOC "lcd_pclk" AB20;
+IO_LOC "lcd_de" AB22;
+IO_LOC "lcd_hsync" V19;
+IO_LOC "lcd_vsync" Y19;
+IO_LOC "lcd_bl" AB21;
+IO_LOC "lcd_r[0]" L6;
+IO_LOC "lcd_r[1]" N15;
+IO_LOC "lcd_r[2]" R17;
+IO_LOC "lcd_r[3]" P16;
+IO_LOC "lcd_r[4]" N14;
+IO_LOC "lcd_g[0]" N13;
+IO_LOC "lcd_g[1]" R16;
+IO_LOC "lcd_g[2]" P15;
+IO_LOC "lcd_g[3]" P17;
+IO_LOC "lcd_g[4]" N17;
+IO_LOC "lcd_g[5]" T18;
+IO_LOC "lcd_b[0]" R18;
+IO_LOC "lcd_b[1]" R14;
+IO_LOC "lcd_b[2]" P14;
+IO_LOC "lcd_b[3]" U18;
+IO_LOC "lcd_b[4]" U17;
+IO_LOC "tp_scl" T21;
+IO_LOC "tp_sda" T20;
+IO_LOC "tp_int" P20;
+IO_LOC "tp_rst" Y21;
+// HDMI1 connector J6. Paired 3.3 V ODDR outputs share Bank 7 with RGB.
+IO_LOC "hdmi_clk_p" K4;
+IO_LOC "hdmi_clk_n" J4;
+IO_LOC "hdmi_data_p[0]" L3;
+IO_LOC "hdmi_data_n[0]" K3;
+IO_LOC "hdmi_data_p[1]" L5;
+IO_LOC "hdmi_data_n[1]" L4;
+IO_LOC "hdmi_data_p[2]" M3;
+IO_LOC "hdmi_data_n[2]" M2;
+IO_LOC "hdmi_oe" H5;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+IO_PORT "hdmi_clk_p" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_clk_n" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_p[0]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_n[0]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_p[1]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_n[1]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_p[2]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_data_n[2]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "hdmi_oe" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "reset_button_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_PORT "uart_rx_pin" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_PORT "uart_tx_pin" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "bridge_uart_rx_pin" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_PORT "i2s_bclk" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "i2s_lrclk" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "i2s_din" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "ws2812_data" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "status_led[0]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "status_led[1]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "status_led[2]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "status_led[3]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "status_led[4]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_pclk" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_de" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_hsync" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_vsync" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_bl" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_r[0]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_r[1]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_r[2]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_r[3]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_r[4]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_g[0]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_g[1]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_g[2]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_g[3]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_g[4]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_g[5]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_b[0]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_b[1]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_b[2]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_b[3]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "lcd_b[4]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "tp_scl" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
+IO_PORT "tp_sda" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
+IO_PORT "tp_int" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
+IO_PORT "tp_rst" IO_TYPE=LVCMOS33 DRIVE=8;
+
+// Board ES8388: slave I2S DAC, stereo OUT1 headphone monitor.
+IO_LOC "aud_mclk" V20;
+IO_LOC "aud_bclk" U20;
+IO_LOC "aud_lrclk" W20;
+IO_LOC "aud_dacdat" AA20;
+IO_LOC "codec_scl" M13;
+IO_LOC "codec_sda" M16;
+IO_PORT "aud_mclk" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "aud_bclk" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "aud_lrclk" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "aud_dacdat" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_PORT "codec_scl" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=4;
+IO_PORT "codec_sda" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=4;
+
+// Optional CH376S pins; default 25K bridge build holds SPI idle.
+IO_LOC "ch376_cs_n" A18; // P7-5 -> D3/SCS
+IO_PORT "ch376_cs_n" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_LOC "ch376_sck" F13; // P7-7 -> D5/SCK
+IO_PORT "ch376_sck" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_LOC "ch376_mosi" F14; // P7-8 -> D6/SDI
+IO_PORT "ch376_mosi" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_LOC "ch376_miso" C13; // P7-13 <- D7/SDO
+IO_PORT "ch376_miso" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "ch376_int_n" B13; // P7-14 <- INT#
+IO_PORT "ch376_int_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "status_led[5]" J22;
+IO_PORT "status_led[5]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_LOC "status_led[6]" H22;
+IO_PORT "status_led[6]" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_LOC "status_led[7]" M21;
+IO_PORT "status_led[7]" IO_TYPE=LVCMOS33 DRIVE=8;
+
+// Onboard microSD, SPI mode; board pin assignment table.
+IO_LOC "sd_cs_n" K6;
+IO_PORT "sd_cs_n" IO_TYPE=LVCMOS33;
+IO_LOC "sd_clk" N3;
+IO_PORT "sd_clk" IO_TYPE=LVCMOS33;
+IO_LOC "sd_mosi" N4;
+IO_PORT "sd_mosi" IO_TYPE=LVCMOS33;
+IO_LOC "sd_miso" R1;
+IO_PORT "sd_miso" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+// Imported dedicated JDY UART and S0/S1 tutorial controls; existing PC UART unchanged.
+IO_LOC "bluetooth_rx_pin" E13;
+IO_PORT "bluetooth_rx_pin" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "bluetooth_tx_pin" E14;
+IO_PORT "bluetooth_tx_pin" IO_TYPE=LVCMOS33 DRIVE=8;
+IO_LOC "tutorial_start_n" F15;
+IO_PORT "tutorial_start_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "tutorial_stop_n" A20;
+IO_PORT "tutorial_stop_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+// Dedicated latency pulse, GPIO0_12 on P7 pin 15; GPIO0 VCCIO = 3.3V.
+IO_LOC "latency_probe" D14;
+IO_PORT "latency_probe" IO_TYPE=LVCMOS33 DRIVE=8;

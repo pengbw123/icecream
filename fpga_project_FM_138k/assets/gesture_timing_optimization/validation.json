@@ -1,0 +1,72 @@
+{
+  "opt_spectrum": [
+    "PASS spectrum FFT order/sign/scaling, Hann calibration, log bands, silence, negative FS and release"
+  ],
+  "opt_ingress": [
+    "PASS production ingress: one NoteOn=one voice; one touch=one voice; two channel NoteOns=two voices",
+    "PASS production ingress: one NoteOn=one voice; one touch=one voice; two channel NoteOns=two voices",
+    "PASS TMDS 1024-symbol recovery, bounded disparity and control code",
+    "PASS WS2812 first LED color and 400/800 ns pulse widths",
+    "PASS UART events, bend, CC, backpressure and truncated-frame recovery"
+  ],
+  "opt_gesture": [
+    "PASS production FM32+FX gesture: real chord, chopped PCM with silence/full plateaus, six-note current-patch ARP, palm restore, AI inactive, no deadlines/lost samples"
+  ],
+  "opt_latency": [
+    "Measured digital pulse 1: 136469 clocks",
+    "Measured digital pulse 2: 136469 clocks",
+    "Measured digital pulse 3: 136469 clocks",
+    "Measured digital pulse 4: 136469 clocks",
+    "Measured digital pulse 5: 136469 clocks",
+    "Measured digital pulse 6: 136469 clocks",
+    "Measured digital pulse 7: 136469 clocks",
+    "Measured digital pulse 8: 136469 clocks",
+    "Measured digital pulse 9: 136469 clocks",
+    "Measured digital pulse 10: 136469 clocks",
+    "Measured digital pulse 11: 136469 clocks",
+    "Measured digital pulse 12: 136469 clocks",
+    "Measured digital pulse 13: 136469 clocks",
+    "Measured digital pulse 14: 136469 clocks",
+    "Measured digital pulse 15: 136469 clocks",
+    "Measured digital pulse 16: 136469 clocks",
+    "Measured digital pulse 17: 136469 clocks",
+    "PASS USB MIDI decode->arbiter->FIFO->production FM32->I2S: all 16 channels/cables and touch, 17 measured pulses exactly equal counters, fast-patch digital delays below 5ms"
+  ],
+  "opt_poly": [
+    "PASS generated 32-tone fixture: MIDI 96..127, no PCM recording",
+    "PASS test32: enable guard, held events under backpressure, 32 notes, full stop and early stop cleanup",
+    "PASS linear FFT: ordered 512 real bins, 32 known MIDI frequencies have matching local peaks",
+    "PASS production test32: real 32-slot mask, 32 voices, 4096 PCM samples, matched stop releases to zero",
+    "PASS production FM32 PCM: 32 independent peaks, no silence/clipping, Fs=48828.125 Hz",
+    "PASS spectrum CDC: atomic frame flip, slow video/drop, ownership and PLL-loss recovery"
+  ],
+  "opt_poly_gesture": [
+    "PASS production test32: real 32-slot mask, 32 voices, 4096 PCM samples, matched stop releases to zero"
+  ],
+  "opt_rgb_gesture": [
+    "PASS exact keyboard index/borders for all 800 pixels",
+    "PASS RGB/XY raster, stable pixels and PLL-loss recovery, quiet=0 messy=0 height=112"
+  ],
+  "opt_rgb_voices": [
+    "PASS exact keyboard index/borders for all 800 pixels",
+    "PASS RGB/XY raster, stable pixels and PLL-loss recovery, quiet=0 messy=0 height=112"
+  ],
+  "opt_rgb_linear": [
+    "PASS exact keyboard index/borders for all 800 pixels",
+    "PASS RGB/XY raster, stable pixels and PLL-loss recovery, quiet=0 messy=0 height=112"
+  ],
+  "opt_observer": [
+    "PASS MIDI observer: all sources, acceptance edge, idle suppression, reset"
+  ],
+  "opt_strip160": [
+    "PASS bounded strip index: 160 LEDs, final scan pixel, complete serialized frame"
+  ],
+  "opt_strip1": [
+    "PASS bounded strip index: 1 LEDs, final scan pixel, complete serialized frame"
+  ],
+  "opt_tutorial": [
+    "SCORE_TUTORIAL_138K_OK physical=0 checks=32 cap/CRC/notes/transpose/NAK/mutex/S0/S1/stalled-stop/end/invalidate"
+  ],
+  "physical_board_validated": false,
+  "timing_status": "pending new PnR; previous candidate failed and must not be programmed"
+}

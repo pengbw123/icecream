@@ -1,4 +1,22 @@
-# Tang Primer 25K USB-MIDI加法合成器
+# Gowin 138K 实时FM电子乐器
+
+当前主工程为 `fpga_project_FM_138k/`，面向ACG720 GW5AT-138 B。使用32声部、六算子FM、128组预置音色，支持USB MIDI与触摸、双Part、RGB可视化、SD用户音色、琶音/音序、手机曲谱与灯带等功能。
+
+## 当前入口 2026年11月3日
+
+- IDE工程：`fpga_project_FM_138k/fpga_project.gprj`；RGB+HDMI构建入口：`build_cli_hdmi.tcl`。具体源文件、工具版本及约束以工程和冻结清单为准。
+- 已通过构建的候选位流：`fpga_project_FM_138k/impl/pnr/fm_138k_gesture_probe.fs`，2026-11-02 20:59生成。SHA256 `97A853217B176CC843B84EB1C58901323496DCD4F7C3BDD1066EDB67D99F6773`。它把延迟脉冲送P7-15；LED0为心跳。
+- 最新状态与证据：[技术状态](fpga_project_FM_138k/docs/CURRENT_TECHNICAL_STATUS_2026_11_03.md)。标准 `fm_138k_rgb_hdmi.fs` 尚未覆盖，根目录 `fm_138k_rgb.fs` 是旧文件，请勿作为当前交付使用。
+- 本目录Android配套源码为 `android_control/`，Manifest版本0.4.6/code17；App界面存在不等于其中全部音色控件已接入当前FM蓝牙协议。
+- 使用CH376直接接138K，默认不需25K中转。下方25K说明仅适用于历史加法合成工程，不是当前138K接线和资源数据。
+
+## 文档与验收
+
+修订作品报告为根目录 `基于FPGA的实时多音色合成电子乐器_作品报告_20261103_r7.docx`。本次只修文档，不改RTL、不重新构建或烧录。资源与时序、逻辑回归、实板观察分开记录，模拟总延迟和外部脉冲测量仍待闭合。
+
+---
+
+# 历史工程 Tang Primer 25K USB-MIDI加法合成器
 
 这是面向Tang Primer 25K的实时数字乐器工程。MIDI键盘通过Dock板USB-A接口连接FPGA，RV32I软核完成USB Host枚举和USB-MIDI协议处理，RTL音频引擎完成8复音、每音16谐波的加法合成，并通过I2S连接MAX98357功放模块输出声音。
 

@@ -1,9 +1,9 @@
 // MIDI-domain arpeggiator. One ready/valid output owns all generated notes.
 // Configuration is sampled at step boundaries; no audio-rate arithmetic.
 module midi_arpeggiator #(
-    parameter integer CLOCKS_PER_US=50
+    parameter integer CLOCKS_PER_US=50,LIVE_PART_SUPPORT=0
 )(
-    input wire clk,reset_n,
+    input wire clk,reset_n,live_part,
     // cfg: enable, hold, fixed velocity, order[5:3], octaves-1[7:6],
     // velocity[14:8], stop toggle[15], live playing outside editor[16].
     // Timing words are microseconds.
@@ -21,6 +21,8 @@ module midi_arpeggiator #(
     wire [31:0] cfg=config_data[31:0];
     wire wanted=cfg[0]&&!suspend;
     reg enabled,stop_seen,hold_seen,pedal,running,active,external_pending;
+    reg owner_live;
+    wire [7:0] owner_tag=LIVE_PART_SUPPORT&&owner_live?8'h88:8'h40;
     reg [127:0] physical,chord;
     reg [127:0] live_notes;
     wire live_mode=cfg[1]&&cfg[16];
@@ -66,7 +68,7 @@ module midi_arpeggiator #(
     endtask
     always @(posedge clk or negedge reset_n)begin
         if(!reset_n)begin
-            state<=IDLE;enabled<=0;stop_seen<=0;hold_seen<=0;pedal<=0;
+            state<=IDLE;enabled<=0;stop_seen<=0;hold_seen<=0;pedal<=0;owner_live<=0;
             running<=0;active<=0;physical<=0;chord<=0;live_notes<=0;count<=0;external_pending<=0;
             prune_read<=0;prune_write<=0;scan<=0;sequence_pos<=0;target<=0;
             total<=0;mode<=0;octaves<=0;descending<=0;odd<=0;random_bits<=9'h1ab;
@@ -82,21 +84,22 @@ module midi_arpeggiator #(
             end
             if(out_valid&&out_ready)begin
                 out_valid<=0;
-                if(out_data[30]&&out_data[23:20]==4'h9)begin
+                if((out_data[30]||(LIVE_PART_SUPPORT&&owner_live&&out_data[31:24]==8'h88))&&out_data[23:20]==4'h9)begin
                     active<=1;active_note<=out_data[14:8];
                     step_left<=step_length;gate_left<=gate_length;odd<=!odd;
                     step_zero<=step_length==0;gate_zero<=gate_length==0;
                 end
-                if(out_data[30]&&out_data[23:20]==4'h8)active<=0;
+                if((out_data[30]||(LIVE_PART_SUPPORT&&owner_live&&out_data[31:24]==8'h88))&&out_data[23:20]==4'h8)active<=0;
             end
             // A stalled event is immutable. Cleanup follows its acceptance.
             if(!out_valid)begin
                 if(change&&state!=CLEAN_PEDAL&&state!=CLEAN_ALL)begin
                     state<=CLEAN_PEDAL;running<=0;
                 end else case(state)
-                    CLEAN_PEDAL:begin send(32'h40b04000,0);state<=CLEAN_ALL;end
+                    CLEAN_PEDAL:begin send({owner_tag,24'hb04000},0);state<=CLEAN_ALL;end
                     CLEAN_ALL:begin
-                        send(32'h40b07b00,0);enabled<=wanted;stop_seen<=cfg[15];hold_seen<=cfg[1];
+                        send({owner_tag,24'hb07b00},0);enabled<=wanted;stop_seen<=cfg[15];hold_seen<=cfg[1];
+                        owner_live<=LIVE_PART_SUPPORT&&live_part;
                         physical<=0;chord<=0;live_notes<=0;count<=0;pedal<=0;running<=0;active<=0;external_pending<=0;
                         sequence_pos<=0;descending<=0;odd<=0;state<=IDLE;
                     end
@@ -106,7 +109,7 @@ module midi_arpeggiator #(
                             hold_seen<=cfg[1];
                             if(!cfg[1]&&!pedal)begin prune_read<=0;prune_write<=0;state<=PRUNE;end
                         end else if(enabled&&active&&(!running||gate_due||chord==0||step_due))begin
-                            send(32'h40800000|({25'd0,active_note}<<8),0);
+                            send({owner_tag,24'h800000}|({25'd0,active_note}<<8),0);
                         end else if(enabled&&chord!=0&&(!running||step_due))begin
                             running<=1;scan<=0;total<=0;state<=COUNT;external_pending<=0;
                             mode<=cfg[5:3]>4?0:cfg[5:3];octaves<=cfg[7:6];
@@ -185,7 +188,7 @@ module midi_arpeggiator #(
                     end
                     FIND:begin
                         if(candidate&&target==0)begin
-                            send(32'h40900000|({23'd0,expanded}<<8)|
+                            send({owner_tag,24'h900000}|({23'd0,expanded}<<8)|
                                 {25'd0,(cfg[2]?(cfg[14:8]==0?7'd1:cfg[14:8]):velocity[base_note])},
                                 cfg[2]?(cfg[14:8]==0?7'd1:cfg[14:8]):velocity[base_note]);
                             if(mode==2)begin

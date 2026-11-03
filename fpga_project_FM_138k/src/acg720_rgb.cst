@@ -100,7 +100,7 @@ IO_PORT "aud_dacdat" IO_TYPE=LVCMOS33 DRIVE=8;
 IO_PORT "codec_scl" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=4;
 IO_PORT "codec_sda" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=4;
 
-// CH376S keyboard host; no 25K intermediary required.
+// Optional CH376S pins; default 25K bridge build holds SPI idle.
 IO_LOC "ch376_cs_n" A18; // P7-5 -> D3/SCS
 IO_PORT "ch376_cs_n" IO_TYPE=LVCMOS33 DRIVE=8;
 IO_LOC "ch376_sck" F13; // P7-7 -> D5/SCK

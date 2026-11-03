@@ -1,0 +1,2 @@
+PASS bounded strip index: 160 LEDs, final scan pixel, complete serialized frame
+sim/tb_strip_index_range.sv:16: $finish called at 618030000 (1ps)

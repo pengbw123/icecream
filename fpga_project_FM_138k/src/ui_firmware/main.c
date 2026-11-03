@@ -94,6 +94,7 @@ static void release_all(void){int i,j,n;for(i=0;i<16;i++)if(slot_note[i]>=0){
 #define PAGE_METRICS 12
 #define PAGE_AI 13
 #define PAGE_COMPOSER 14
+#define PAGE_GESTURE 15
 static u8 composer_session;
 static void composer_stop(void);
 static void composer_adj(u8 row,int d);
@@ -128,7 +129,7 @@ static u32 held_count;
 
 static void publish(void){UI[5]=((u32)((page==3&&eg_mode)?8:page)<<24)|
     (display_auto_gain?0u:0x80000000u)|((u32)xy_delay<<16)|
-    ((u32)(visual_mode==2)<<14)|((u32)headphone_select<<13)|((u32)(visual_mode==1)<<12)|((u32)(octave&15)<<8)|(present?1u:0u);}
+    ((u32)(visual_mode==4)<<15)|((u32)(visual_mode>=2)<<14)|((u32)headphone_select<<13)|((u32)((visual_mode&1)!=0)<<12)|((u32)(octave&15)<<8)|(present?1u:0u);}
 
 /* Performance-page controls, hit boxes shared with draw_perf_controls(). */
 static void draw_status(void);
@@ -1020,7 +1021,7 @@ static int get_sel(int *cur,int *lo,int *hi,int *cyc){
     if(page==7){
         if(sel_row==0){*cur=bg_pick;*hi=3;*cyc=4;}
         else if(sel_row==1){*cur=accent_pick;*hi=4;*cyc=5;}
-        else if(sel_row==2){*cur=visual_mode;*hi=2;*cyc=3;}
+        else if(sel_row==2){*cur=visual_mode;*hi=4;*cyc=5;}
         else if(sel_row==3){*cur=xy_delay;*lo=1;*hi=96;}
         else if(sel_row==4){*cur=display_auto_gain;*hi=1;*cyc=2;}
         else if(sel_row==5){*cur=touch_velocity;*lo=1;*hi=127;}
@@ -1154,9 +1155,9 @@ static void menu_repeat(void){
     if(page==PAGE_PERF||held_id==0xFF)return;
     if(held_kind==1||held_kind==2){
         u32 dt=(u32)(now()-held_t);
-        u32 start=(page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER)?450000u:1500000u;
+        u32 start=(page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER||page==PAGE_GESTURE)?450000u:1500000u;
         if(dt>=start){
-            u32 period=(page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER)?50000u:150000u;
+            u32 period=(page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER||page==PAGE_GESTURE)?50000u:150000u;
             u32 n=1u+(dt-start)/period;
             if(n>held_count){held_count=n;adj(held_row,held_kind==1?-1:1);}
         }
@@ -1187,7 +1188,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         else{x=(int)(raw_x*800/x_res);y=(int)(raw_y*480/y_res);}
         if(x>799)x=799;if(y>479)y=479;
         note=-1;
-        if((page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER)&&!dialog&&!(keyboard_blocked&(1u<<id))&&x>=0&&x<800&&y>=352&&y<480){
+        if((page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER||page==PAGE_GESTURE)&&!dialog&&!(keyboard_blocked&(1u<<id))&&x>=0&&x<800&&y>=352&&y<480){
             static const u8 whites[15]={0,2,4,5,7,9,11,12,14,16,17,19,21,23,24};
             static const u8 edges[10]={1,2,4,5,6,8,9,11,12,13};
             static const u8 blacks[10]={1,3,6,8,10,13,15,18,20,22};
@@ -1197,7 +1198,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
         }
         next[id]=note;px[id]=x;py[id]=y;
     }
-    if(page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER){
+    if(page==PAGE_PERF||page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER||page==PAGE_GESTURE){
         /* Compare note sets, not individual fingers: two fingers on the same
          * key share one Note On, and only the final finger sends Note Off. */
         for(id=0;id<16;id++){
@@ -1227,7 +1228,7 @@ static int poll_touch(void){u8 status,d[40];int n,i,b,id,x,y,note;
             control_down|=(u16)(1u<<id);
             control_x[id]=px[id];control_y[id]=py[id];
             
-            if(page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER){
+            if(page==PAGE_LESSON||page==PAGE_ARP||page==PAGE_SEQ||page==PAGE_AI||page==PAGE_COMPOSER||page==PAGE_GESTURE){
                 if(next[id]<0){held_id=(u8)id;held_kind=0;held_x=px[id];menu_press(px[id],py[id]);}
             }else if(page==PAGE_PERF){
                 if(dialog||py[id]<48){menu_press(px[id],py[id]);}

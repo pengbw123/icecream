@@ -1,0 +1,2 @@
+SCORE_TUTORIAL_138K_OK physical=0 checks=32 cap/CRC/notes/transpose/NAK/mutex/S0/S1/stalled-stop/end/invalidate
+sim/tb_138k_score_tutorial.sv:124: $finish called at 1078112000 (1ps)

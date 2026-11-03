@@ -6,6 +6,7 @@
 module audio_spectrum_analyzer (
     input wire clk, reset_n, sample_tick,
     input wire signed [15:0] audio_sample,
+    output reg linear_write,output reg [8:0] linear_address,output reg [13:0] linear_data,
     output reg bin_write,
     output reg [5:0] bin_address,
     output reg [13:0] bin_data
@@ -13,7 +14,7 @@ module audio_spectrum_analyzer (
     localparam CAPTURE=0,DRAIN=1,FFT_INIT=2,SET_ADDR=3,READ_A=4,LATCH_A=5,
         READ_B=6,MULTIPLY=7,ROTATE=8,WRITE_A=9,WRITE_B=10,
         BAND_START=11,SCAN_WAIT=12,SCAN_BIN=13,LOG_LEVEL=14,EMIT=15;
-    reg [3:0] state;
+    reg [4:0] state;
     reg signed [17:0] real_mem[0:1023], imag_mem[0:1023];
     reg signed [15:0] hann[0:1023];
     reg [31:0] twiddle[0:511];
@@ -85,6 +86,8 @@ module audio_spectrum_analyzer (
     // max + min/2 is a bounded visual magnitude approximation (~1 dB).
     wire [18:0] magnitude=abs_r>=abs_i?{1'b0,abs_r}+{2'b0,abs_i[17:1]}:
                                                    {1'b0,abs_i}+{2'b0,abs_r[17:1]};
+    reg [18:0] magnitude_pipe;
+    always @(posedge clk)magnitude_pipe<=magnitude;
     reg [18:0] band_max;
     reg [6:0] target;
     reg [6:0] smooth[0:63],peak[0:63];
@@ -109,9 +112,9 @@ module audio_spectrum_analyzer (
             window_product<=0;read_address<=0;stage<=0;group_base<=0;offset<=0;
             ar<=0;ai<=0;rc<=0;is_<=0;ic<=0;rs<=0;tr<=0;ti<=0;
             band_index<=0;band_end<=0;band_max<=0;target<=0;history_valid<=0;
-            bin_write<=0;bin_address<=0;bin_data<=0;
+            bin_write<=0;bin_address<=0;bin_data<=0;linear_write<=0;linear_address<=0;linear_data<=0;
         end else begin
-            bin_write<=0;capture_pending<=0;
+            bin_write<=0;linear_write<=0;capture_pending<=0;
             case(state)
                 CAPTURE:if(sample_tick)begin
                     window_product<=$signed(audio_sample)*$signed(window_q);
@@ -140,9 +143,10 @@ module audio_spectrum_analyzer (
                     end else offset<=offset+1'b1;
                 end
                 BAND_START:begin read_address<=bands[band_index][19:10];band_end<=bands[band_index][9:0];band_max<=0;state<=SCAN_WAIT;end
-                SCAN_WAIT:state<=SCAN_BIN;
+                SCAN_WAIT:state<=18;
+                18:state<=SCAN_BIN;
                 SCAN_BIN:begin
-                    if(magnitude>band_max)band_max<=magnitude;
+                    if(magnitude_pipe>band_max)band_max<=magnitude_pipe;
                     if(read_address==band_end)state<=LOG_LEVEL;
                     else begin read_address<=read_address+1'b1;state<=SCAN_WAIT;end
                 end
@@ -150,8 +154,13 @@ module audio_spectrum_analyzer (
                 EMIT:begin
                     smooth[band_index]<=next_smooth;peak[band_index]<=next_peak;hold_count[band_index]<=next_hold;
                     bin_write<=1;bin_address<=band_index;bin_data<={next_peak,next_smooth};
-                    if(band_index==63)begin history_valid<=1;state<=CAPTURE;end
+                    if(band_index==63)begin history_valid<=1;read_address<=0;state<=16;end
                     else begin band_index<=band_index+1'b1;state<=BAND_START;end
+                end
+                16:state<=19;
+                19:state<=17;
+                17:begin linear_write<=1;linear_address<=read_address[8:0];linear_data<={to_level(magnitude_pipe),to_level(magnitude_pipe)};
+                    if(read_address==511)state<=CAPTURE;else begin read_address<=read_address+1'b1;state<=16;end
                 end
                 default:state<=CAPTURE;
             endcase

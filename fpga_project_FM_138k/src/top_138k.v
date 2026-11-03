@@ -1,6 +1,6 @@
 // XiaoMeiGe ACG720, GW5AT-LV138PG484AC1/I0.
 // PC: CH340 at 115200 baud. Keyboard: external CH376S, SPI mode 0.
-module top_138k #(parameter integer LEGACY_BRIDGE_ENABLED=0) (
+module top_138k #(parameter integer LEGACY_BRIDGE_ENABLED=0,CH376_ENABLED=1) (
     input wire clk,
     input wire reset_button_n,
     input wire uart_rx_pin,
@@ -88,12 +88,18 @@ wire eg2_we;wire [9:0] eg2_addr;wire [7:0] eg2_data;wire eg2_enable;
     wire usb_valid,usb_ready,merged_valid,merged_ready,input_valid;
     wire ch376_present,ch376_configured;
     wire [7:0] ch376_fault;
+    generate if(CH376_ENABLED)begin:g_ch376
     ch376_midi_host u_ch376(.clk(clk),.reset_n(reset_n),
         .spi_cs_n(ch376_cs_n),.spi_sck(ch376_sck),.spi_mosi(ch376_mosi),
         .spi_miso(ch376_miso),.interrupt_n(ch376_int_n),
         .midi_event_data(usb_event),.midi_event_valid(usb_valid),.midi_event_ready(usb_ready),
         .module_present(ch376_present),.configured(ch376_configured),.fault_code(ch376_fault),
         .vendor_id(),.product_id(),.ignored_words(),.nak_count());
+    end else begin:g_no_ch376
+        assign ch376_cs_n=1'b1;assign ch376_sck=1'b0;assign ch376_mosi=1'b0;
+        assign usb_event=0;assign usb_valid=0;
+        assign ch376_present=0;assign ch376_configured=0;assign ch376_fault=0;
+    end endgenerate
     // USB cable/CIN is transport metadata, not the internal demo/ARP owner tag.
     midi_event_arbiter3 u_midi_inputs(.clk(clk),.reset_n(reset_n),
         .data0({8'd0,usb_event[23:0]}),.valid0(usb_valid),.ready0(usb_ready),

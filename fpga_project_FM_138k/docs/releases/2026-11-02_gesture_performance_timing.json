@@ -1,0 +1,11 @@
+﻿{
+    "completed":  "2026-11-02T19:47:47.8312926+08:00",
+    "regressions_pass":  true,
+    "flashed":  false,
+    "timing_pass":  true,
+    "standard_fs_replaced":  false,
+    "keyboard":  "CH376",
+    "sha256":  "688E582974430D80DB64262CD2CB4E84E068F188DB3A17C38E6832B80B4AC488",
+    "bitstream":  "D:\\a_My_projects\\Gowin_publish\\fpga_project_FM_138k\\impl\\pnr\\fm_138k_gesture_performance.fs",
+    "status":  "PASS"
+}

@@ -1,0 +1,3 @@
+PASS exact keyboard index/borders for all 800 pixels
+PASS RGB/XY raster, stable pixels and PLL-loss recovery, quiet=0 messy=0 height=112
+sim/tb_rgb_visualizer.sv:208: $finish called at 51840885000 (1ps)
