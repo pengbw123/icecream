@@ -1,2 +1,0 @@
-PASS OV5640 physical SCCB: repeated START/IDs, 252 writes, 13 mode readbacks, master NACK, retry/stretch, wrong ID/mode, absent/stuck bus, delayed startup grace, bounded no-stream retry and running watchdog recovery
-sim/tb_ov5640_config.sv:44: $finish called at 33391371000 (1ps)

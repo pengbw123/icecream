@@ -1,2 +1,0 @@
-PASS production TFT camera pipeline: 800x480 RGB565->center crop/4x4->160x120 RGB332->HDMI + real NN,     2087228 checked pixels,           8 presentations, bad-frame rejection, coherent banks, delayed startup, independent HDMI/camera PLL loss and neural frames during HDMI outage
-sim/tb_camera_pipeline.sv:132: $finish called at 416229984000 (1ps)

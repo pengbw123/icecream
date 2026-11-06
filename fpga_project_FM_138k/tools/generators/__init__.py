@@ -1,1 +1,0 @@
-"""FPGA table generators."""

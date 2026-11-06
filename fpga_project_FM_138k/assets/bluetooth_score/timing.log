@@ -1,7 +1,0 @@
-clk_50m: required 50.000 MHz, Fmax 50.074 MHz
-camera_pclk_85m: required 85.000 MHz, Fmax 102.672 MHz
-pixel_33m: required 33.333 MHz, Fmax 35.696 MHz
-hdmi_pixel_25m: required 25.000 MHz, Fmax 78.106 MHz
-hdmi_serial_125m: required 125.000 MHz, Fmax 223.746 MHz
-camera_xclk_24m: Gowin reports no data timing paths
-PASS all constrained clocks: setup/hold TNS = 0

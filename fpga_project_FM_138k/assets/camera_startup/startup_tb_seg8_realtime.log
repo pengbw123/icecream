@@ -1,2 +1,0 @@
-PASS seg8 production parameters: 40 ms peak window, 50 kHz serial pins, L 50P 32, silence L 00P 00 (362 digit frames)
-sim/tb_seg8_realtime.sv:43: $finish called at 127000100000 (1ps)

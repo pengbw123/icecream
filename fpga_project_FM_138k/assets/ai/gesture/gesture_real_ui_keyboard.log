@@ -1,8 +1,0 @@
-WARNING: src/usb_midi/rtl/rv32i.v:447: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
-WARNING: src/usb_midi/rtl/rv32i.v:421: $readmemh(src/ui_firmware/firmware.hex): Too many words in the file for the requested range [0:16383].
-UI MIDI 00903064 at          57027070000
-UI MIDI 00803000 at          63277390000
-UI MIDI 0090487f at         197137070000
-UI MIDI 00804800 at         203396510000
-PASS full-width edge keys, default/custom velocity, volume 5 and headphone selection
-sim/tb_touch_ui.sv:749: $finish called at 208396510000 (1ps)

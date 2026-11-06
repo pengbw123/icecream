@@ -1,2 +1,0 @@
-PASS imported Bluetooth integration: 8192 events/32 voices, busy NAK, edge-triggered mode cancellation, stalled event stability, bounded cleanup and replay
-sim/tb_score_guard.sv:86: $finish called at 721172000 (1ps)

@@ -1,2 +1,0 @@
-PASS gesture_perform: fist first-bar wait and loop integrity, palm resume, beat XY, boundary variation, manual stop and NoteOff
-sim/tb_gesture_perform.sv:43: $finish called at 76841940000 (1ps)

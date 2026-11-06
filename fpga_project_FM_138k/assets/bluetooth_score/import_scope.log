@@ -1,2 +1,0 @@
-PASS imported score scoped cleanup preserves BACKING; human panic still global
-sim/tb_fm_readback.sv:623: $finish called at 104900000 (1ps)

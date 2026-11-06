@@ -1,2 +1,0 @@
-PASS production score tags->owners->FM32: polyphonic playback, same-note human ownership, BACKING preserved, glide restored, global panic, no missed samples
-sim/tb_score_audio.sv:76: $finish called at 4072460000 (1ps)

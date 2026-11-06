@@ -1,2 +1,0 @@
-PASS real top MIDI ingress: 144 events, three concurrent sources, mailbox ack/hold, calibrated velocity, brightness, long/random stalls, stable payload, priority, no drops/duplicates, reset flush
-sim/tb_midi_ingress.sv:104: $finish called at 31300000 (1ps)

@@ -1,2 +1,0 @@
-PASS gesture_video: coherent 324-bit mask/status snapshot, all displayed input pixels and ordering, no active-frame tearing, ROI alignment, reason text, OFF restoration
-sim/tb_gesture_video.sv:52: $finish called at 112064901000 (1ps)

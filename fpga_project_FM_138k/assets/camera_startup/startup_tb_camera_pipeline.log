@@ -1,2 +1,0 @@
-PASS production camera pipeline: SCCB->320x240 RGB565->160x120 RGB332 dual banks->640x480 HDMI,     1100800 checked pixels,           4 presentations, bad frame rejected, faster producer whole-frame drops, no tearing, stale detection and PLL recovery
-sim/tb_camera_pipeline.sv:112: $finish called at 194714580000 (1ps)

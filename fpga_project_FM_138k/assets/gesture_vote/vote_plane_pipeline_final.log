@@ -1,2 +1,0 @@
-PASS gesture_plane_pipeline: 13 RGB332 results, exposure/gradient/random/blank, ROI/CDC/normalize/NN scores and energy exact, bad frames, stopped clock, disable during normalize and reenable
-sim/tb_gesture_plane_pipeline.sv:73: $finish called at 8380300000 (1ps)

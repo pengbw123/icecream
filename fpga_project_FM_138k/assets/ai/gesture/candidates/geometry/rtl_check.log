@@ -1,2 +1,0 @@
-PASS gesture_mlp: all 1116 logits bit-exact; 318/372 classified correctly; cycles=12486
-sim/tb_gesture_mlp.sv:45: $finish called at 95084900000 (1ps)

@@ -1,2 +1,0 @@
-PASS gesture_plane_controller: held-out frames to actual composer, display-only/arming, manual override, start/stop/variation, no hanging notes, PCLK loss/reset
-sim/tb_gesture_plane_controller.sv:89: $finish called at 20416700000 (1ps)

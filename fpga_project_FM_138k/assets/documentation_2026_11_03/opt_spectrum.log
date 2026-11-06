@@ -1,2 +1,0 @@
-PASS spectrum FFT order/sign/scaling, Hann calibration, log bands, silence, negative FS and release
-sim/tb_audio_spectrum.sv:75: $finish called at 13022511000 (1ps)

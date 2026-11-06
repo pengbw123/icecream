@@ -1,3 +1,0 @@
-PASS UI layout: 81092 image bytes, 10832 BSS bytes in data alias, 17212 stack bytes; constants/instructions isolated
-Touch/UI firmware: 81092 / 81920 instruction-ROM bytes
-Generated: D:\a_My_projects\Gowin_publish\fpga_project_FM_138k\src\ui_firmware\firmware.hex

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="launcher_background">#25634D</color>
+    <style name="InstrumentTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#25634D</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F5F5F0</item>
+        <item name="android:navigationBarColor">#F5F5F0</item>
+        <item name="android:windowBackground">#F5F5F0</item>
+        <item name="android:colorControlHighlight">#1925634D</item>
+    </style>
+</resources>

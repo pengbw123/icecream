@@ -1,2 +1,0 @@
-PASS camera diagnostics: coherent held frame packet, accurate independent PCLK rate/stop detection, raw H/V activity, retained failure evidence and readable ID/fault/geometry hex glyphs
-sim/tb_camera_diagnostics.sv:47: $finish called at 6123360000 (1ps)

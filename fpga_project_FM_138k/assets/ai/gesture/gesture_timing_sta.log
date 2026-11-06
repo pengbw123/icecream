@@ -1,6 +1,0 @@
-clk_50m: required 50.000 MHz, Fmax 50.069 MHz
-camera_pclk_50m: required 50.000 MHz, Fmax 106.012 MHz
-pixel_33m: required 33.333 MHz, Fmax 34.835 MHz
-hdmi_pixel_25m: required 25.000 MHz, Fmax 73.670 MHz
-hdmi_serial_125m: required 125.000 MHz, Fmax 358.422 MHz
-PASS all constrained clocks: setup/hold TNS = 0
